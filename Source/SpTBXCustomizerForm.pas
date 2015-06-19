@@ -33,9 +33,6 @@ Requirements:
 Development notes:
   - All the theme changes and adjustments are marked with '[Theme-Change]'.
 
-History:
-  -
-
 ==============================================================================}
 
 interface

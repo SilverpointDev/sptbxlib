@@ -1,7 +1,7 @@
 unit SpTBXPageScroller;
 
 {==============================================================================
-Version 2.5.2
+Version 2.5.3
 
 The contents of this file are subject to the SpTBXLib License; you may
 not use or distribute this file except in compliance with the
@@ -35,36 +35,6 @@ Requirements:
 Development notes:
   - All the Windows and Delphi bugs fixes are marked with '[Bugfix]'.
   - All the theme changes and adjustments are marked with '[Theme-Change]'.
-
-History:
-28 October 2014 - version 2.5.2
-  - No changes.
-
-28 May 2014 - version 2.5.1
-  - No changes.
-
-18 March 2014 - version 2.5
-  - No changes.
-
-15 April 2013 - version 2.4.8
-  - No changes.
-
-7 February 2012 - version 2.4.7
-  - Minor bug fixes.
-  - Added support for Delphi XE2.
-  - Added support for 64 bit Delphi compiler.
-
-25 June 2011 - version 2.4.6
-  - No changes.
-
-12 March 2010 - version 2.4.5
-  - No changes.
-
-2 December 2009 - version 2.4.4
-  - No changes.
-
-13 September 2009 - version 2.4.3
-  - Initial release, initial author: Kiriakos.
 
 ==============================================================================}
 

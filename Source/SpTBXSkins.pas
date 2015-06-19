@@ -1,7 +1,7 @@
 unit SpTBXSkins;
 
 {==============================================================================
-Version 2.5.2
+Version 2.5.3
 
 The contents of this file are subject to the SpTBXLib License; you may
 not use or distribute this file except in compliance with the
@@ -50,90 +50,6 @@ Development notes:
       Result.State := Integer(Detail);
     end;
     All this adjustments are marked with '[Old-Themes]'
-
-History:
-28 October 2014 - version 2.5.2
-  - No changes.
-
-28 May 2014 - version 2.5.1
-  - No changes.
-
-18 March 2014 - version 2.5
-  - Minor fixes.
-
-15 April 2013 - version 2.4.8
-  - No changes.
-
-7 February 2012 - version 2.4.7
-  - Minor bug fixes.
-  - Added support for Delphi XE2.
-  - Added support for 64 bit Delphi compiler.
-
-25 June 2011 - version 2.4.6
-  - No changes.
-
-12 March 2010 - version 2.4.5
-  - No changes.
-
-2 December 2009 - version 2.4.4
-  - Renamed the OfficeMenuSeparator skin option to OfficeMenu.
-
-13 September 2009 - version 2.4.3
-  - Improved the gradient painting performance, it's 2x faster on
-    Vista/Win7, thanks to Kyan and Jim Kueneman for the code donation.
-  - Fixed CurrentSkin.GetTextColor bug, it didn't return the
-    correct skncDockablePanelTitleBar text color when using
-    the EOS skin, thanks to Aaron Taylor for reporting this.
-  - Fixed CurrentSkin.GetTextColor bug, it didn't return the
-    correct skncButton disabled text color on Windows Vista,
-    thanks to Arvid for reporting this.
-
-8 May 2009 - version 2.4.2
-  - No changes.
-
-15 March 2009 - version 2.4.1
-  - Added OnSkinChange event to TSpTBXSkinManager.
-
-17 January 2009 - version 2.4
-  - Minor Fixes.
-
-26 September 2008 - version 2.3
-  - Fixed incorrect skin loading when the Aluminum skin was used,
-    thanks to Costas Stergiou for reporting this.
-
-29 July 2008 - version 2.2
-  - Fixed incorrect menu items painting on Vista when the Windows
-    themes was disabled, thanks to Arvid for reporting this.
-
-26 June 2008 - version 2.1
-  - Added Windows Vista specific constants to support Vista
-    themes on Delphi versions prior to 2007, thanks to Wolf B.
-    for his contribution.
-
-3 May 2008 - version 2.0
-  - Renamed TSpTBXSkinOptions.TitleBarBorderSize to
-    FloatingWindowBorderSize.
-
-2 April 2008 - version 1.9.5
-  - No changes.
-
-3 February 2008 - version 1.9.4
-  - Added TitleBarBorderSize to the skins options.
-
-19 January 2008 - version 1.9.3
-  - No changes.
-
-26 December 2007 - version 1.9.2
-  - New gradient skin style added to mimic Vista toolbar gradients, use
-    9 or 10 gradient style to paint vertically or horizontally.
-
-1 December 2007 - version 1.9.1
-  - Added Header and Tabs Toolbar skinning. skncHeader and skncTabToolbar
-    skin elements were added to the skin components type.
-  - Added SpDrawXPHeader utility function to paint the header controls.
-
-20 November 2007 - version 1.9
-  - Initial release.
 
 ==============================================================================}
 

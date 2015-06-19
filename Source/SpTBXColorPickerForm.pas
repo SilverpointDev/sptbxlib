@@ -34,9 +34,6 @@ Development notes:
   - All the Windows and Delphi bugs fixes are marked with '[Bugfix]'.
   - All the theme changes and adjustments are marked with '[Theme-Change]'.
 
-History:
-  -
-
 ==============================================================================}
 
 interface

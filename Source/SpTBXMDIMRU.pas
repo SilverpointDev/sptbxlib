@@ -1,7 +1,7 @@
 unit SpTBXMDIMRU;
 
 {==============================================================================
-Version 2.5.2
+Version 2.5.3
 
 The contents of this file are subject to the SpTBXLib License; you may
 not use or distribute this file except in compliance with the
@@ -34,79 +34,6 @@ Requirements:
 
 Development notes:
   - All the theme changes and adjustments are marked with '[Theme-Change]'.
-
-History:
-28 October 2014 - version 2.5.2
-  - No changes.
-
-28 May 2014 - version 2.5.1
-  - No changes.
-
-18 March 2014 - version 2.5
-  - No changes.
-
-15 April 2013 - version 2.4.8
-  - No changes.
-
-7 February 2012 - version 2.4.7
-  - Minor bug fixes.
-  - Added support for Delphi XE2.
-  - Added support for 64 bit Delphi compiler.
-
-25 June 2011 - version 2.4.6
-  - No changes.
-
-12 March 2010 - version 2.4.5
-  - No changes.
-
-2 December 2009 - version 2.4.4
-  - No changes.
-
-13 September 2009 - version 2.4.3
-  - Fixed TSpTBXMRUListItem.LoadFromIni/SaveToIni bug, in Delphi
-    2009, some strings are not stored correctly (Surrogate Pair),
-    thanks to Totonica for reporting this.
-  - Fixed incorrect TSpTBXMDIHandler MDI buttons painting when
-    using the default Windows theme, thanks to Cybrus for
-    reporting this.
-
-8 May 2009 - version 2.4.2
-  - Fixed incorrect MRU saving on TSpTBXMRUListItem, the
-    items were not correctly encoded when saving to an Ini
-    file, thanks to Dirk for reporting this.
-
-15 March 2009 - version 2.4.1
-  - No changes.
-
-17 January 2009 - version 2.4
-  - Added GetMRUFilenames and MRUClick methods to
-    TSpTBXMRUListItem.
-  - Added Hints to the items of TSpTBXMRUListItem.
-
-26 September 2008 - version 2.3
-  - No changes.
-
-29 July 2008 - version 2.2
-  - No changes.
-
-26 June 2008 - version 2.1
-  - No changes.
-
-3 May 2008 - version 2.0
-  - No changes.
-
-2 April 2008 - version 1.9.5
-  - Fixed incorrect MRU loading on TSpTBXMRUListItem, thanks
-    to Pete for reporting this.
-  - Fixed incorrect TSpTBXMRUListItem behavior, MaxItems
-    had no effect when new files were added, thanks to
-    Senfore for reporting this.
-
-3 February 2008 - version 1.9.4
-  - Added HidePathExtension property to TSpTBXMRUListItem.
-
-19 January 2008 - version 1.9.3
-  - Initial release.
 
 ==============================================================================}
 
