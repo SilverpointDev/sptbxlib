@@ -1,0 +1,54 @@
+package SpTBXLib_d23;
+
+{$R *.res}
+{$IFDEF IMPLICITBUILDING This IFDEF should not be used by users}
+{$ALIGN 8}
+{$ASSERTIONS ON}
+{$BOOLEVAL OFF}
+{$DEBUGINFO ON}
+{$EXTENDEDSYNTAX ON}
+{$IMPORTEDDATA ON}
+{$IOCHECKS ON}
+{$LOCALSYMBOLS ON}
+{$LONGSTRINGS ON}
+{$OPENSTRINGS ON}
+{$OPTIMIZATION OFF}
+{$OVERFLOWCHECKS OFF}
+{$RANGECHECKS OFF}
+{$REFERENCEINFO ON}
+{$SAFEDIVIDE OFF}
+{$STACKFRAMES ON}
+{$TYPEDADDRESS OFF}
+{$VARSTRINGCHECKS ON}
+{$WRITEABLECONST OFF}
+{$MINENUMSIZE 1}
+{$IMAGEBASE $4FC00000}
+{$DEFINE DEBUG}
+{$ENDIF IMPLICITBUILDING}
+{$DESCRIPTION 'Toolbar2000 -- SpTBXLib'}
+{$RUNONLY}
+{$IMPLICITBUILD OFF}
+
+requires
+  vcl,
+  tb2k_d23,
+  rtl,
+  vclx;
+
+contains
+  SpTBXItem in '..\Source\SpTBXItem.pas',
+  SpTBXControls in '..\Source\SpTBXControls.pas',
+  SpTBXTabs in '..\Source\SpTBXTabs.pas',
+  SpTBXDkPanels in '..\Source\SpTBXDkPanels.pas',
+  SpTBXEditors in '..\Source\SpTBXEditors.pas',
+  SpTBXExtEditors in '..\Source\SpTBXExtEditors.pas',
+  SpTBXColorPickerForm in '..\Source\SpTBXColorPickerForm.pas',
+  SpTBXMDIMRU in '..\Source\SpTBXMDIMRU.pas',
+  SpTBXFormPopupMenu in '..\Source\SpTBXFormPopupMenu.pas',
+  SpTBXCustomizer in '..\Source\SpTBXCustomizer.pas',
+  SpTBXCustomizerForm in '..\Source\SpTBXCustomizerForm.pas',
+  SpTBXPageScroller in '..\Source\SpTBXPageScroller.pas',
+  SpTBXSkins in '..\Source\SpTBXSkins.pas',
+  SpTBXDefaultSkins in '..\Source\SpTBXDefaultSkins.pas';
+
+end.
