@@ -1,0 +1,970 @@
+21 May 2016 - version 2.5.3
+  - Added support for RAD Studio XE8, RAD Studio 10 Seattle and RAD Studio 10.1 Berlin
+  
+28 October 2014 - version 2.5.2
+  - Added support for Delphi XE7
+    
+28 May 2014 - version 2.5.1
+  - Added support for Delphi XE6
+    
+18 March 2014 - version 2.5
+  - Added support for Delphi XE4 and XE5
+  - Removed support for older versions of Delphi, SpTBXLib
+    supports Delphi 2009 or newer.
+  - Fixed TSpTBXTabControl flicker when used inside of a
+    dockable panel.
+  - Minor bug fixes.
+    
+15 April 2013 - version 2.4.8
+  - Minor bug fixes.
+  - Removed SkinType property from all components.
+  - Added support for Delphi XE3.
+  
+7 February 2012 - version 2.4.7
+  - Added support for Delphi XE2, thanks to PyScripter and Denis Kisalev
+  - Added support for 64 bit Delphi compiler.
+  - Added support for Delphi Styles.
+  - Minor bug fixes.
+  
+25 June 2011 - version 2.4.6
+  - Added Delphi XE and C++Builder XE support.
+  - Added TabCloseMiddleClick property to SpTBXTabSet and
+    TSpTBXTabControl, when set to true a middle mouse button
+    on a tab item will close it.
+  - Added ShowCaption, Alignment and VerticalAlignment
+    properties to TSpTBXPanel.
+  - Added Ukranian translation for the Customizer demo,
+    thanks to Roman Sokhan.
+  - Updated SkinEditor to the latest version of SpTBXLib.
+  - Improved glass painting.
+  - Improved Toolbar Load/Save Position helpers to fix the
+    locked toolbars restoring TB2K issue.
+  - Changed tab close button behavior, the tab will close
+    when the mouse button is released, thanks to Simon H. for
+    reporting this.
+  - Fixed TSpTBXTitleBar bug, OnSystemMenuPopup was not fired
+    when the system menu was showed, thanks to Sebastien for
+    reporting this.
+  
+12 March 2010 - version 2.4.5
+  - Completed Japanese translation for the Customizer demo,
+    thanks to Minoru Yoshida.
+  - Fixed TSpTBXToolbar flicker when changing the floating toolbar
+    caption, thanks to Albert Wiersch for reporting this.
+  - Fixed incorrect TSpTBXDockablePanel floating border
+    painting on Aero when Resizable was set to false, thanks to
+    Erwin Denissen for reporting this.
+  - Fixed incorrect TSpTBXEditItem hottrack painting when the
+    edit was disabled on Aero, thanks to Erwin Denissen for
+    reporting this.
+  - Fixed incorrect TabControl behavior, when changing the
+    active tab the focused control was not correctly saved,
+    thanks to Dmitry Belkevich for reporting this.
+  - Fixed incorrect TSpTBXDockablePanel split resizing when
+    the mouse was moved too quickly, thanks to Mattias
+    Andersson for reporting this.
+  - Fixed incorrect TSpTBXSplitter sizing when AlignWithMargin
+    was set to true, thanks to Dany Marmur for reporting this.
+  - Fixed TSpTBXDockablePanel bug, the adjacent splitter is
+    misaligned when the DP is hidden at designtime, thanks to
+    Irina for reporting this.
+  - Fixed TSpTBXRadioButton double click handling, thanks
+    to Dmitry Belkevich for reporting this.
+  - Fixed incorrect SpInvalidateSpTBXControl message handling,
+    thanks to Michal Gajek for reporting this.
+  - Fixed TSpTBXCheckBox bug, the Checked property couldn't be
+    set to False when Style was set to cbGrayed, thanks to Yann
+    Papouin for reporting this.
+  	
+2 December 2009 - version 2.4.4
+  - Added AutoSize property to TSpTBXFormPopupMenu.
+  - Added Padding property to various controls, thanks to Boris Yankov
+    for reporting this.
+  - Completed Korean translation for the Customizer demo,
+    thanks to Hyeonwoo.
+  - Renamed the OfficeMenuSeparator skin option to OfficeMenu.
+  - Fixed bug in SpSetFormWindowState utility function, the Form
+    was not restored correctly, thanks to Alex Yagolnik for
+    reporting this.
+  - Fixed incorrect TSpTBXPopupWindow items margins, thanks to
+    Pedro Vugluskra for reporting this.
+  - Fixed TSpTBXLabel accel key handling, thanks to Costas
+    Stergiou for reporting this.
+  - Fixed incorrect hint handling on TSpTBXTextObject.
+  - Fixed flicker on TSpTBXComboBox when changing the font,
+    thanks to Simon H. for reporting this.
+  - Fixed TabControl flicker when changing the caption of a tab
+    item, thanks to Simon H. for reporting this.
+  	
+13 September 2009 - version 2.4.3
+  - Added support for Delphi 2010 and C++Builder 2010
+  - Added TSpTBXPageScroller control, thanks to Kiriakos for
+    the code donation.
+  - Added OnCanResize event to TSpTBXDockablePanel.
+  - Added OnCreateCustomizeForm event to TSpTBXCustomizer.
+  - Changed TSpTBXDockablePanel docking behavior, when the
+    panel is docked and it's DockPos isn't specified it
+    will be appended to the bottom of the MultiDock.
+  - Improved the Customizer demo, now it translates the Customizer
+    dialog form as well as the ColorEditor popup form.
+  - Improved the gradient painting performance, it's 2x faster on
+    Vista/Win7, thanks to Kyan and Jim Kueneman for the code donation.
+  - Made the NC area of the TSpTBXTitleBar clickeable when the
+    form is maximized.
+  - Skin Editor: sith the help of Silverpoint Skin Editor designers
+    will be able to easily create and change skins of applications
+    based on SpTBXLib.	
+  - Fixed incorrect menu items painting on Vista, thanks to
+    Maël Hörz and Sertac Akyuz for reporting this.
+  - Fixed TSpTBXToolbar flicker when adding/deleting items.
+  - Fixed incorrect TSpTBXStatusBar painting when XP theming was
+    disabled, thanks to Warren Postma for reporting this.
+  - Fixed incorrect TSpTBXDock painting when the Background
+    property was used.
+  - Fixed incorrect TSpTBXSpeedButton painting, when Flat is
+    set to true the button should be painted as a toolbar item,
+    thanks to Yann Papouin for reporting this.
+  - Fixed incorrect TSpTBXComboBox painting, when the Style
+    is set to csDropDownList and the control is disabled the
+    text is not painted with csGrayText. This is a VCL bug
+    the same happens with TComboBox when you set it to
+    csDropDownFixed (TSpTBXComboBox uses csDropDownFixed
+    instead of csDropDownList).
+    Thanks to Arvid for reporting this.
+  - Fixed incorrect TSpTBXSpinEdit behavior, when the focus
+    was changed the text wasn't validated, thanks to Stephan
+    for reporting this.
+  - Fixed incorrect caret positioning on TSpTBXSpinEdit when
+    using a Postfix, thanks to Eric Rappsilber for reporting
+    this.
+  - Fixed incorrect TSpTBXDockablePanel split resizing when
+    FixedDockedSize was true, thanks to Gilles Arcas for
+    reporting this.
+  - Fixed incorrect TSpTBXColorEdit behavior, when the focus
+    was changed the text wasn't validated, thanks to Stephan
+    for reporting this.
+  - Fixed TabControl flicker when closing/selecting/scrolling
+    tab items.
+  - Fixed incorrect TabControl painting when transparent
+    child controls get invalidated, thanks for Alfred Vink
+    for reporting this.
+  - Fixed incorrect TabControl scrolling, thanks to Henner
+    Drewes for reporting this.
+  - Fixed TSpTBXMRUListItem.LoadFromIni/SaveToIni bug, in Delphi
+    2009, some strings are not stored correctly (Surrogate Pair),
+    thanks to Totonica for reporting this.
+  - Fixed incorrect TSpTBXMDIHandler MDI buttons painting when
+    using the default Windows theme, thanks to Cybrus for
+    reporting this.
+  - Fixed CurrentSkin.GetTextColor bug, it didn't return the
+    correct skncDockablePanelTitleBar text color when using
+    the EOS skin, thanks to Aaron Taylor for reporting this.
+  - Fixed CurrentSkin.GetTextColor bug, it didn't return the
+    correct skncButton disabled text color on Windows Vista,
+    thanks to Arvid for reporting this.
+  - Fixed incorrect Customizer shortcut processing when the
+    shortcut text contains a space, thanks to Jim Kueneman
+    for reporting this.
+  	
+8 May 2009 - version 2.4.2
+  - Added Dutch translation for the Customizer demo, thanks to
+    Alfred Vink.
+  - Added Tooltips Vista theming.
+  - Added AllowAllUp property to TSpTBXSpeedButton.
+  - Added AutoDropDownWidth property to TSpTBXComboBox, use
+    this to automatically calculate the DropDown window size.
+  - Changed params of OnDrawItem and OnDrawItemBackground events
+    from TSpTBXComboBox.
+  - Fixed incorrect TSpTBXDockablePanel floating border
+    painting on Vista with Aero enabled, thanks to Mattias
+    Andersson for reporting this.
+  - Fixed incorrect TabControl behavior, when deleting the tabs
+    the ActiveTabIndex is incorrectly set if there are regular Items
+    on the control, thanks to Jonah for reporting this.
+  - Fixed incorrect MRU saving on TSpTBXMRUListItem, the
+    items were not correctly encoded when saving to an Ini
+    file, thanks to Dirk for reporting this.
+  	
+15 March 2009 - version 2.4.1
+  - Added ImageIndex property editor for TSpTBXTextObject descendants.
+  - Added GlyphLayout property to TSpTBXButton/TSpTBXSpeedButton.
+  - Added Flat property to TSpTBXButton/TSpTBXSpeedButton.
+  - Added HasEditButton public method to TSpTBXEdit.
+  - Added GetDropDownButtonRect public method to TSpTBXComboBox.
+  - Added OnSkinChange event to TSpTBXSkinManager.
+  - Fixed incorrect TntAction checking, thanks to Costas Stergiou
+    for reporting this.
+  - Fixed TSpTBXTrackBar bug, the Frequency property didn't work,
+    thanks to Alfred Vink for reporting this.
+  - Fixed TSpTBXEdit frame flicker, thanks to Marc Hoffmann for
+    reporting this.
+  - Fixed incorrect TSpTBXEdit frame painting when the edit was
+    placed on a Toolbar, thanks to Alfred Vink for reporting this.
+  - Fixed incorrect TSpTBXListBox painting when OnDrawItem event
+    was used, thanks to Evgeny Efimov for reporting this.
+  - Fixed TSpTBXSplitter bug, it wasn't correctly minimized
+    when MinSize was 1, 2 or 3, thanks to Sertac Akyuz for
+    fixing this.
+  - Fixed TSpTBXSplitter bug, it wasn't correctly restored
+    when SpTBIniLoadPositions was called.
+  - Fixed incorrect TSpTBXDockablePanel behavior, when DockMode
+    is dmCannotFloat the DP should be able to be re-docked,
+    thanks to Ivan Petrovic for reporting this.
+  - Fixed incorrect TSpTBXDockablePanel behavior, it wasn't
+    correctly resized when using the embedded splitter, thanks
+    to Gilles Arcas for reporting this.
+  - Fixed incorrect TSpTBXDockablePanel painting,
+    OnDrawCaptionPanel wasn't called when painting the NC
+    area borders, thanks to Mikael Stalvik for reporting this.
+  - Fixed incorrect Customizer loading and saving when Frames
+    were used, thanks to Eduardo Mauro for reporting this.
+  
+17 January 2009 - version 2.4
+  - New component added TSpTBXColorEdit.
+  - New component added TSpTBXColorListBox.
+  - New component added TSpTBXFontComboBox.
+  - Updated Customizer demo, now it supports Delphi 2009
+  - Added AutoItemHeight property to TSpTBXComboBox, use this
+    to automatically calculate the ItemHeight property when the
+    Style is csDropDown, csDropDownList or csSimple.
+  - Added GetMRUFilenames and MRUClick methods to
+    TSpTBXMRUListItem.
+  - Added Hints to the items of TSpTBXMRUListItem.
+  - Added FloatingClientWidth and FloatingClientHeight public
+    properties to TSpTBXDockablePanel.
+  - Added TaskPaneStyleResize property to the Options of
+    TSpTBXDockablePanel, when this property is set to True
+    the Minimize/Restore behavior will be the same as the
+    Windows Task Pane (the DockablePanel is minimized
+    from bottom to top).
+  - Changed TSpTBXDockablePanel undocking behavior the panel
+    will remember the previous floating size when it is
+    undocked.
+  - Changed TSpTBXDockablePanel docking behavior, when the
+    panel is docked on an empty MultiDock it will use the
+    DefaultDockedSize property to set its size.
+    If DefaultDockedSize is 0 it will use the floating size.
+  - Replaced the default Windows taskbar PopupMenu with a skninned
+    PopupMenu when TSpTBXTitleBar is used on the Main form.
+  - Fixed incorrect menu separator painting when it was used on
+    a ToolBoxPopup submenu, thanks to Yury Plashenkov for
+    reporting this.
+  - Fixed incorrect menu item margins, thanks to Eduardo Mauro
+    for reporting this.
+  - Fixed incorrect focus handling on TSpTBXFormPopupMenu,
+    when a dialog is showed on top of a TSpTBXFormPopupMenu and
+    the app is deactivated the Popup is closed but the dialog
+    stays, thanks to Sertac Akyuz for reporting this.
+  - Minor fixes.
+       
+26 September 2008 - version 2.3
+  - New Toolbar item added, TSpTBXColorItem.
+  - Added support for Delphi/C++Builder 2009 (TNT is not used)
+  - Added Japanese translation to the Customizer demo, thanks to
+    Minoru Yoshida.
+  - Added DefaultDockedSize property to TSpTBXDockablePanel,
+    this property is used to set the DockablePanel size when
+    it's docked on an empty MultiDock.
+  - Added ShowVerticalCaption property to TSpTBXDockablePanel,
+    this property is used to rotate the caption panel vertically.
+    When the DockablePanel is floating or docked on a vertical
+    MultiDock the caption will be horizontal regardless of the
+    value of ShowVerticalCaption.
+  - Added skinning support to TSpTBXComboBox items.
+  - Added hack to automatically adjust the ItemHeight based on
+    the ComboBox font size. Delphi doesn't do this when the
+    ComboBox is owner drawed.
+  - Fixed incorrect Alt-Space handling on TSpTBXTitleBar, the
+    System PopupMenu was still showed even when SystemMenu was
+    setted to False, thanks to Ilya Zaytsev for reporting this.
+  - Fixed incorrect items text sizing when SystemFont was setted
+    to False, thanks to Minoru Yoshida for reporting this.
+  - Fixed a Delphi 7 bug, D7 hints didn't support multi-monitors,
+    thanks to Costas Stergiou for reporting this.
+  - Fixed TSpTBXDockablePanel bug, anchored children were not
+    correctly resized when the Form was loaded, thanks to
+    Alex Neznanov for reporting this.
+  - Fixed TSpTBXDockablePanel bug, hiding/restoring a DP
+    misaligned the adjacent splitter, thanks to Alexander for
+    reporting this (related to Delphi's zero size align bug).
+  - Fixed TSpTBXDockablePanel bug, dragging a floating DP
+    with CTRL key pressed should not dock the DP.
+  - Fixed incorrect TSpTBXEditItem OnChange event handling,
+    the event was only fired if the text property was changed,
+    thanks to Anta for reporting this.
+  - Fixed incorrect skin loading when the Aluminum skin was used,
+    thanks to Costas Stergiou for reporting this.
+  - Removed LinkFont property from TSpTBXTextObject, having 2 font
+    properties to control the text state was a bad idea.
+  - Minor fixes.
+  
+29 July 2008 - version 2.2
+  - Fixed AV raised when Screen.MonitorFromWindow failed, thanks
+    to Andrew Denton for reporting this.
+  - Fixed TSpTBXDockablePanel bug, an AV was raised when the
+    DockablePanel was undocked when it was minimized by an
+    adjacent splitter, thanks to Minoru Yoshida for reporting this.
+  - Fixed incorrect ProgressBar painting on Windows Vista,
+    thanks to Arvid for reporting this.
+  - Fixed incorrect TSpTBXEditItem size when the item is on
+    a menu, thanks to David for reporting it.
+  - Fixed incorrect menu items painting on Vista when the Windows
+    themes was disabled, thanks to Arvid for reporting this.
+  - Fixed incorrect TRGBQuadArray declaration, thanks to Arvid
+    for reporting this.
+  - Fixed Vista painting bug, the menu checkboxes are stretched
+    by the themes API, this doesn't happen on XP, thanks to
+    Arvid for reporting this.
+  - Fixed incorrect gradients in Office 2003 skins, thanks to
+    David for reporting this.
+  
+26 June 2008 - version 2.1
+  - New skin added: Aluminum, thanks to Pete for his contribution.
+  - Added Windows Vista specific constants to support Vista
+    themes on Delphi versions prior to 2007, thanks to Wolf B.
+    for his contribution.
+  - Added Turkish translation for the Customizer demo, thanks to
+    Zylar.
+  - Added EditImageIndex property to TSpTBXEditItem and
+    TSpTBXSpinEditItem, use this to show an icon image
+    on the left of the EditCaption when the item is on a menu.
+  - Added AutoSplitterVisibility property to TSpTBXMultiDock,
+    use this property to autmotically hide the adjacent
+    splitter when the MultiDock is empty.
+  - Added OnWindowStateChanged event to TSpTBXDockablePanel,
+    this event is fired when the DockablePanel gets minimized,
+    maximized or restored.
+  - Fixed incorrect keyboard handling on TSpTBXTitleBar, Alt+Space
+    didn't popup the system menu, thanks to Costas Stergiou for
+    reporting this.
+  - Fixed TSpTBXDockablePanel bug, the floating panel was able to be
+    dragged offscreen leaving no way to move it back, thanks to
+    Minoru Yoshida for reporting this.
+  - Fixed TSpTBXSplitter bug, incorrect alignment when the split
+    control was minimized and the Form was resized, thanks to
+    Den and Minoru Yoshida for reporting this.
+  
+3 May 2008 - version 2.0
+  - SpTBXLib is now decoupled from TBX and uses the latest version
+    of TB2K, with NO PATCHES REQUIRED.
+  - MultiDocks doesn't have lateral splitters, you can solve this by
+    adding a TSplitter or a TSpTBXSplitter on the Form.
+  - The caption and close button of the DockablePanels are now visible
+    at designtime. 
+  - Added HideEmptyPopup property to TSpTBXSubmenuItem, when
+    the submenu has no items and this property is set the
+    popup window will not be showed.
+  - Added Swedish translation for the Customizer demo, thanks to
+    Mattias Andersson.
+  - Renamed TSpTBXSkinOptions.TitleBarBorderSize to
+    FloatingWindowBorderSize.
+  
+2 April 2008 - version 1.9.5
+  - Added ExtendedAccept property to TSpTBXSpinEditor.
+  - Fixed incorrect TSpTBXSpinEditor.ValueInc/ValueDec behavior
+    when ValueSnap was true and Increment was a fraction, thanks
+    to John for reporting this.
+  - Fixed incorrect item stretching when the toolbar was
+    vertical and tboImageAboveCaption was set, thanks to
+    John for reporting this.
+  - Fixed incorrect item painting when no themes were
+    used, thanks to Denis for reporting this.
+  - Fixed incorrect TSpTBXToolPalette.Images handling, thanks
+    to Minoru Yoshida for reporting this.
+  - Fixed incorrect menu gutter painting when hints were showed,
+    thanks to Michele and Beta Xiong for reporting this.
+  - Fixed incorrect floating border painting when the default
+    size was changed thanks to Costas Stergiou and Serge
+    for reporting this.
+  - Fixed incorrect floating border painting on Vista,
+    the borders should not be transparent, thanks to
+    Costas Stergiou for reporting this.
+  - Fixed incorrect MRU loading on TSpTBXMRUListItem, thanks
+    to Pete for reporting this.
+  - Fixed incorrect TSpTBXMRUListItem behavior, MaxItems
+    had no effect when new files were added, thanks to
+    Senfore for reporting this.
+  - Fixed incorrect TabControl behavior, when deleting the
+    only visible Tab all the auto-hidden tabs will not
+    be showed on resize, thanks to Jim for reporting this.
+  - Improved the background painting of TSpTBXPanel.
+    
+3 February 2008 - version 1.9.4
+  - Added HidePathExtension property to TSpTBXMRUListItem.
+  - Added TitleBarBorderSize to the skins options.
+  - Added LoadFromIni/SaveToIni to TSpTBXMRUListItem.
+  - Fixed AV on TabControl when scrolling tabs, thanks
+    to Beta Xiong and Yucel Yavuz for reporting this.
+  - Fixed incorrect TabControl.ScrollState behavior 
+    thanks to Michele for reporting this.
+  - Fixed incorrect TSpTBXSpinEditor.ValueInc/ValueDec behavior
+    when ValueSnap was true and Increment was higher than
+    10000, thanks to Yucel Yavuz for reporting this.
+  - Minor bug fixes.
+    
+19 January 2008 - version 1.9.3
+  - New component added: TSpTBXMDIHandler.
+  - New toolbar item added: TSpTBXMRUListItem.
+  - New toolbar item added: TSpTBXMDIWindowItem.
+  - New skin added: Human.
+  - Reduced ~10 KB from exe size.
+  - Completed the Brazilian Portuguese translation of the Customizer
+    demo, thanks to Mauricio Magnani.
+  - Added BlankSeparators property to TSpTBXCustomizer.
+  - Fixed item stretching problems.
+  - Fixed incorrect gutter painting on the popup menus.
+  - Fixed incorrect Autosizing of TSpTBXTextControl, thanks
+    to Alexey Naumov for reporting this.
+  - Fixed AV on TSpTBXCustomizer when ShorcutsList was nil
+    when calling ApplyItemOptions, thanks to PyScripter for
+    reporting this.
+  - Fixed recursion on TSpTBXTabToolbar.RightAlignItems,
+    thanks to Jim for reporting this.
+	  
+26 December 2007 - version 1.9.2
+  - New component added: TSpTBXToolWindow, a fully customizable 
+    ToolWindow with unicode support.
+  - New gradient skin style added to mimic Vista toolbar gradients, use
+    9 or 10 gradient style to paint vertically or horizontally.
+  - Added State parameter to OnDrawCaption event.
+  - Fixed AV on Delphi 2005, Margins and Paddings were introduced
+    on Delphi 2006, thanks to Stefan for reporting this.
+  - Fixed incorrect Default property handling of TSpTBXButton,
+    thanks to Karpushin Matvey and Beta Xiong for reporting this.
+  - Fixed AV on TSpTBXSplitter when the skin was changed, thanks
+    to Marko Savolainen for reporting this.
+  - Fixed incorrect TSpTBXSpinEdit font behavior, when the font
+    was changed at runtime the edit rect was not updated, thanks
+    to Beta Xiong for reporting this.
+  - Fixed incorrect focus handling on TSpTBXFormPopupMenu,
+    thanks to Costas Stergiou for reporting this.
+  - Minor bug fixes.
+  
+1 December 2007 - version 1.9.1
+  - Added Invalidate method to TSpTBXItem.
+  - Added OnClosePopup event to TSpTBXSubmenuItem.
+  - Added OnTabClosing event to TSpTBXTabItem.
+  - Added various painting enhancements made by Jim.
+  - Fixed tboNoRotation use on vertical toolbar items, when
+    tboImageAboveCaption is not set the glyph should appear
+    aligned with the caption.
+  - Fixed incorrect caption color on the controls when
+    the Font is changed, thanks to Arvid and Zunyite for
+    reporting this.
+  - Fixed incorrect nested panel painting (canvas was not locked),
+    thanks to Jim for reporting this.
+  - Fixed incorrect tab items painting when TabPosition was
+    ttpBottom, thanks to Marko Savolainen for reporting this.
+  	
+20 November 2007 - version 1.9
+  - Delphi and C++Builder 2007 support.
+  - Delphi 6 and C++Builder 6 are not supported.
+  - Vista support.
+  - Removed TBX dependency except for the DockablePanels.
+  - New skin engine.
+  - Reduced ~250 KB from exe size.
+  - Added TabBackgroundBorders property to TSpTBXTabSet and
+    TSpTBXTabControl, when set to true the tabs area is
+    painted with borders.
+  - Added TabCloseButton and TabCloseButtonImageIndex properties
+    to SpTBXTabSet and TSpTBXTabControl to control the close
+    button visibility on the tab items.
+  - Added TabMaxSize property to SpTBXTabSet and TSpTBXTabControl
+    to control the maximum size of the tab items.
+  - Removed TSpTBXComboBoxItem, TSpTBXDropDownItem, TSpTBXStringList and 
+    TSpTBXUndoList.
+  - Added TSpTBXToolPalette and TSpTBXColorPalette items with
+    unicode support.
+  - Added Reset method to TSpTBXCustomizer, used to reinitialize
+    the toolbars.
+  - Improved tab scrolling, thanks to Kevin Lu for
+    reporting this.
+  - Bug fixes.
+    
+8 February 2007 - version 1.8.3
+  - Updated TBXPatch218, it includes the fix described here:
+    http://news.jrsoftware.org/news/toolbar2000.thirdparty/msg12082.html
+  - Added GripHotTrack property to TSpTBXSplitter.
+  - Added accel char handling to TSpTBXTabSet and TSpTBXTabControl
+  - Added DeleteLayout method to TSpTBXCustomizer.
+  - The customizer now closes when ESC is pressed, thanks to
+    Jim Kueneman for reporting this.
+  - The customizer now saves the Toolbar's DisplayMode, thanks to
+    Jim Kueneman for reporting this.
+  - Added full Chinese language to the Customizer demo,
+    thanks to Beta Xiong for the translation.
+  - Fixed incorrect TSpTBXButton glyph painting when the caption
+    string was empty.
+  - Fixed incorrect TSpTBXDockablePanel alignment when an
+    adjacent splitter was being resized.
+  - Fixed incorrect OnChange event handling in TSpTBXEditItem,
+    thanks to Daniel Rikowski for reporting this.
+  
+17 December 2006 - version 1.8.2
+  - Added Toolbar public property to TSpTBXStatusBar.
+  - Added Toolbar public property to TSpTBXDockablePanel.
+  - Added AutoSize property to TSpTBXPanel.
+  - Fixed a BDS 2006 bug related to Comboboxes, CM_MOUSEENTER and 
+    CM_MOUSELEAVE are fired everytime the mouse is moved over the 
+    internal edit control. In D7 these messages were only fired when
+    the mouse entered or leaved the combobox.
+  - Fixed incorrect resizing behavior on TSpTBXSplitter when a
+    DockablePanel was adjacent.
+	  
+24 November 2006 - version 1.8.1
+  - Added properties to TSpTBXRightAlignSpacer: ImageIndex, Images,
+    OnAdjustFont, OnClick, OnDrawHint, OnDrawImage, OnDrawItem.
+  - Added unicode shortcut-text support for menu items, thanks
+    Steve for reporting this.
+  - Improved TSpTBXPanel painting, thanks to Jim Kueneman for
+    his code donation.
+  - Fixed incorrect focus behavior on TSpTBXRadioButton when used
+    on a groupbox, thanks to Andrew for reporting this.
+  - Fixed incorrect TSpTBXTitleBar positioning when the
+    taskbar is moved around the screen, thanks to
+    Costas Stergiou for reporting this.
+  - Fixed incorrect TSpTBXStatusBar size grip painting when
+    Windows XP themes are disabled, thanks to Alexey Naumov
+    for reporting this.
+  - Fixed incorrect TSpTBXDockablePanel behavior at designtime when
+    ShowCaptionWhenDocked or FixedDockedSize where changed.
+  - Fixed incorrect TSpTBXSpinEdit behavior, the Value was not updated
+    when the control was unfocused, thanks to Steve and Sebastian for
+    reporting this.
+	  
+27 August 2006 - version 1.8
+  - New component added, TSpTBXUndoList, thanks to Piotr Janus
+    for his code donation.
+  - New component added, TSpTBXFormPopupMenu, a TPopupMenu descendant
+    that can be linked to any control to popup or rolldown a custom Form.
+  - New demo added to show the features of TSpTBXFormPopupMenu.
+  - Added DropDownArrow property to TSpTBXButton and TSpTBXSpeedButton.
+  - Improved editor's button painting.
+  - Fixed incorrect DropdownCombo item painting, thanks to
+    François Rivierre for reporting this.
+  - Fixed incorrect TSpTBXTitleBar SystemMenu painting,
+    GetMenuStringW doesn't work correctly on Win2K/WinXP,
+    when a DBCS code page is active (e.g. Japanese), thanks
+    to Jordan Russell for reporting this.
+  - Fixed bug in TSpTBXLabelItem, clicking a TSpTBXLabelItem
+    on a popup menu causes the menu to close, thanks to
+    Piotr Janus for reporting this.
+  - Fixed TSpTBXDockablePanel hint not showing unicode text, thanks
+    to Costas Stergiou for reporting this.
+  - Fixed TSpTBXCustomizer items saving when the MenuBar items are
+    nested in more than 3 subitems levels, thanks to Jim Kueneman
+    for reporting this.
+  - Fixed incorrect TSpTBXGroupBox painting when changing the
+    Enabled property, thanks to Tomaz Kunaver for reporting this.
+  - Fixed incorrect OnActiveTabChanging handling when
+    ActiveTabIndex is changed on this event, thanks to
+    Serg Chechenin for reporting this.
+    	
+15 June 2006 - version 1.7
+  - Added vertical caption painting to toolbar items.
+  - Added CaptionGlow and CaptionGlowColor properties to
+    toolbar Items.
+  - Added Margins property to toolbar items.
+  - Added SaveFormState property to TSpTBXCustomizer, when SaveFormState
+    is true the main form position and WindowState are saved.
+  - Added Load and Save methods to TSpTBXCustomizer that loads/saves
+    the customizer options to a StringList, thanks to Philipp Hechter
+    for reporting this.
+  - Fixed incorrect TSpTBXTitleBar resizing when the form is
+    maximized and the titlebar is activated and deactivated
+    multiple times, thanks to Costas Stergiou for reporting this.
+  - Fixed incorrect TSpTBXButton painting when using a bitmap
+    skin and the DropDownMenu is shown, thanks to Boris Yankov
+    for reporting this.
+  - Fixed edit items incorrect painting, the items were not painted
+    using the color of FontSettings and EditorFontSettings properties,
+    the same happens with the TBX items.
+  - Fixed incorrect Tab painting when the default theme was used,
+    the captions were painted in a pushed state, thanks to
+    Mikalai Arapau for reporting this.
+  - Fixed incorrect Tab aligning when Autofit was used and the
+    tab control was parented by a Frame, thanks to
+    Henk van Kampen for reporting this.
+   
+4 May 2006 - version 1.6
+  - New component added, TSpTBXRadioGroup.
+  - Added OnSystemMenuPopup event to TSpTBXTitleBar, use this
+    event to remove or add items to the System Menu.
+  - Fixed incorrect TSpTBXStatusBar behavior, the size grip
+    disappeared when the parent was a TSpTBXTitleBar, thanks to
+    Costas Stergiou for reporting this.
+  - Fixed incorrect TSpTBXStatusBar's size grip painting when the
+    Default theme was used.
+  - Fixed incorrect TSpTBXLabelItem painting when the label was used
+    in a submenu, thanks to Costas Stergiou for reporting this.
+  - Fixed incorrect Tab painting when the default theme was used,
+    the captions were painted in a pushed state, thanks to
+    Mikalai Arapau for reporting this.
+  - Fixed incorrect Tab aligning when Autofit was used and the
+    tab control was parented by a Frame, thanks to
+    Henk van Kampen for reporting this.
+   	
+12 April 2006 - version 1.5
+  - Added ClickedItem parameter to TSpTBXSubmenuItem.OnClosePopup
+    event.
+  - Added ValueType, ValueAsInteger, Decimals, Prefix and Postfix
+    properties to TSpTBXSpinEdit, thanks to Maxim Rylov for his
+    code donation.				
+  - Fixed incorrect TSpTBXStatusBar behavior, it didn't resized
+    the form if the mouse click was on the non-client area of the
+    status bar, thanks to Frank de Groot for reporting this.
+  - Fixed incorrect mouse handling in TSpTBXTitlebar, thanks to
+    Marten Pape for reporting this.
+  - Fixed incorrect TSpTBXLabelItem alignment on menus, thanks to
+    Costas Stergiou for reporting this.
+  - Fixed incorrect Tab painting when TabAutofit was true.
+  - Fixed TSpTBXSpinEdit painting.
+       	
+27 February 2006 - version 1.4
+  - New component added, TSpTBXSpinEdit: a SpinEdit control 
+    that has TBX themes support.
+  - Added SizeGrip property to TSpTBXStatusBar.
+  - Added FullScreenMaximize property to TSpTBXTitleBar.
+  - Added GroupIndex property to TSpTBXButton and TSpTBXSpeedButton.
+  - Added OnActiveTabReorder event to TSpTBXTabSet and TSpTBXTabControl.
+  - Fixed TSpTBXComboBoxItem bug, when AutoComplete is set to
+    false the ComboBox still autocompletes the text, thanks to
+    Erwin Denissen for reporting this.
+  - Fixed Delphi 2005/2006 bug, CM_MOUSEENTER and CM_MOUSELEAVE
+    are fired everytime the mouse enters the combobox internal 
+    edit control. In prior versions of Delphi these messages 
+    were only fired when the mouse entered or leaved the combobox, 
+    including the internal edit control.
+  - Fixed flicker when reordering TSpTBXTabSet and TSpTBXTabControl
+    tabs, thanks to Alexey Naumov for reporting this.
+  - Fixed incorrect context menu handling in TSpTBXTabSet and
+    TSpTBXTabControl, thanks to Boris Yankov for reporting this.
+	  
+10 February 2006 - version 1.3
+  - New component added, TSpTBXSpeedButton: a SpeedButton
+    control with TBX themes support.
+  - New component added, TSpTBXSplitter: a Splitter control
+    with TBX themes support.
+  - New component added, TSpTBXButtonEdit: an Edit control
+    with TBX themes support and has a multipurpose button 
+    attached.
+  - Added OnClosePopup event to TSpTBXSubmenuItem.
+  - Added Active property to TSpTBXTitleBar.
+  - Added OnDrawBackground event to TSpTBXTitleBar.
+  - Added TabDragReorder property to TSpTBXTabSet and TSpTBXTabControl,
+    when this property is true it allows tabs reordering with
+    drag and drop.
+  - Added TabAutofit and TabAutofitMaxSize properties to TSpTBXTabSet
+    and TSpTBXTabControl. When TabAutofit is true the tabs are resized
+    to fit the tabset.
+  - Added new public method, AddEditButton, to TSpTBXEdit.
+  - Fixed AV in TSpTBXTitleBar at designtime, thanks to
+    Alexey Naumov for reporting this.
+  - Fixed incorrect TSpTBXButton behavior when trying to close the
+    DropDownMenu clicking the button, thanks to Alexey Naumov for
+    reporting this.
+  - Fixed incorrect system popupmenu visibility in TSpTBXTitleBar.
+  - Fixed incorrect TSpTBXDockablePanel docking behavior when
+    trying to dock on an empty MultiDock, thanks to Costas Stergiou
+    for reporting this.
+ 
+28 December 2005 - version 1.2
+  - Fixed range check errrors.
+  - Fixed incorrect items anchoring.
+  - Fixed incorrect TSpTBXTabControl background painting on some themes.
+  - Fixed incorrect OnActiveTabChange call when the component is being
+    loaded, thanks to Leroy Casterline for reporting this.
+  - Fixed incorrect tab scrolling when an item is deleted, thanks to
+    Daniel Rikowski for reporting this.
+  - Fixed incorrect ShortCut processing in TSpTBXCustomizer.
+  - Fixed incorrect TSpTBXDockablePanel caption resizing, thanks
+    to Costas Stergiou for reporting this.
+  - Fixed no hints in TSpTBXDockablePanel, thanks to Erwin Denissen
+    for reporting this.
+  - Published Autosize property on TSpTBXCheckbox and TSpRadioButton.
+  - Improved TSpTBXTextObject to support unicode actions links.
+  - Improved TSpTBXTextObject painting methods.
+    
+18 October 2005 - version 1.1
+  - Added MaxSize property to TSpTBXToolbar, determines
+    the maximum height the toolbar can have.
+  - Added radio item painting support.
+  - Added TBX themes support to TSpTBXTitleBar's system menu.
+  - Added Borders property to TSpTBXPanel and TSpTBXGroupBox.
+  - Added Margins property to TSpTBXPanel and TSpTBXGroupBox.
+  - Added OnDockedResizing event to TSpTBXMultiDock.
+  - Added Margins property to TSpTBXPageControl.
+  - New component added, TSpTBXListBox: a ListBox
+    with Unicode and TBX themes support that paints
+    a hottrack border and TBX theme style selection.
+  - New component added, TSpTBXCheckListBox: a CheckListBox
+    with Unicode and TBX themes support that paints
+    a hottrack border and TBX theme style selection.
+  - Fixed incorrect TSpTBXStatusBar margins when the form is
+    maximazed.
+  - Fixed incorrect accel char handling in TSpTBXToolbar.
+  - Fixed incorrect TntAction support, the previous version of
+    TntActions didn't supported unicode enabled ActionLinks.
+  - Fixed incorrect tab stop chars handling in TSpTBXItem.
+  - Fixed incorrect TSpTBXDockablePanel painting when Stripes
+    theme was used.
+  - Fixed incorrect TSpTBXDockablePanel painting when
+    HideWhenInactive is false and the application is deactivated,
+    thanks to Costas Stergiou for reporting this.
+  - Fixed incorrect TSpTBXDockablePanel caption resizing, thanks
+    to Costas Stergiou for reporting this.
+  - Fixed incorrect TSpTBXPanel painting when the parent is a
+    TSpTBXGroupBox with TBXBorderStyle enabled, thanks to
+    Marco Wünschmann for reporting this.
+  - Fixed TSpTBXComboBoxItem dynamic creation problem.
+  - Fixed incorrect TSpTBXTabItem painting on some themes.
+  
+18 August 2005 - version 1.0   
+  - Removed support for Delphi 5 and CBuilder 5.
+  - New component added: TSpTBXCustomizer, a toolbar customizer.
+  - Added DisplayMode property to TSpTBXToolbar, determines
+    whether the item's image is to be displayed.
+  - Added Customizable property to TSpTBXToolbar, determines
+    whether the toolbar is customizable or not.
+  - Added TitleBarSize property to the Options of the
+    TSpTBXTitlebar.
+  - Added TabVisible property to TSpTBXTabSet and TSpTBXPageControl.
+  - Added OnActiveTabChanging event to TSpTBXTabSet and TSpTBXPageControl.
+  - Added TitleBarSize property to the Options of the
+    TSpTBXDockablePanel.
+  - Fixed ShowCaption and ShowCaptionWhenDocked properties of
+    TSpTBXDockablePanel.
+  - Fixed flicker in TSpTBXDockablePanel, thanks to Costas Stergiou
+    for reporting this.
+	
+10 June 2005 - version 0.9
+  - SpTBXLib may now alternatively, at your option, be used and/or
+    distributed under the terms of the SpTBXLib License.
+    Please see the updated LICENSE.txt file for more information.
+
+20 May 2005 - version 0.8
+  - Fixed incorrect caption centering in TSpTBXItem.
+  - Fixed incorrect TSpTBXItem hint when accessing TntApplication,
+    thanks to Erik Maly for reporting this.
+  - Fixed incorrect focusing in TSpTBXButton.
+  - Fixed incorrect buttons painting in TSpTBXDockablePanel.
+  - Fixed incorrect caption painting in TSpTBXGroupBox when ClearType
+    was enabled, thanks to Aleksander Oven for reporting this.
+  - Fixed incorrect child controls transparency painting in TSpTBXPanel
+    when TBXStyleBackground was enabled.
+  - Fixed tab scrolling of TSpTBXTabSet and TSpTBXPageControl, the tabs
+    were not allowed to scroll when one single tab was visible, thanks
+    to Anders Olsson for the fix.
+  - Fixed TSpTBXDropDownItem and TSpTBXComboBoxItem bugs, the popup list
+    should be closed when F4 is pressed, thanks to Rune Moberg for
+    reporting this.
+  - Fixed TSpTBXComboBoxItem bug, the ComboBox didn't check the ItemIndex
+    bounds when pressing Up or Down keys, thanks to Rune Moberg for
+    reporting this.
+  - Fixed AV when trying to dock a toolbar with a TSpTBXComboBoxItem
+    on a vertical dock, thanks to Pavel for reporting this.
+  - Changed the Options property of TSpTBXTitleBar to use a base class
+    for default buttons.
+  - Added ChevronVertical property to TSpTBXToolbar, it changes the
+    layout of the chevron popup to be vertical.
+  - Added Wrapping property to TSpTBXItem, it determines the wrapping
+    type of the item's caption.
+  - Added FixedSize property to TSpTBXTitleBar, it determines if
+    the TitleBar can be resized.
+  - Added OnMouseDown, OnMouseMove, OnMouseUp events to TSpTBXTrackbar.
+  - Added GroupIndex property to TSpTBXRadioButton.
+  - Added unicode caption support on TSpTBXDockablePanel.
+  - Added default minimize, maximize and close buttons to
+    TSpTBXDockablePanel.
+  - Added MakeVisible method to the TSpTBXTabSet and TSpTBXPageControl,
+    it scrolls the tabset, if necessary, to ensure a Tab is in view.
+
+16 February 2005 - version 0.7
+  - Added Delphi 2005 support.
+  - Fixed unicode support in W9x.
+  - Fixed TSpTBXThemeGroupItem theme sync bug, it now correctly
+    selects the current TBX theme.
+  - Fixed TSpTBXTitleBar painting flicker.
+  - Fixed TSpTBXStatusBar right align margin.
+  - Fixed channel painting issues in TSpTBXTrackBar
+  - Fixed TSpTBXDockablePanel docking behavior, the MultiDock 
+    shouldn't be resized when a dockable panel is docked, thanks to 
+    Werner Lehmann for reporting this.
+  - Fixed TSpTBXMultiDock resizing bug, a client aligned 
+    TSpTBXMultiDock can't be resized correctly with the splitter 
+    if there's another MultiDock aligned at the right side of the 
+    form, thanks to Werner Lehmann for reporting this.
+  - Fixed editors bug, the editors autocomplete was case sensitive,
+    this is a TBX bug but it was fixed without patching the source,
+    thanks to Daniel Rikowski for reporting this.
+  - Fixed TSpTBXComboBox painting bug, the edit frame was not
+    correctly highlighted when using the Default theme.
+  - Added AutoCheck property to TSpTBXItem.
+  - Added TBXStyleBackground property to TSpTBXTitleBar, when setted 
+    to true it paints a TBX style background.
+  - Added DefaultDockedWidth and DefaultDockedHeight properties to
+    TSpTBXDockablePanel, determines the size of the dockable panel 
+    when it's docked on an empty MultiDock.
+  - Added DefaultTitleBar property to TSpTBXDockablePanel, when setted
+    to true the default caption and close button will be added to the
+    dockable panel.
+  - Added TBXStyleBackground property to TSpTBXPanel and 
+    TSpTBXGroupBox, when setted to true it paints a TBX style 
+    background.
+  - Added OnDrawBackground event to TSpTBXPanel and TSpTBXGroupBox.
+  - Added HotTrack property to TSpTBXEdit and TSpTBXComboBox, when
+    setted to true a TBX style frame will be painted when the mouse
+    is over the control.
+  - Added OnDrawBackground event to TSpTBXEdit and TSpTBXComboBox.
+  
+23 December 2004 - version 0.6
+  - New component added, TSpTBXEdit: a unicode enabled edit control 
+    with TBX themes support.
+  - New component added, TSpTBXComboBox: a unicode enabled ComboBox 
+    control with TBX themes support.
+  - New component added, TSpTBXTitleBar: a fully customizable
+    TitleBar with Unicode text and TBX themes support.
+  - New component added, TSpTBXPopupMenu: a TTBXPopupMenu descendant
+    with an OnPopupMenuInit event to setup the items before the popup
+    is showed, it could be used for example to set the focus to an
+    EditItem.
+  - New toolbar item added, TSpTBXEditItem: a TTBXEditItem descendant
+    with unicode support.
+  - New toolbar item added, TSpTBXComboBoxItem: a TTBXComboBoxItem 
+    descendant with unicode support.
+  - New toolbar item added, TSpTBXDropDownItem: a TTBXDropDownItem 
+    descendant with unicode support.
+  - New toolbar item added, TSpTBXStringListItem: a TTBXStringListItem 
+    descendant with unicode support.
+  - Fixed hint bug, ampersands were not removed in auto-generated hints.
+  - Fixed incorrect caption painting when the font is italic, this bug
+    is present in TBX items, TLabel, TBitBtn, TSpeedButton, TGroupBox,
+    TRadioGroup, and any other control that uses DrawText to draw the
+    caption. To reproduce this, drop a TBitBtn, change the caption to
+    'WWW' and the font to italic, the last W is cropped.
+  - Fixed incorrect caption painting when the Default theme is used,
+    the caption was not painted in a down state when the toolbarstyle
+    item was pushed, thanks Daniel Rikowski for reporting this.
+  - Fixed TSpTBXTabControl reordering bug.
+  - Fixed vertical channel painting issues in TSpTBXTrackbar.
+  - Changed the default value of DisplayMode to nbdmDefault.
+  - Changed the order of the TSpTBXTabThemeType enumerated type.
+  - Added SpChangeThemeType utility function, this makes it easier to
+    switch the theme type of any given control and its children.
+  - Added ActivePage property to the TSpTBXTabControl.
+  - Added ThemeType property to TSpTBXPanel and TSpTBXGroupBox.
+  - Added HotTrack property to TSpTBXPanel, this could be used to 
+    add TBX style borders to other controls.
+  - Added selection painting to TSpTBXTrackbar, thanks to picturewilly 
+    for this addition.
+  - Added design time unicode support.
+  - Demo updated.  
+  
+30 August 2004 - version 0.5
+  - Reworked the hint show event of the items.
+  - When the ThemeType is thtTBX and Default is selected as the
+    current theme the controls will be painted in Windows theme type.
+  - New component added, TSpTBXTrackBar, a trackbar with TBX themes
+    support and custom painting events.
+  - Added Action property to TSpTBXButton, TSpTBXLabel, TSpTBXCheckBox
+    and TSpTBXRadioButton components.
+  - Added DropDownMenu property to TSpTBXButton.
+  - Added Repeating property to TSpTBXButton.
+
+21 July 2004 - version 0.4
+  - Fixed TTBControlItem.Control streaming bug on TSpTBXStatusBar.
+  - Fixed bad sync of the items unicode caption and hint properties
+    when an Action was assigned.
+  - Fixed TSpTBXTabControl design time bug, it was allowing to drop
+    components when ActiveTabIndex = -1
+  - Fixed TSpTBXTabSet and TSpTBXTabControl design time bug, the
+    hidden items were not streamed to the DFM.
+  - Changed TSpTBXTabControl.OnTabClick event for OnActiveTabChange.
+  - New component added, TSpTBXProgressBar, a progress bar with
+    TBX themes support and custom painting events.
+  - Added GetPage method to TSpTBXTabControl to get the TSpTBXTabSheet
+    linked to a TSpTBXTabItem.
+  - Added Cancel and ModalResult properties for TSpTBXButton.
+  - Added CaptionGlow and CaptionGlowColor properties to TSpTBXLabel,
+    TSpTBXButton, TSpTBXCheckBox, TSpTBXRadioButton and
+    TSpTBXProgressBar. Setting these properties will paint the caption
+    outline with the desired color.
+  - Added maximize/minimize/restore capability to TSpTBXDockablePanel.
+  - Added FixedDockedSize property to TSpTBXDockablePanel, it determines
+    if the DockabelPanel is resizable when docked.
+  - Added packages res files.
+  - Demo updated.
+	
+12 July 2004 - version 0.3.1
+  - Fixed nasty AV when setting TBXSwitcher.EnableXPStyles to false,
+    thanks to Alfred for reporting this.
+    Note: TBXThemeManager unloads the theme library and the theme
+    parts when some conditions are met, we must handle extra theme
+    parts outside TBXThemeManager space.
+  - Fixed incorrect TSpTBXTabSet.ActiveTabIndex property update at
+    design time.
+  - Fixed incorrect TSpTBXTabSet painting on some TBX themes, thanks
+    to Tim for reporting this.
+
+9 July 2004 - version 0.3
+  - Fixed incorrect TSpTBXItem caption painting when DisplayMode
+    was nbdmDefault, thanks to Cyril for reporting this.
+  - Fixed design time AVs when moving or deleting TabSheets.
+  - Fixed incorrect painting on TSpTBXGroupBox when the theme
+    service was not available, thanks to Cyril for reporting this.
+  - Fixed AVs in SpTBXTabControl when the parent was a Frame,
+    thanks to Cyril for fix.
+  - Fixed incorrect text wrapping on TSpTBXLabel, thanks
+    to Cyril for the fix.
+  - Added anchors support for TTBControlItem items, if the associated
+    Control is client aligned or has akRight in its Anchors property.
+    This solves the problem of making an Internet Explorer type 
+    addressbar + Go button.
+  - The theme items in TSpTBXThemeGroupItem are now sorted.
+  - Added OnUpdate event to TSpTBXThemeGroupItem, this event is fired
+    every time the theme items list is recreated, use this event
+    to sort or change the items properties.
+  - Published ThemeType and TabPosition properties for TSpTBXTabItem.
+  - New component added, TSpTBXTabSet, a fully customizable TabSet 
+    with unicode and toolbar items support.
+  - Added Underline and UnderlineColor properties to TSpTBXLabel.
+  - Added LinkText, LinkTextParams, and LinkFont properties to
+    TSpTBXLabel and TSpTBXButton. Setting this properties will
+    allow the control to browse or execute the specified LinkText.
+    For example LinkText can have the following values:
+    - mailto:name@name.com
+    - http://www.embarcadero.com
+    - ftp://www.embarcadero.com
+    - news://news.jrsoftware.org
+    - C:\Windows (opens a folder in Windows Explorer, use the
+      LinkTextParams property to specify the parameters).
+    - Notepad.exe (runs an application, use the LinkTextParams
+      property to specify the parameters).
+    Note: the controls can execute unicode links and params, for
+    example you can open a folder named with unicode text or
+    browse for unicode named web sites, LinkText and LinkTextParams
+    are WideStrings.
+  - Demo updated.
+			  
+28 June 2004 - version 0.2
+  - Fixed Toolbar custom painting event.
+  - Fixed incorrect Shortcut painting in submenus.
+  - Fixed incorrect Shortcut hint painting.
+  - Fixed incorrect painting on TSpTBXPanel.
+  - Fixed incorrect painting on TSpTBXGroupBox.
+  - Fixed TSpTBXRadioButton bug, it was uncheckable.
+  - Fixed TSpTBXRadioButton focus selection by keyboard, it now 
+    checks itself when it gets the focus when using arrow keys.
+  - Removed thtBitmapSkin from TSpTBXThemeType.
+  - Published more properties for TSpTBXLabelItem.
+  - Added ThemeType property to TSpTBXCheckBox, it allows the 
+    CheckBox to override the active TBX theme.
+  - Added ThemeType property to TSpTBXRadioButton, it allows the 
+    RadioButton to override the active TBX theme.
+  - New Toolbar item added, TSpTBXSeparator.
+  - New component added, TSpTBXStatusBar: a fully customizable 
+    StatusBar with Unicode text and TBX themes support.
+  - Demo updated, new button skin added.
+
+22 June 2004 - version 0.1
+  - Initial release.

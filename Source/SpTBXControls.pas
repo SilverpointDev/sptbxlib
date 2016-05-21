@@ -1288,7 +1288,7 @@ begin
                 InflateRect(DeltaR, 0, -1);
               end;
               {$IFEND}
-              SpTBXThemeServices.DrawElement(ACanvas.Handle, Details, DeltaR, nil);
+              CurrentSkin.PaintThemedElementBackground(ACanvas, DeltaR, Details);
             end
             else begin
               // [Theme-Change]
@@ -1306,7 +1306,7 @@ begin
               end;
               if Vertical then Details := SpTBXThemeServices.GetElementDetails(tpChunkVert)
               else Details := SpTBXThemeServices.GetElementDetails(tpChunk);
-              SpTBXThemeServices.DrawElement(B.Canvas.Handle, Details, R, nil);
+              CurrentSkin.PaintThemedElementBackground(B.Canvas, R, Details);
               ChunkPaint := True;
             end;
           end;
@@ -1385,8 +1385,6 @@ end;
 procedure SpDrawXPTrackBar(ACanvas: TCanvas; ARect: TRect; Part: Cardinal;
   Vertical, Pushed, ChannelSelection: Boolean; TickMark: TSpTBXTickMark;
   Min, Max, SelStart, SelEnd: Integer);
-var
-  Flags: Integer;
 
   procedure DrawChannelSelection(ChannelR: TRect);
   var
@@ -1413,6 +1411,8 @@ var
     end;
   end;
 
+var
+  Details: TThemedElementDetails;
 begin
   case SkinManager.GetSkinType of
     sknNone:
@@ -1430,25 +1430,28 @@ begin
       end;
     sknWindows, sknDelphiStyle:
       if Part = TBCD_THUMB then begin
-        if Pushed then Flags := TUS_HOT
-        else Flags := TUS_NORMAL;
+        Details.Element := teTrackBar;
+        if Pushed then Details.State := TUS_HOT
+        else Details.State := TUS_NORMAL;
         Case TickMark of
           tmxBottomRight:
-            if Vertical then Part := TKP_THUMBRIGHT
-            else Part := TKP_THUMBBOTTOM;
+            if Vertical then Details.Part := TKP_THUMBRIGHT
+            else Details.Part := TKP_THUMBBOTTOM;
           tmxTopLeft:
-            if Vertical then Part := TKP_THUMBLEFT
-            else Part := TKP_THUMBTOP;
+            if Vertical then Details.Part := TKP_THUMBLEFT
+            else Details.Part := TKP_THUMBTOP;
           tmxBoth, tmxCenter:
-            if Vertical then Part := TKP_THUMBVERT
-            else Part := TKP_THUMB;
+            if Vertical then Details.Part := TKP_THUMBVERT
+            else Details.Part := TKP_THUMB;
         end;
-        DrawThemeBackground(SpTBXThemeServices.Theme[teTrackBar], ACanvas.Handle, Part, Flags, ARect, nil);
+        CurrentSkin.PaintThemedElementBackground(ACanvas, ARect, Details);
       end
       else if Part = TBCD_CHANNEL then begin
-        if Vertical then Part := TKP_TRACKVERT
-        else Part := TKP_TRACK;
-        DrawThemeBackground(SpTBXThemeServices.Theme[teTrackBar], ACanvas.Handle, Part, TKS_NORMAL, ARect, nil);
+        Details.Element := teTrackBar;
+        Details.State := TKS_NORMAL;
+        if Vertical then Details.Part := TKP_TRACKVERT
+        else Details.Part := TKP_TRACK;
+        CurrentSkin.PaintThemedElementBackground(ACanvas, ARect, Details);
         DrawChannelSelection(ARect);
       end;
     sknSkin:

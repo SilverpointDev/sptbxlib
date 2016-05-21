@@ -1020,7 +1020,6 @@ function SpDrawXPGlassText(ACanvas: TCanvas; Caption: string; var ARect: TRect;
     DrawThemeTextEx(SpTBXThemeServices.Theme[teWindow], C.Handle, WP_CAPTION, CS_ACTIVE,
       PWideChar(WideString(Caption)), Length(Caption), Flags, @R, Options);
 
-
     Result := R.Bottom - R.Top;
   end;
 
@@ -2163,7 +2162,6 @@ end;
 procedure SpDrawXPEditFrame(ACanvas: TCanvas; ARect: TRect; Enabled, HotTrack: Boolean;
   ClipContent: Boolean; AutoAdjust: Boolean);
 var
-  PartID, Flags: Integer;
   BorderR: TRect;
   State: TSpTBXSkinStatesType;
   Entry: TSpTBXSkinOptionEntry;
@@ -2185,18 +2183,7 @@ begin
           SpDrawRectangle(ACanvas, ARect, 0, clBtnFace, clBtnFace, clBtnFace, clBtnFace);
       sknWindows, sknDelphiStyle:
         begin
-          if SpIsWinVistaOrUp then begin
-            // Use the new API on Windows Vista
-            PartID := CP_BORDER;
-            if not Enabled then Flags := CBXS_DISABLED
-            else if HotTrack then Flags := CBXS_HOT
-            else Flags := CBXS_NORMAL;
-          end
-          else begin
-            PartID := 0;
-            Flags := 0;
-          end;
-          DrawThemeBackground(SpTBXThemeServices.Theme[teComboBox], ACanvas.Handle, PartID, Flags, ARect, nil);
+          CurrentSkin.PaintThemedElementBackground(ACanvas, ARect, skncEditFrame, Enabled, False, HotTrack, False, False, False, False);
         end;
       sknSkin:
         begin
@@ -2300,7 +2287,6 @@ end;
 
 procedure SpDrawXPHeader(ACanvas: TCanvas; ARect: TRect; HotTrack, Pushed: Boolean);
 var
-  Flags: Cardinal;
   State: TSpTBXSkinStatesType;
 begin
   case SkinManager.GetSkinType of
@@ -2310,10 +2296,7 @@ begin
       end;
     sknWindows, sknDelphiStyle:
       begin
-        if Pushed then Flags := HIS_PRESSED
-        else if HotTrack then Flags := HIS_HOT
-        else Flags := HIS_NORMAL;
-        DrawThemeBackground(SpTBXThemeServices.Theme[teHeader], ACanvas.Handle, HP_HEADERITEM, Flags, ARect, nil);
+        CurrentSkin.PaintThemedElementBackground(ACanvas, ARect, skncHeader, True, Pushed, HotTrack, False, False, False, False);
       end;
     sknSkin:
       begin
@@ -3259,10 +3242,22 @@ begin
           end;
         Result := True;
       end;
-    {
-    skncEditFrame: ;
-    skncHeader: ;
-    }
+    skncEditFrame:
+      begin
+        // Use the new API on Windows Vista
+        if not SpIsWinVistaOrUp then Details := SpTBXThemeServices.GetElementDetails(tcComboBoxDontCare)
+        else if not Enabled then Details := SpTBXThemeServices.GetElementDetails(tcBorderDisabled)
+        else if HotTrack then Details := SpTBXThemeServices.GetElementDetails(tcBorderHot)
+        else Details := SpTBXThemeServices.GetElementDetails(tcBorderNormal);
+        Result := True;
+      end;
+    skncHeader:
+      begin
+        if Pushed then Details := SpTBXThemeServices.GetElementDetails(thHeaderItemPressed)
+        else if HotTrack then Details := SpTBXThemeServices.GetElementDetails(thHeaderItemHot)
+        else Details := SpTBXThemeServices.GetElementDetails(thHeaderItemNormal);
+        Result := True;
+      end;
     skncLabel:
       begin
         if Enabled then

@@ -194,7 +194,11 @@ procedure SpTBXPaintPageScrollButton(ACanvas: TCanvas; const ARect: TRect; Butto
 implementation
 
 uses
-  SysUtils, TB2Common, UxTheme, Themes;
+  SysUtils, Types, TB2Common,
+  {$IF CompilerVersion >= 25} // for Delphi XE4 and up
+  System.UITypes,
+  {$IFEND}
+  UxTheme, Themes;
 
 const
   ScrollDelay = 300;
@@ -225,7 +229,8 @@ var
   R: TRect;
   Flags: Integer;
   X, Y, Sz: Integer;
-  LColorRef: TColorRef;
+  C: TColor;
+  Details: TThemedElementDetails;
 begin
   R := ARect;
   case SkinManager.GetSkinType of
@@ -241,29 +246,32 @@ begin
         end;
         Windows.DrawFrameControl(ACanvas.Handle, R, DFC_SCROLL, Flags);
       end;
-    sknWindows:
+    sknWindows, sknDelphiStyle:
       begin
-        if Hot then Flags := TS_PRESSED
-        else Flags := TS_HOT;
-        DrawThemeBackground(SpTBXThemeServices.Theme[teToolBar], ACanvas.Handle, TP_BUTTON, Flags, ARect, nil);
-        GetThemeColor(SpTBXThemeServices.Theme[teToolBar], TP_BUTTON, Flags, TMT_TEXTCOLOR, LColorRef);
-        ACanvas.Pen.Color := LColorRef;
+        if Hot then
+          Details := SpTBXThemeServices.GetElementDetails(tbPushButtonHot)
+        else
+          Details := SpTBXThemeServices.GetElementDetails(tbPushButtonNormal);
+
+        CurrentSkin.PaintThemedElementBackground(ACanvas, ARect, Details);
+        CurrentSkin.GetThemedElementTextColor(Details, C);
       end;
-    sknSkin :
+    sknSkin:
       begin
         SpDrawXPButton(ACanvas, R, True, False, Hot, False, False, False);
         if Hot then
-          ACanvas.Pen.Color := CurrentSkin.GetTextColor(skncButton, sknsHotTrack)
+          C := CurrentSkin.GetTextColor(skncButton, sknsHotTrack)
         else
-          ACanvas.Pen.Color := CurrentSkin.GetTextColor(skncButton, sknsNormal);
+          C := CurrentSkin.GetTextColor(skncButton, sknsNormal);
       end;
   end;
 
-  if SkinManager.GetSkinType in [sknWindows, sknSkin] then begin
+  if SkinManager.GetSkinType <> sknNone then begin
     X := (R.Left + R.Right) div 2;
     Y := (R.Top + R.Bottom) div 2;
     Sz := Min(X - R.Left, Y - R.Top) * 3 div 4;
-    ACanvas.Brush.Color := ACanvas.Pen.Color;
+    ACanvas.Brush.Color := C;
+    ACanvas.Pen.Color := C;
     case ButtonType of
       tpsbtUp:
         begin
@@ -544,17 +552,17 @@ begin
         BR := R;
         if Orientation = tpsoVertical then BR.Bottom := BR.Top + ButtonSize
         else BR.Right := BR.Left + ButtonSize;
-        SpTBXPaintPageScrollButton(ACanvas, BR, CBtns[Orientation, False],
-          FScrollDirection < 0);
+        SpTBXPaintPageScrollButton(ACanvas, BR, CBtns[Orientation, False], FScrollDirection < 0);
       end;
       if tpsbNext in FVisibleButtons then
       begin
         BR := R;
         if Orientation = tpsoVertical then BR.Top := BR.Bottom - ButtonSize
         else BR.Left := BR.Right - ButtonSize;
-        SpTBXPaintPageScrollButton(ACanvas, BR, CBtns[Orientation, True],
-          FScrollDirection > 0);
+        SpTBXPaintPageScrollButton(ACanvas, BR, CBtns[Orientation, True], FScrollDirection > 0);
       end;
+      ACanvas.Brush.Color := clBlue;
+      ACanvas.Pen.Color := clBlue;
     finally
       ACanvas.Handle := 0;
       ACanvas.Free;
