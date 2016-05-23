@@ -1,7 +1,7 @@
 package SpTBXLibDsgn;
 
 {$R *.res}
-{$R '..\Source\SpTBXReg.dcr'}
+{$R '..\..\Source\SpTBXReg.dcr'}
 {$ALIGN 8}
 {$ASSERTIONS ON}
 {$BOOLEVAL OFF}
