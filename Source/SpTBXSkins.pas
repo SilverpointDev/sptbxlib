@@ -38,6 +38,7 @@ Development notes:
   - DT_END_ELLIPSIS and DT_PATH_ELLIPSIS doesn't work with rotated text
     http://support.microsoft.com/kb/249678
   - Vista theme elements are defined on the Themes unit on Delphi XE2 and up.
+    Delphi Styles are supported on Delphi XE2 and up.
     For older versions of Delphi we should fill the element details manually.
     When XE2 Styles are used menus and toolbar elements (teMenu and teToolbar)
     are painted by TCustomStyleMenuElements.DrawElement.
@@ -3042,16 +3043,20 @@ begin
       end;
     skncDockablePanel:
       begin
+        // [Old-Themes]
         {$IF CompilerVersion >= 23}
         // tcpBackground is defined only on XE2 and up
+        // Only used with Delphi Styles
         Details := SpTBXThemeServices.GetElementDetails(tcpBackground);
         Result := True;
         {$IFEND}
       end;
     skncDockablePanelTitleBar:
       begin
+        // [Old-Themes]
         {$IF CompilerVersion >= 23}
         // tcpThemedHeader is defined only on XE2 and up
+        // Only used with Delphi Styles
         Details := SpTBXThemeServices.GetElementDetails(tcpThemedHeader);
         Result := True;
         {$IFEND}
@@ -3119,6 +3124,7 @@ begin
     }
     skncToolbar:
       begin
+        // [Old-Themes]
         // On older versions is trBandNormal on XE2 is trBand
         {$IF CompilerVersion >= 23} // for Delphi XE2 and up
         Details := SpTBXThemeServices.GetElementDetails(trBand);
@@ -3244,18 +3250,42 @@ begin
       end;
     skncEditFrame:
       begin
-        // Use the new API on Windows Vista
+        // [Old-Themes]
+        {$IF CompilerVersion >= 23} //for Delphi XE2 and up
         if not SpIsWinVistaOrUp then Details := SpTBXThemeServices.GetElementDetails(tcComboBoxDontCare)
         else if not Enabled then Details := SpTBXThemeServices.GetElementDetails(tcBorderDisabled)
         else if HotTrack then Details := SpTBXThemeServices.GetElementDetails(tcBorderHot)
         else Details := SpTBXThemeServices.GetElementDetails(tcBorderNormal);
+        {$ELSE}
+        Details.Element := teComboBox;
+        if SpIsWinVistaOrUp then begin
+          // Use the new API on Windows Vista
+          Details.Part := CP_BORDER;
+          if not Enabled then Details.State := CBXS_DISABLED
+          else if HotTrack then Details.State := CBXS_HOT
+          else Details.State := CBXS_NORMAL;
+        end
+        else begin
+          Details.Part := 0;
+          Details.State := 0;
+        end;
+        {$IFEND}
         Result := True;
       end;
     skncHeader:
       begin
+        // [Old-Themes]
+        {$IF CompilerVersion >= 23} //for Delphi XE2 and up
         if Pushed then Details := SpTBXThemeServices.GetElementDetails(thHeaderItemPressed)
         else if HotTrack then Details := SpTBXThemeServices.GetElementDetails(thHeaderItemHot)
         else Details := SpTBXThemeServices.GetElementDetails(thHeaderItemNormal);
+        {$ELSE}
+        Details.Element := teHeader;
+        Details.Part := HP_HEADERITEM;
+        if Pushed then Details.State := HIS_PRESSED
+        else if HotTrack then Details.State := HIS_HOT
+        else Details.State := HIS_NORMAL;
+        {$IFEND}
         Result := True;
       end;
     skncLabel:
