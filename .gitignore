@@ -1,0 +1,4 @@
+*.dcu
+*.local
+*.stat
+__history
