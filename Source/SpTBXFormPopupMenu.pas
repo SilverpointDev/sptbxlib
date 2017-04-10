@@ -1,7 +1,7 @@
 unit SpTBXFormPopupMenu;
 
 {==============================================================================
-Version 2.5.2
+Version 2.5.3
 
 The contents of this file are subject to the SpTBXLib License; you may
 not use or distribute this file except in compliance with the
@@ -32,91 +32,6 @@ Requirements:
 For Delphi/C++Builder 2009 or newer:
   - Jordan Russell's Toolbar 2000
     http://www.jrsoftware.org
-
-History:
-28 October 2014 - version 2.5.2
-  - No changes.
-
-28 May 2014 - version 2.5.1
-  - No changes.
-
-18 March 2014 - version 2.5
-  - No changes.
-
-15 April 2013 - version 2.4.8
-  - No changes.
-
-7 February 2012 - version 2.4.7
-  - Minor bug fixes.
-  - Added support for Delphi XE2.
-  - Added support for 64 bit Delphi compiler.
-
-25 June 2011 - version 2.4.6
-  - No changes.
-
-12 March 2010 - version 2.4.5
-  - No changes.
-
-2 December 2009 - version 2.4.4
-  - Added AutoSize property to TSpTBXFormPopupMenu.
-
-13 September 2009 - version 2.4.3
-  - No changes.
-
-8 May 2009 - version 2.4.2
-  - No changes.
-
-15 March 2009 - version 2.4.1
-  - No changes.
-
-17 January 2009 - version 2.4
-  - Fixed incorrect focus handling on TSpTBXFormPopupMenu,
-    when a dialog is showed on top of a TSpTBXFormPopupMenu and
-    the app is deactivated the Popup is closed but the dialog
-    stays, thanks to Sertac Akyuz for reporting this.
-
-26 September 2008 - version 2.3
-  - No changes.
-
-29 July 2008 - version 2.2
-  - No changes.
-
-26 June 2008 - version 2.1
-  - No changes.
-
-3 May 2008 - version 2.0
-  - No changes.
-
-2 April 2008 - version 1.9.5
-  - No changes.
-
-3 February 2008 - version 1.9.4
-  - No changes.
-
-19 January 2008 - version 1.9.3
-  - No changes.
-
-26 December 2007 - version 1.9.2
-  - Fixed incorrect focus handling on TSpTBXFormPopupMenu,
-    thanks to Costas Stergiou for reporting this.
-
-1 December 2007 - version 1.9.1
-  - Removed TBX dependency.
-
-20 November 2007 - version 1.9
-  - Removed TBX dependency.
-
-8 February 2007 - version 1.8.3
-  - No changes.
-
-17 December 2006 - version 1.8.2
-  - No changes.
-
-24 November 2006 - version 1.8.1
-  - Fixed TSpTBXFormPopupMenu resizing flicker.
-
-27 August 2006 - version 1.8
-  - Initial release.
 
 ==============================================================================}
 

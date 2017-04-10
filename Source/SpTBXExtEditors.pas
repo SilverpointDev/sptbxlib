@@ -1,7 +1,7 @@
 unit SpTBXExtEditors;
 
 {==============================================================================
-Version 2.5.2
+Version 2.5.3
 
 The contents of this file are subject to the SpTBXLib License; you may
 not use or distribute this file except in compliance with the
@@ -37,50 +37,6 @@ Development notes:
 
 To Do:
   - Rotated caption painting.
-
-Known Issues:
-  -
-
-History:
-28 October 2014 - version 2.5.2
-  - No changes.
-
-28 May 2014 - version 2.5.1
-  - No changes.
-
-18 March 2014 - version 2.5
-  - No changes.
-
-15 April 2013 - version 2.4.8
-  - No changes.
-
-7 February 2012 - version 2.4.7
-  - Minor bug fixes.
-  - Added support for Delphi XE2.
-  - Added support for 64 bit Delphi compiler.
-
-25 June 2011 - version 2.4.6
-  - No changes.
-
-12 March 2010 - version 2.4.5
-  - No changes.
-
-2 December 2009 - version 2.4.4
-  - No changes.
-
-13 September 2009 - version 2.4.3
-  - Fixed incorrect TSpTBXColorEdit behavior, when the focus
-    was changed the text wasn't validated, thanks to Stephan
-    for reporting this.
-
-8 May 2009 - version 2.4.2
-  - No changes.
-
-15 March 2009 - version 2.4.1
-  - No changes.
-
-17 January 2009 - version 2.4
-  - Initial release.
 
 ==============================================================================}
 

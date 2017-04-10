@@ -1,7 +1,7 @@
 unit SpTBXDefaultSkins;
 
 {==============================================================================
-Version 2.5.2
+Version 2.5.3
 
 The contents of this file are subject to the SpTBXLib License; you may
 not use or distribute this file except in compliance with the
@@ -31,81 +31,6 @@ The initial developer of this code is Robert Lee.
 Requirements:
   - Jordan Russell's Toolbar 2000
     http://www.jrsoftware.org
-
-History:
-28 October 2014 - version 2.5.2
-  - No changes.
-
-28 May 2014 - version 2.5.1
-  - No changes.
-
-18 March 2014 - version 2.5
-  - No changes.
-
-15 April 2013 - version 2.4.8
-  - No changes.
-
-7 February 2012 - version 2.4.7
-  - Minor bug fixes.
-  - Added support for Delphi XE2.
-  - Added support for 64 bit Delphi compiler.
-
-25 June 2011 - version 2.4.6
-  - No changes.
-
-12 March 2010 - version 2.4.5
-  - No changes.
-
-2 December 2009 - version 2.4.4
-  - No changes.
-
-13 September 2009 - version 2.4.3
-  - No changes.
-
-8 May 2009 - version 2.4.2
-  - No changes.
-
-15 March 2009 - version 2.4.1
-  - No changes.
-
-17 January 2009 - version 2.4
-  - No changes.
-
-26 September 2008 - version 2.3
-  - No changes.
-
-29 July 2008 - version 2.2
-  - Fixed incorrect TRGBQuadArray declaration, thanks to Arvid
-    for reporting this.
-  - Fixed incorrect gradients in Office 2003 skins, thanks to
-    David for reporting this.
-  - Fixed Vista painting bug, the menu checkboxes are stretched
-    by the themes API, this doesn't happen on XP, thanks to
-    Arvid for reporting this.
-
-26 June 2008 - version 2.1
-  - New skin added: Aluminum, thanks to Pete for his contribution.
-
-3 May 2008 - version 2.0
-  - No changes.
-
-2 April 2008 - version 1.9.5
-  - No changes.
-
-3 February 2008 - version 1.9.4
-  - No changes.
-
-19 January 2008 - version 1.9.3
-  - New skin added: Human.
-  
-26 December 2007 - version 1.9.2
-  - No changes.
-
-1 December 2007 - version 1.9.1
-  - No changes.
-
-20 November 2007 - version 1.9
-  - Initial release.
 
 ==============================================================================}
 

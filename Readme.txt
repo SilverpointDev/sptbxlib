@@ -43,13 +43,14 @@ To install SpTBXLib manually:
 
 To install SpTBXLib with Silverpoint MultiInstaller (http://www.silverpointdevelopment.com/multiinstaller/index.htm):
 - Create a new folder for the installation.
-- Download all the component zips to a folder: SpTBXLib + TB2K
+- Download all the component zips to a folder: SpTBXLib + TB2K + TB2K Patch
 - Download the MultiInstaller and the Setup.Ini, extract them to the folder:
 
 The installation folder will end up with this files: 
 C:\MyInstall
        |-  SpTBXLib.zip
        |-  tb2k-2.2.2.zip
+       |-  TB2KPatch-2.2.2.zip
        |-  MultiInstaller.exe
        |-  Setup.ini 
 

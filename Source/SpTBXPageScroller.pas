@@ -1,7 +1,7 @@
 unit SpTBXPageScroller;
 
 {==============================================================================
-Version 2.5.2
+Version 2.5.3
 
 The contents of this file are subject to the SpTBXLib License; you may
 not use or distribute this file except in compliance with the
@@ -35,36 +35,6 @@ Requirements:
 Development notes:
   - All the Windows and Delphi bugs fixes are marked with '[Bugfix]'.
   - All the theme changes and adjustments are marked with '[Theme-Change]'.
-
-History:
-28 October 2014 - version 2.5.2
-  - No changes.
-
-28 May 2014 - version 2.5.1
-  - No changes.
-
-18 March 2014 - version 2.5
-  - No changes.
-
-15 April 2013 - version 2.4.8
-  - No changes.
-
-7 February 2012 - version 2.4.7
-  - Minor bug fixes.
-  - Added support for Delphi XE2.
-  - Added support for 64 bit Delphi compiler.
-
-25 June 2011 - version 2.4.6
-  - No changes.
-
-12 March 2010 - version 2.4.5
-  - No changes.
-
-2 December 2009 - version 2.4.4
-  - No changes.
-
-13 September 2009 - version 2.4.3
-  - Initial release, initial author: Kiriakos.
 
 ==============================================================================}
 
@@ -224,7 +194,11 @@ procedure SpTBXPaintPageScrollButton(ACanvas: TCanvas; const ARect: TRect; Butto
 implementation
 
 uses
-  SysUtils, TB2Common, UxTheme, Themes;
+  SysUtils, Types, TB2Common,
+  {$IF CompilerVersion >= 25} // for Delphi XE4 and up
+  System.UITypes,
+  {$IFEND}
+  UxTheme, Themes;
 
 const
   ScrollDelay = 300;
@@ -255,7 +229,8 @@ var
   R: TRect;
   Flags: Integer;
   X, Y, Sz: Integer;
-  LColorRef: TColorRef;
+  C: TColor;
+  Details: TThemedElementDetails;
 begin
   R := ARect;
   case SkinManager.GetSkinType of
@@ -271,29 +246,32 @@ begin
         end;
         Windows.DrawFrameControl(ACanvas.Handle, R, DFC_SCROLL, Flags);
       end;
-    sknWindows:
+    sknWindows, sknDelphiStyle:
       begin
-        if Hot then Flags := TS_PRESSED
-        else Flags := TS_HOT;
-        DrawThemeBackground(SpTBXThemeServices.Theme[teToolBar], ACanvas.Handle, TP_BUTTON, Flags, ARect, nil);
-        GetThemeColor(SpTBXThemeServices.Theme[teToolBar], TP_BUTTON, Flags, TMT_TEXTCOLOR, LColorRef);
-        ACanvas.Pen.Color := LColorRef;
+        if Hot then
+          Details := SpTBXThemeServices.GetElementDetails(tbPushButtonHot)
+        else
+          Details := SpTBXThemeServices.GetElementDetails(tbPushButtonNormal);
+
+        CurrentSkin.PaintThemedElementBackground(ACanvas, ARect, Details);
+        CurrentSkin.GetThemedElementTextColor(Details, C);
       end;
-    sknSkin :
+    sknSkin:
       begin
         SpDrawXPButton(ACanvas, R, True, False, Hot, False, False, False);
         if Hot then
-          ACanvas.Pen.Color := CurrentSkin.GetTextColor(skncButton, sknsHotTrack)
+          C := CurrentSkin.GetTextColor(skncButton, sknsHotTrack)
         else
-          ACanvas.Pen.Color := CurrentSkin.GetTextColor(skncButton, sknsNormal);
+          C := CurrentSkin.GetTextColor(skncButton, sknsNormal);
       end;
   end;
 
-  if SkinManager.GetSkinType in [sknWindows, sknSkin] then begin
+  if SkinManager.GetSkinType <> sknNone then begin
     X := (R.Left + R.Right) div 2;
     Y := (R.Top + R.Bottom) div 2;
     Sz := Min(X - R.Left, Y - R.Top) * 3 div 4;
-    ACanvas.Brush.Color := ACanvas.Pen.Color;
+    ACanvas.Brush.Color := C;
+    ACanvas.Pen.Color := C;
     case ButtonType of
       tpsbtUp:
         begin
@@ -574,17 +552,17 @@ begin
         BR := R;
         if Orientation = tpsoVertical then BR.Bottom := BR.Top + ButtonSize
         else BR.Right := BR.Left + ButtonSize;
-        SpTBXPaintPageScrollButton(ACanvas, BR, CBtns[Orientation, False],
-          FScrollDirection < 0);
+        SpTBXPaintPageScrollButton(ACanvas, BR, CBtns[Orientation, False], FScrollDirection < 0);
       end;
       if tpsbNext in FVisibleButtons then
       begin
         BR := R;
         if Orientation = tpsoVertical then BR.Top := BR.Bottom - ButtonSize
         else BR.Left := BR.Right - ButtonSize;
-        SpTBXPaintPageScrollButton(ACanvas, BR, CBtns[Orientation, True],
-          FScrollDirection > 0);
+        SpTBXPaintPageScrollButton(ACanvas, BR, CBtns[Orientation, True], FScrollDirection > 0);
       end;
+      ACanvas.Brush.Color := clBlue;
+      ACanvas.Pen.Color := clBlue;
     finally
       ACanvas.Handle := 0;
       ACanvas.Free;
