@@ -1,0 +1,48 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{C086DE4C-15B7-4504-8E52-BABD1856854F}</ProjectGuid>
+    </PropertyGroup>
+    <ItemGroup>
+        <Projects Include="SpTBXLib.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="SpTBXLibDsgn.dproj">
+            <Dependencies/>
+        </Projects>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Default.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Default.Personality/>
+        </BorlandProject>
+    </ProjectExtensions>
+    <Target Name="SpTBXLib">
+        <MSBuild Projects="SpTBXLib.dproj"/>
+    </Target>
+    <Target Name="SpTBXLib:Clean">
+        <MSBuild Projects="SpTBXLib.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="SpTBXLib:Make">
+        <MSBuild Projects="SpTBXLib.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="SpTBXLibDsgn">
+        <MSBuild Projects="SpTBXLibDsgn.dproj"/>
+    </Target>
+    <Target Name="SpTBXLibDsgn:Clean">
+        <MSBuild Projects="SpTBXLibDsgn.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="SpTBXLibDsgn:Make">
+        <MSBuild Projects="SpTBXLibDsgn.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Build">
+        <CallTarget Targets="SpTBXLib;SpTBXLibDsgn"/>
+    </Target>
+    <Target Name="Clean">
+        <CallTarget Targets="SpTBXLib:Clean;SpTBXLibDsgn:Clean"/>
+    </Target>
+    <Target Name="Make">
+        <CallTarget Targets="SpTBXLib:Make;SpTBXLibDsgn:Make"/>
+    </Target>
+    <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+</Project>
