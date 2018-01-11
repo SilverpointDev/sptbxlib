@@ -2812,7 +2812,7 @@ begin
     Item.EditorFontSettings.Apply(Canvas.Font);
     if Canvas.Font.Color = clNone then
       if Item.Enabled then
-        Canvas.Font.Color := CurrentSkin.GetThemedSystemColor(clBtnText)
+        Canvas.Font.Color := CurrentSkin.GetThemedSystemColor(clWindowText)
       else
         Canvas.Font.Color := CurrentSkin.GetThemedSystemColor(clGrayText);
     InflateRect(R, -SpDPIScale(2), -SpDPIScale(1));
