@@ -1316,9 +1316,9 @@ begin
   if L < 2 then Exit;
 
   if (S[1] = '#') and (L = 7) then begin
-    Delete(S, 1, 1); // strip the # char
+    S[1] := '$';
     if TryStrToInt(S, C) then begin
-      S := Format('$00%s%s%s', [Copy(S, 5, 2), Copy(S, 3, 2), Copy(S, 1, 2)]);
+      S := Format('$00%s%s%s', [Copy(S, 6, 2), Copy(S, 4, 2), Copy(S, 2, 2)]);
       Color := StringToColor(S);
       Result := True;
     end;
