@@ -2069,7 +2069,10 @@ begin
       DummyRightGlyphSize.cx := 0;
       DummyRightGlyphSize.cy := 0;
       DummyRightGlyphRect := Rect(0, 0, 0, 0);
-      SpCalcXPText(ACanvas, ARect, WS, GetRealAlignment(Self), TextFlags, GlyphSize, DummyRightGlyphSize, FGlyphLayout, DrawPushedCaption and Pushed, R1, R2, DummyRightGlyphRect, FCaptionRoatationAngle);
+      SpCalcXPText(ACanvas, ARect, WS, GetRealAlignment(Self), TextFlags,
+        GlyphSize, DummyRightGlyphSize, FGlyphLayout,
+        DrawPushedCaption and Pushed, R1, R2,
+        DummyRightGlyphRect, FCaptionRoatationAngle);
 
       // Paint the text
       if IsGlassPainting then
@@ -2077,10 +2080,10 @@ begin
       else begin
         if not Enabled then
           if SkinManager.GetSkinType = sknNone then begin
-            OffsetRect(R1, 1, 1);
+            OffsetRect(R1, SpDPIScale(1), SpDPIScale(1));
             ACanvas.Font.Color := clBtnHighlight;
             SpDrawXPText(ACanvas, WS, R1, TextFlags, FCaptionGlow, FCaptionGlowColor, FCaptionRoatationAngle);
-            OffsetRect(R1, -1, -1);
+            OffsetRect(R1, -SpDPIScale(1), -SpDPIScale(1));
             ACanvas.Font.Color := clGrayText;
           end;
         SpDrawXPText(ACanvas, WS, R1, TextFlags, FCaptionGlow, FCaptionGlowColor, FCaptionRoatationAngle);
@@ -2184,7 +2187,7 @@ begin
   if Caption = '' then
     Result := Rect(0, 0, 0, 0)
   else begin
-    InflateRect(TextR, 1, 1);
+    InflateRect(TextR, SpDPIScale(1), SpDPIScale(1));
     Result := TextR;
   end;
 end;
@@ -2671,7 +2674,7 @@ procedure TSpTBXCustomLabel.GetSize(out TotalR, TextR, GlyphR: TRect);
 begin
   inherited GetSize(TotalR, TextR, GlyphR);
   if FUnderline then
-    Inc(TotalR.Bottom);
+    Inc(TotalR.Bottom, SpDPIScale(1));
 end;
 
 function TSpTBXCustomLabel.IsGlassPainting: Boolean;
@@ -2828,8 +2831,8 @@ function TSpTBXCustomCheckButton.GetGlyphSize: TSize;
 begin
   Result := inherited GetGlyphSize;
   if (Result.cx = 0) or (Result.cy = 0) then begin
-    Result.cx := 13;
-    Result.cy := 13;
+    Result.cx := SpDPIScale(15);
+    Result.cy := SpDPIScale(15);
   end;
 end;
 
@@ -2838,8 +2841,8 @@ begin
   inherited GetSize(TotalR, TextR, GlyphR);
   // Inc TotalR for the FocusRect
   if Autosize then begin
-    Inc(TotalR.Right);
-    Inc(TotalR.Bottom, 2);
+    Inc(TotalR.Right, SpDPIScale(1));
+    Inc(TotalR.Bottom, SpDPIScale(2));
   end;
 end;
 
@@ -3398,9 +3401,9 @@ begin
     R := ARect;
     R.Left := R.Right - GetTextMargins.Right;
 
-    P.X := (R.Left + R.Right) div 2 - 1;
-    P.Y := (R.Top + R.Bottom) div 2 - 1;
-    SpDrawArrow(ACanvas, P.X, P.Y, ACanvas.Font.Color, True, False, 2);
+    P.X := (R.Left + R.Right) div 2 - SpDPIScale(1);
+    P.Y := (R.Top + R.Bottom) div 2 - SpDPIScale(1);
+    SpDrawArrow(ACanvas, P.X, P.Y, ACanvas.Font.Color, True, False, SpDPIScale(2));
   end;
 end;
 
@@ -3478,9 +3481,9 @@ function TSpTBXCustomButton.GetTextMargins: TRect;
 const
   ArrowWidth = 5;
 begin
-  Result := Rect(8, 2, 8, 2);
+  Result := Rect(SpDPIScale(8), SpDPIScale(2), SpDPIScale(8), SpDPIScale(2));
   if FDropDownArrow and Assigned(FDropdownMenu) then
-    Inc(Result.Right, ArrowWidth + 4);
+    Inc(Result.Right, SpDPIScale(ArrowWidth) + SpDPIScale(4));
 end;
 
 function TSpTBXCustomButton.IsDroppedDown: Boolean;
@@ -3735,7 +3738,7 @@ end;
 
 function TSpTBXCustomProgressBar.GetTextMargins: TRect;
 begin
-  Result := Rect(8, 2, 8, 2);
+  Result := Rect(SpDPIScale(8), SpDPIScale(2), SpDPIScale(8), SpDPIScale(2));
 end;
 
 procedure TSpTBXCustomProgressBar.SetCaptionType(const Value: TSpTBXProgressCaption);

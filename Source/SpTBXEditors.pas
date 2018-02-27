@@ -591,8 +591,8 @@ uses
   Themes, UxTheme,
   Math, TB2Common;
 
-const
-  DefaultSpinButtonSize = 14;
+Var
+  DefaultSpinButtonSize: integer = 14;
 
 type
   TTBViewAccess = class(TTBView);
@@ -2714,8 +2714,8 @@ begin
     SpFillRect(ACanvas, ARect, clWindow, clBtnFace)
   else begin
     SpDrawXPEditFrame(ACanvas, ARect, ItemInfo.Enabled, ItemInfo.HotTrack);
-    InflateRect(ARect, -2, -2);
-    SpFillRect(ACanvas, ARect, clWindow);
+    InflateRect(ARect, -SpDpiScale(2), -SpDpiScale(2));
+    SpFillRect(ACanvas, ARect, CurrentSkin.GetThemedSystemColor(clWindow));
   end;
 end;
 
@@ -2759,7 +2759,7 @@ begin
     if Length(S) > 0 then
       R.Right := MarginsInfo.GutterSize + MarginsInfo.ImageTextSpace + TextSize.cx + MarginsInfo.LeftCaptionMargin + MarginsInfo.RightCaptionMargin
     else
-      R.Right := MarginsInfo.GutterSize + MarginsInfo.ImageTextSpace - 1;
+      R.Right := MarginsInfo.GutterSize + MarginsInfo.ImageTextSpace - SpDpiScale(1);
     SpDrawXPMenuItem(Canvas, R, ItemInfo);
 
     R.Right := ClientAreaRect.Right;
@@ -2786,13 +2786,13 @@ begin
 
   { Edit Frame }
   InternalDrawFrame(Canvas, R, ItemInfo);
-  InflateRect(R, 1, 0);
+  InflateRect(R, SpDPIScale(1), 0);
 
   { Editor Image }
   if ShowImage then begin
     ImgList := GetImageList;
     if Assigned(ImgList) and (Item.ImageIndex >= 0) and (Item.ImageIndex <= ImgList.Count - 1) then begin
-      ImageRect.Left := R.Left + 4;
+      ImageRect.Left := R.Left + SpDPIScale(4);
       ImageRect.Right := R.Left + ImgList.Width;
       ImageRect.Top := (R.Top + R.Bottom + 1 - ImgList.Height) div 2;
       ImageRect.Bottom := ImageRect.Top + ImgList.Height;
@@ -2812,18 +2812,18 @@ begin
     Item.EditorFontSettings.Apply(Canvas.Font);
     if Canvas.Font.Color = clNone then
       if Item.Enabled then
-        Canvas.Font.Color := clBtnText
+        Canvas.Font.Color := CurrentSkin.GetThemedSystemColor(clWindowText)
       else
-        Canvas.Font.Color := clGrayText;
-    InflateRect(R, -2, -1);
+        Canvas.Font.Color := CurrentSkin.GetThemedSystemColor(clGrayText);
+    InflateRect(R, -SpDPIScale(2), -SpDPIScale(1));
     if not IsToolbarStyle then
-      Inc(R.Left, GetIndentBefore + 1)
+      Inc(R.Left, GetIndentBefore + SpDPIScale(1))
     else
-      Inc(R.Left, GetIndentBefore + 2);
-    Dec(R.Right, GetIndentAfter + 1);
-    Dec(R.Top, 1);
+      Inc(R.Left, GetIndentBefore + SpDPIScale(2));
+    Dec(R.Right, GetIndentAfter + SpDPIScale(1));
+    Dec(R.Top, SpDPIScale(1));
     if IsToolbarStyle then
-      Inc(R.Left, -1);
+      Inc(R.Left, -SpDPIScale(1));
     SpDrawXPText(Canvas, S, R, DT_SINGLELINE or DT_VCENTER or DT_NOPREFIX or Alignments[Item.Alignment]);
   end;
 end;
@@ -3204,9 +3204,9 @@ end;
 function TSpTBXSpinEditViewer.GetIndentAfter: Integer;
 begin
   if IsToolbarStyle then
-    Result := DefaultSpinButtonSize + 1
+    Result := DefaultSpinButtonSize + SpDPIScale(1)
   else
-    Result := GetSystemMetrics(SM_CXMENUCHECK) + 1;
+    Result := GetSystemMetrics(SM_CXMENUCHECK) + SpDPIScale(1);
 end;
 
 function TSpTBXSpinEditViewer.GetItem: TSpTBXSpinEditItem;
@@ -3257,7 +3257,7 @@ var
 begin
   inherited;
   R := ARect;
-  InflateRect(R, -2, -2);
+  InflateRect(R, -SpDPIScale(2), -SpDPIScale(2));
   R.Left := ARect.Right - GetIndentAfter;
 
   IsHotTrack := ItemInfo.HotTrack;
@@ -3369,4 +3369,6 @@ begin
     else FreeAndNil(FTimer);
 end;
 
+initialization
+  DefaultSpinButtonSize:= SpDPIScale(14);
 end.
