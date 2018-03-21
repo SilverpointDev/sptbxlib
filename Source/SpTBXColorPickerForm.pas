@@ -45,7 +45,7 @@ uses
   Menus, StdCtrls, ExtCtrls, ActnList, Dialogs,
   TB2Dock, TB2Toolbar, TB2Item, TB2ExtItems,
   SpTBXSkins, SpTBXItem, SpTBXControls, SpTBXEditors, SpTBXFormPopupMenu,
-  SpTBXExtEditors, SpTBXTabs;
+  SpTBXExtEditors, SpTBXTabs, System.ImageList;
 
 type
   { TSpTBXColorPickerDragObject }
@@ -199,6 +199,7 @@ begin
 
     // Draw the crosshair
     if DrawCrosshair then begin
+      DestCanvas.Pen.Color := CurrentSkin.GetThemedSystemColor(clHighlight);
       DestCanvas.MoveTo(CenterP.X - (CenterP.X div 2), CenterP.Y);
       DestCanvas.LineTo(CenterP.X + (CenterP.X div 2), CenterP.Y);
       DestCanvas.MoveTo(CenterP.X, CenterP.Y - (CenterP.Y div 2));
@@ -225,7 +226,7 @@ end;
 constructor TSpTBXColorEditPopupMenu.Create(AOwner: TComponent);
 begin
   inherited;
-  BorderStyle := pbsSizeableRightBottom;
+//  BorderStyle := pbsSizeableRightBottom;
 end;
 
 procedure TSpTBXColorEditPopupMenu.DoGetPopupFormClass(var AFormClass: TCustomFormClass);
@@ -242,6 +243,10 @@ begin
   btnColorPicker.Caption := SSpTBXClickAndDrag;
   SpTBXTabControl1.DoubleBuffered := True;
   imgPalette.Cursor := crSpTBXEyeDropper;
+  SpScaleImageList(ImageList1, Screen.PixelsPerInch, 96);
+  SpTBXColorListBox1.ItemHeight := SpDPIScale(SpTBXColorListBox1.ItemHeight);
+  btnColorPicker.Width := SpDPIScale(btnColorPicker.Width);
+  btnColorPicker.Height := SpDPIScale(btnColorPicker.Height);
 end;
 
 procedure TSpTBXColorPickerForm.FormDestroy(Sender: TObject);
@@ -255,9 +260,20 @@ begin
 end;
 
 procedure TSpTBXColorPickerForm.FormShow(Sender: TObject);
+Var
+  Bitmap : TBitmap;
+  NewHeight, NewWidth : Integer;
 begin
-  if SkinManager.GetSkinType <> sknSkin then
-    SpTBXTabControl1.TabBackgroundColor := clBtnFace;
+  Bitmap := TBitmap.Create;
+  try
+    Bitmap.Assign(imgPalette.Picture.Bitmap);
+    NewHeight := MulDiv(ImgPalette.Parent.ClientHeight, 90, 100);
+    NewWidth := MulDiv(Bitmap.Width, NewHeight, Bitmap.Height);
+    SpResizeBitmap(Bitmap, NewWidth, NewHeight);
+    imgPalette.Picture.Assign(Bitmap);
+  finally
+    Bitmap.Free;
+  end;
   UpdateColorLabel(GetSelectedColor);
   CenterImages;
 end;
@@ -271,6 +287,8 @@ begin
          imgPalette.Top := (imgPalette.Parent.Height - imgPalette.Height) div 2;
        end;
     2: begin
+         btnColorPicker.Left := (btnColorPicker.Parent.Width - btnColorPicker.Width) div 2;
+         btnColorPicker.Top := (btnColorPicker.Parent.Height - btnColorPicker.Height) div 2;
          imgColorPicker.Picture := nil;
        end;
   end;
@@ -282,7 +300,7 @@ procedure TSpTBXColorPickerForm.btnColorDraw(Sender: TObject;
 begin
   if PaintStage = pstPrePaint then begin
     PaintDefault := False;
-    InflateRect(ARect, -3, -3);
+    InflateRect(ARect, -SpDPIScale(3), -SpDPIScale(3));
     if btnColor.CaptionGlowColor = clNone then
       SpDrawCheckeredBackground(ACanvas, ARect)
     else begin

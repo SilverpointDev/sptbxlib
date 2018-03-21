@@ -425,6 +425,9 @@ begin
   FShowShadows := True;
   FSizeGrip := TSpTBXPopupSizeGrip.Create(Self);
   FSizeGrip.Parent := Self;
+  {$IF CompilerVersion >= 24} // for Delphi XE3 and up
+  StyleElements := [];
+  {$ENDIF}
 end;
 
 procedure TSpTBXCustomWrapperPopupForm.CreateParams(var Params: TCreateParams);
