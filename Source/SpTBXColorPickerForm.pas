@@ -45,7 +45,7 @@ uses
   Menus, StdCtrls, ExtCtrls, ActnList, Dialogs,
   TB2Dock, TB2Toolbar, TB2Item, TB2ExtItems,
   SpTBXSkins, SpTBXItem, SpTBXControls, SpTBXEditors, SpTBXFormPopupMenu,
-  SpTBXExtEditors, SpTBXTabs, System.ImageList;
+  SpTBXExtEditors, SpTBXTabs;
 
 type
   { TSpTBXColorPickerDragObject }
