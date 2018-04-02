@@ -3566,11 +3566,10 @@ begin
     BrushC := ACanvas.Brush.Color;
     try
       if MenuItemStyle then begin
-        CheckColor := clMenuText; // On sknNone it's clMenuText even when disabled
         case SkinManager.GetSkinType of
-          sknWindows, sknDelphiStyle:
-            CheckColor := GetTextColor(skncCheckBox, State);
-          sknSkin:
+          sknNone :
+            CheckColor := clMenuText; // On sknNone it's clMenuText even when disabled
+          sknWindows, sknDelphiStyle, sknSkin:
             CheckColor := GetTextColor(skncMenuItem, State);
         end;
         ACanvas.Brush.Color := CheckColor;
@@ -3638,11 +3637,10 @@ begin
     BrushC := ACanvas.Brush.Color;
     try
       if MenuItemStyle then begin
-        CheckColor := clMenuText; // On sknNone it's clMenuText even when disabled
         case SkinManager.GetSkinType of
-          sknWindows, sknDelphiStyle:
-            CheckColor := GetTextColor(skncRadioButton, State);
-          sknSkin:
+          sknNone:
+            CheckColor := clMenuText; // On sknNone it's clMenuText even when disabled
+          sknWindows, sknDelphiStyle, sknSkin:
             CheckColor := GetTextColor(skncMenuItem, State);
         end;
         ACanvas.Brush.Color := CheckColor;
