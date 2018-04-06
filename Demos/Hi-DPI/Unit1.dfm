@@ -5,12 +5,14 @@ object Form1: TForm1
   ClientHeight = 614
   ClientWidth = 745
   Color = clBtnFace
+  DoubleBuffered = True
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
   Font.Height = -11
   Font.Name = 'MS Shell Dlg 2'
   Font.Style = []
   OldCreateOrder = False
+  StyleElements = [seFont, seClient]
   OnCreate = FormCreate
   OnDestroy = FormDestroy
   OnShow = FormShow
@@ -23,7 +25,6 @@ object Form1: TForm1
     Cursor = crSizeWE
     Color = clNone
     ParentColor = False
-    ExplicitTop = 72
   end
   object SpTBXSplitter2: TSpTBXSplitter
     Left = 604
@@ -64,7 +65,6 @@ object Form1: TForm1
         OnResize = SpTBXTabControl2Resize
         ActiveTabIndex = 0
         TabCloseButton = tcbAll
-        ExplicitHeight = 280
         HiddenItems = <>
         object SpTBXTabItem1: TSpTBXTabItem
           Caption = 'Controls'
@@ -83,7 +83,6 @@ object Form1: TForm1
           Height = 261
           Caption = 'Misc'
           ImageIndex = -1
-          ExplicitHeight = 255
           DesignSize = (
             269
             261)
@@ -151,7 +150,6 @@ object Form1: TForm1
           Height = 261
           Caption = 'Editors'
           ImageIndex = -1
-          ExplicitHeight = 255
           DesignSize = (
             269
             261)
@@ -160,27 +158,209 @@ object Form1: TForm1
             Left = 8
             Top = 112
             Width = 252
-            Height = 51
+            Height = 33
             Anchors = [akLeft, akTop, akRight, akBottom]
             TabOrder = 4
             HotTrack = True
-            ExplicitHeight = 45
             object Memo2: TMemo
               Left = 2
               Top = 22
               Width = 248
-              Height = 27
+              Height = 9
               Align = alClient
               BorderStyle = bsNone
               Lines.Strings = (
-                'To add hottrack borders to your controls:'
-                '1) Drop a TSpTBXPanel and set HotTrack to true'
-                '2) Drop a control inside'
-                '3) Set the control Align to alClient'
-                '4) Set the control BorderStyle to bsNone'
-                '4) Change the skin to other than Default')
+                'T'
+                'o '
+                'a'
+                'd'
+                'd '
+                'h'
+                'o'
+                't'
+                't'
+                'r'
+                'a'
+                'c'
+                'k '
+                'b'
+                'o'
+                'r'
+                'd'
+                'e'
+                'r'
+                's '
+                't'
+                'o '
+                'y'
+                'o'
+                'u'
+                'r '
+                'c'
+                'o'
+                'n'
+                't'
+                'r'
+                'o'
+                'l'
+                's'
+                ':'
+                '1'
+                ') '
+                'D'
+                'r'
+                'o'
+                'p '
+                'a '
+                'T'
+                'S'
+                'p'
+                'T'
+                'B'
+                'X'
+                'P'
+                'a'
+                'n'
+                'e'
+                'l '
+                'a'
+                'n'
+                'd '
+                's'
+                'e'
+                't '
+                'H'
+                'o'
+                't'
+                'T'
+                'r'
+                'a'
+                'c'
+                'k '
+                't'
+                'o '
+                't'
+                'r'
+                'u'
+                'e'
+                '2'
+                ') '
+                'D'
+                'r'
+                'o'
+                'p '
+                'a '
+                'c'
+                'o'
+                'n'
+                't'
+                'r'
+                'o'
+                'l '
+                'i'
+                'n'
+                's'
+                'i'
+                'd'
+                'e'
+                '3'
+                ') '
+                'S'
+                'e'
+                't '
+                't'
+                'h'
+                'e '
+                'c'
+                'o'
+                'n'
+                't'
+                'r'
+                'o'
+                'l '
+                'A'
+                'l'
+                'i'
+                'g'
+                'n '
+                't'
+                'o '
+                'a'
+                'l'
+                'C'
+                'l'
+                'i'
+                'e'
+                'n'
+                't'
+                '4'
+                ') '
+                'S'
+                'e'
+                't '
+                't'
+                'h'
+                'e '
+                'c'
+                'o'
+                'n'
+                't'
+                'r'
+                'o'
+                'l '
+                'B'
+                'o'
+                'r'
+                'd'
+                'e'
+                'r'
+                'S'
+                't'
+                'y'
+                'l'
+                'e '
+                't'
+                'o '
+                'b'
+                's'
+                'N'
+                'o'
+                'n'
+                'e'
+                '4'
+                ') '
+                'C'
+                'h'
+                'a'
+                'n'
+                'g'
+                'e '
+                't'
+                'h'
+                'e '
+                's'
+                'k'
+                'i'
+                'n '
+                't'
+                'o '
+                'o'
+                't'
+                'h'
+                'e'
+                'r '
+                't'
+                'h'
+                'a'
+                'n '
+                'D'
+                'e'
+                'f'
+                'a'
+                'u'
+                'l'
+                't')
               TabOrder = 0
-              ExplicitHeight = 21
             end
             object Panel2: TPanel
               Left = 2
@@ -276,9 +456,9 @@ object Form1: TForm1
             Width = 121
             Height = 21
             ItemHeight = 23
-            ItemIndex = 17
+            ItemIndex = 3
             TabOrder = 6
-            Text = 'AR JULIAN'
+            Text = 'Algerian'
             SelectedFont = 'Arial'
           end
         end
@@ -289,7 +469,6 @@ object Form1: TForm1
           Height = 261
           Caption = 'Controls'
           ImageIndex = -1
-          ExplicitHeight = 255
           DesignSize = (
             269
             261)
@@ -371,8 +550,8 @@ object Form1: TForm1
           object progressFiles: TSpTBXCheckBox
             Left = 160
             Top = 102
-            Width = 85
-            Height = 21
+            Width = 87
+            Height = 23
             Caption = 'File progress'
             TabOrder = 5
             OnClick = progressFilesClick
@@ -433,7 +612,6 @@ object Form1: TForm1
         Caption = 'Skin Type'
         Anchors = [akLeft, akTop, akRight, akBottom]
         TabOrder = 2
-        ExplicitHeight = 165
         object radiobuttonSkin1: TSpTBXRadioButton
           Left = 16
           Top = 24
@@ -1507,6 +1685,9 @@ object Form1: TForm1
       Options = [tboDropdownArrow]
       LinkSubitems = subLang
     end
+    object SpTBXRightAlignSpacerItem2: TSpTBXRightAlignSpacerItem
+      CustomWidth = 225
+    end
     object SpTBXSeparatorItem5: TSpTBXSeparatorItem
     end
     object SpTBXSpinEditItem1: TSpTBXSpinEditItem
@@ -1559,7 +1740,7 @@ object Form1: TForm1
     Left = 408
     Top = 352
     Bitmap = {
-      494C01010A000D00040010001000FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
+      494C01010A000D000C0010001000FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
       0000000000003600000028000000400000003000000001002000000000000030
       0000000000000000000000000000000000000000000000000000000000000000
       0000000000000000000000000000000000000000000000000000000000000000

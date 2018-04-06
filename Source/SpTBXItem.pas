@@ -1371,6 +1371,7 @@ type
     procedure SetSizeGrip(const Value: Boolean);
     procedure WMNCLButtonDown(var Message: TWMNCLButtonDown); message WM_NCLBUTTONDOWN;
     procedure WMSetCursor(var Message: TWMSetCursor); message WM_SETCURSOR;
+    procedure WMNCCalcSize(var Message: TWMNCCalcSize); message WM_NCCALCSIZE;
   protected
     FParentForm: TCustomForm;
     procedure DoItemNotification(Ancestor: TTBCustomItem; Relayed: Boolean; Action: TTBItemChangedAction; Index: Integer; Item: TTBCustomItem); override;
@@ -1379,6 +1380,7 @@ type
     function GetParentFormWindowState: TWindowState;
     function IsPointInGrip(P: TPoint): Boolean;
     procedure MouseDown(Button: TMouseButton; Shift: TShiftState; X: Integer; Y: Integer); override;
+    function CalcNCSizes: TPoint; override;
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
@@ -2214,7 +2216,7 @@ begin
   if Assigned(Toolbar.CurrentDock) then
     if Toolbar.CurrentDock.AllowDrag then begin
       T := TTBCustomDockableWindowAccess(Toolbar);
-      Result := DragHandleSizes[T.CloseButtonWhenDocked, Ord(T.DragHandleStyle)]
+      Result := SpDPIScale(DragHandleSizes[T.CloseButtonWhenDocked, Ord(T.DragHandleStyle)]);
     end;
 end;
 
@@ -2492,7 +2494,7 @@ begin
       if ItemInfo.SkinType = sknSkin then
         C := SkinManager.CurrentSkin.Options(skncMenuItem, ItemInfo.State).Borders.Color1
       else
-        C := clBtnShadow;
+        C :=  CurrentSkin.GetThemedSystemColor(clBtnShadow);
       R := ARect;
       R.Left := ARect.Right - 10 - 4;
       SpDrawLine(ACanvas, R.Left, R.Top + 1, R.Left, R.Bottom - 1, C);
@@ -2966,7 +2968,7 @@ begin
       if W is TSpTBXToolbar then
         OffsetRect(R, -TSpTBXToolbar(W).DefaultToolbarBorderSize, -TSpTBXToolbar(W).DefaultToolbarBorderSize)
       else
-        OffsetRect(R, -CDefaultToolbarBorderSize, -CDefaultToolbarBorderSize);
+        OffsetRect(R, -SpDPIScale(CDefaultToolbarBorderSize), -SpDPIScale(CDefaultToolbarBorderSize));
       if IsVertical then
         Dec(R.Top, SpGetDragHandleSize(Toolbar))
       else
@@ -3119,11 +3121,11 @@ begin
           if Toolbar.CloseButtonDown then OffsetRect(CloseR, SpDpiScale(1), SpDpiScale(1));
           if Vertical then begin
             Details := SpTBXThemeServices.GetElementDetails(trGripperVert);
-            OffsetRect(GripR, SpDpiScale(1), 0);
+            OffsetRect(GripR, SpDpiScale(1), SpDPIScale(2));
           end
           else begin
             Details := SpTBXThemeServices.GetElementDetails(trGripper);
-            OffsetRect(GripR, 0, SpDpiScale(1));
+            OffsetRect(GripR, SpDPIScale(2), SpDpiScale(1));
           end;
           SpTBXThemeServices.DrawElement(ACanvas.Handle, Details, GripR);
 
@@ -4308,11 +4310,11 @@ begin
         else
           if GlyphTop and (TextInfo.IsTextRotated xor (View.Orientation <> tbvoVertical)) then begin
             W := ImgSize.CX + DropDownArrowSize + SpDpiScale(2);
-            if W > AWidth - 7 then AWidth := W + SpDpiScale(7);
+            if W > AWidth - SpDpiScale(7) then AWidth := W + SpDpiScale(7);
           end
           else begin
             H := ImgSize.CY + DropDownArrowSize + SpDpiScale(2);
-            if H > AHeight - 7 then AHeight := H + SpDpiScale(7);
+            if H > AHeight - SpDpiScale(7) then AHeight := H + SpDpiScale(7);
           end;
     end;
 
@@ -6225,7 +6227,7 @@ begin
   FAnchoredControlItems := TSpTBXItemCacheCollection.Create(TSpTBXItemCache);
   FChevronVertical := True;
   FCustomizable := True;
-  FDefaultToolbarBorderSize := CDefaultToolbarBorderSize;
+  FDefaultToolbarBorderSize := SpDPIScale(CDefaultToolbarBorderSize);
   FDisplayMode := tbdmSelectiveCaption;
   SkinManager.AddSkinNotification(Self);
   DoubleBuffered := True;
@@ -7020,7 +7022,7 @@ end;
 constructor TSpTBXCustomToolWindow.Create(AOwner: TComponent);
 begin
   inherited;
-  FDefaultToolbarBorderSize := CDefaultToolbarBorderSize;
+  FDefaultToolbarBorderSize := SpDPIScale(CDefaultToolbarBorderSize);
   FMinClientWidth := SpDpiScale(32);
   FMinClientHeight := SpDpiScale(32);
   SetBounds(Left, Top, FMinClientWidth, FMinClientHeight);
@@ -8449,9 +8451,17 @@ end;
 //WMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWM
 { TSpTBXStatusToolbar }
 
+function TSpTBXStatusToolbar.CalcNCSizes: TPoint;
+begin
+  Result.X := 0;
+  Result.Y := 0;
+end;
+
 constructor TSpTBXStatusToolbar.Create(AOwner: TComponent);
 begin
   inherited;
+  FDefaultToolbarBorderSize := 0;
+  ShrinkMode := tbsmNone;
   FSizeGrip := True;
 end;
 
@@ -8514,6 +8524,8 @@ begin
       if HasGrip then begin
         Result := CurrentDock.ClientRect;
         Result.Left := Result.Right - GetSystemMetrics(SM_CXVSCROLL);
+        Result.Top := Result.Bottom - GetSystemMetrics(SM_CXVSCROLL);
+        OffsetRect(Result, 2*SpDPIScale(2), 1*SpDPIScale(2));
       end;
     end;
   end;
@@ -8534,7 +8546,7 @@ begin
   R := GetGripRect;
   Result := R.Right - R.Left;
   if Result = 0 then
-    Result := 4;
+    Result := SpDPIScale(4);
 end;
 
 function TSpTBXStatusToolbar.NeedsSeparatorRepaint: Boolean;
@@ -8579,6 +8591,11 @@ begin
   inherited;
 end;
 
+procedure TSpTBXStatusToolbar.WMNCCalcSize(var Message: TWMNCCalcSize);
+begin
+  Message.Result := 0
+end;
+
 procedure TSpTBXStatusToolbar.WMNCLButtonDown(var Message: TWMNCLButtonDown);
 var
   P: TPoint;
@@ -8620,6 +8637,9 @@ end;
 constructor TSpTBXCustomStatusBar.Create(AOwner: TComponent);
 begin
   inherited;
+  FDock.AllowDrag := False;
+  FDock.BoundLines := [];
+  FDock.LimitToOneRow := True;
   Align := alBottom;
 end;
 
@@ -8642,11 +8662,11 @@ begin
   if (PaintStage = pstPrePaint) and PaintDefault then begin
     PaintDefault := False;
     G := Toolbar.GetGripRect;
-    if not IsRectEmpty(G) then begin
+    //if not IsRectEmpty(G) then begin
       // When it's called by the Toolbar the Gripper position should be corrected
-      if (ARect.Left = -2) and (ARect.Top = -2) then
-        OffsetRect(G, -2, -2);
-    end;
+      //if (ARect.Left = -2) and (ARect.Top = -2) then
+      //  OffsetRect(G, -2, -2);
+    //end;
 
     OfficeSeparators := Toolbar.NeedsSeparatorRepaint;
     SpDrawXPStatusBar(ACanvas, ARect, G);
@@ -8818,7 +8838,7 @@ var
 begin
   inherited;
 
-  FDefaultToolbarBorderSize := CDefaultToolbarBorderSize;
+  FDefaultToolbarBorderSize := SpDPIScale(CDefaultToolbarBorderSize);
   if Docked then begin
     TitleBar := GetTitleBar;
     if Assigned(TitleBar) and (TitleBar.WindowState = wsMaximized) then begin

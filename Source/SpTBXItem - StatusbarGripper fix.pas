@@ -1374,7 +1374,7 @@ type
     procedure WMNCCalcSize(var Message: TWMNCCalcSize); message WM_NCCALCSIZE;
   protected
     FParentForm: TCustomForm;
-  procedure DoItemNotification(Ancestor: TTBCustomItem; Relayed: Boolean; Action: TTBItemChangedAction; Index: Integer; Item: TTBCustomItem); override;
+    procedure DoItemNotification(Ancestor: TTBCustomItem; Relayed: Boolean; Action: TTBItemChangedAction; Index: Integer; Item: TTBCustomItem); override;
     function GetItemsTextColor(State: TSpTBXSkinStatesType): TColor; override;
     function GetRightAlignMargin: Integer; override;
     function GetParentFormWindowState: TWindowState;
@@ -4309,11 +4309,11 @@ begin
         else
           if GlyphTop and (TextInfo.IsTextRotated xor (View.Orientation <> tbvoVertical)) then begin
             W := ImgSize.CX + DropDownArrowSize + SpDpiScale(2);
-            if W > AWidth - 7 then AWidth := W + SpDpiScale(7);
+            if W > AWidth - SpDpiScale(7) then AWidth := W + SpDpiScale(7);
           end
           else begin
             H := ImgSize.CY + DropDownArrowSize + SpDpiScale(2);
-            if H > AHeight - 7 then AHeight := H + SpDpiScale(7);
+            if H > AHeight - SpDpiScale(7) then AHeight := H + SpDpiScale(7);
           end;
     end;
 

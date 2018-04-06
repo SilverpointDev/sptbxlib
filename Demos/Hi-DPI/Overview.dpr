@@ -12,7 +12,7 @@ uses
 begin
   TStyleManager.TrySetStyle('Windows10 Dark');
   Application.Initialize;
-  TStyleManager.TrySetStyle('Carbon');
+  TStyleManager.TrySetStyle('Windows10 Blue');
   Application.CreateForm(TForm1, Form1);
   Application.Run;
 end.

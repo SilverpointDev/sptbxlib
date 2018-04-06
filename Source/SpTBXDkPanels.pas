@@ -458,8 +458,8 @@ uses
   {$IFEND}
   Themes, ComCtrls, Registry, TB2Consts, TB2Common;
 
-Var
-  DockedBorderSize: Integer = 2;
+ function DockedBorderSize: integer; begin Result := DPIScale(2); end;
+
 const
   HT_TB2k_Border = 2000;
   HT_DP_SPLITRESIZELEFT = 86;

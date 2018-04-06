@@ -131,6 +131,7 @@ type
     SpTBXItem9: TSpTBXItem;
     SpTBXItem10: TSpTBXItem;
     SpTBXEditItem1: TSpTBXEditItem;
+    SpTBXRightAlignSpacerItem2: TSpTBXRightAlignSpacerItem;
     procedure FormShow(Sender: TObject);
     procedure tabCloseClick(Sender: TObject);
     procedure ActionList1Update(Action: TBasicAction;

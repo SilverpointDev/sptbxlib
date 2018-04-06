@@ -2274,21 +2274,21 @@ begin
   //  ----
 
   C := ACanvas.Brush.Color;
-  XCellCount := (ARect.Right - ARect.Left) div 4;
-  YCellCount := (ARect.Bottom - ARect.Top) div 4;
+  XCellCount := (ARect.Right - ARect.Left) div SpDPIScale(4);
+  YCellCount := (ARect.Bottom - ARect.Top) div SpDPIScale(4);
   if XCellCount = 0 then XCellCount := 1;
   if YCellCount = 0 then YCellCount := 1;
   
   for J := 0 to YCellCount - 1 do
     for I := 0 to XCellCount - 1 do begin
-      R.Left := ARect.Left + (I * 4) + 1;
-      R.Right := R.Left + 2;
-      R.Top := ARect.Top + (J * 4) + 1;
-      R.Bottom := R.Top + 2;
+      R.Left := ARect.Left + (I * SpDPIScale(4)) + SpDPIScale(1);
+      R.Right := R.Left + SpDPIScale(2);
+      R.Top := ARect.Top + (J * SpDPIScale(4)) + SpDPIScale(1);
+      R.Bottom := R.Top + SpDPIScale(2);
 
       ACanvas.Brush.Color := HiC;
       ACanvas.FillRect(R);
-      OffsetRect(R, -1, -1);
+      OffsetRect(R, -SpDPIScale(1), -SpDPIScale(1));
       ACanvas.Brush.Color := LoC;
       ACanvas.FillRect(R);
     end;
@@ -2946,7 +2946,7 @@ begin
 
   SplitBtnArrowSize := SpDPIScale(12); // TB2Item.tbDropdownComboArrowWidth + 1
   if SkinManager.GetSkinType in [sknWindows, sknDelphiStyle] then
-    SplitBtnArrowSize := SplitBtnArrowSize + SpDPIScale(1);
+    SplitBtnArrowSize := SpDPIScale(12+1);
 end;
 
 procedure TSpTBXSkinOptions.GetMenuItemMargins(ACanvas: TCanvas; ImgSize: Integer;
