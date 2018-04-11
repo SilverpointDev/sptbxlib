@@ -633,8 +633,7 @@ begin
 
   B := TBitmap.Create;
   try
-    B.Width := ARect.Right - ARect.Left;
-    B.Height := ARect.Bottom - ARect.Top;
+    B.SetSize(ARect.Right - ARect.Left, ARect.Bottom - ARect.Top);
     R := Rect(0, 0, B.Width, B.Height);
     if SkinType = sknDelphiStyle then
       B.Canvas.Brush.Color := CurrentSkin.GetThemedSystemColor(clBtnFace)
@@ -709,8 +708,7 @@ var
 begin
   B := TBitmap.Create;
   try
-    B.Width := ARect.Right - ARect.Left;
-    B.Height := ARect.Bottom - ARect.Top;
+    B.SetSize(ARect.Right - ARect.Left, ARect.Bottom - ARect.Top);
     R := Rect(0, 0, B.Width, B.Height);
 
     // Draw the top/bottom border
@@ -1143,8 +1141,7 @@ begin
 
   B := TBitmap.Create;
   try
-    B.Width := CR.Right - CR.Left;
-    B.Height := CR.Bottom - CR.Top + 4; // Larger than CR
+    B.SetSize(CR.Right - CR.Left, CR.Bottom - CR.Top + SpDpiScale(4)); // Larger than CR
     R := Rect(0, 0, B.Width, B.Height);
     DrawTab(B.Canvas, R, True, True, False, Position, False, Edge);
 
@@ -1481,8 +1478,7 @@ begin
     B.Canvas.Lock;
     try
       R := ARect;
-      B.Width := R.Right - R.Left;
-      B.Height := R.Bottom - R.Top;
+      B.SetSize(R.Right - R.Left, R.Bottom - R.Top);
 
       SpDrawXPToolbar(Self, B.Canvas, R, PaintOnNCArea, FTabBackgroundBorders and (SkinManager.GetSkinType <> sknNone), skncTabToolbar);
 
@@ -2864,8 +2860,7 @@ begin
     if (FBackground.Width = R.Right) and (FBackground.Height = R.Bottom) and not Assigned(FOnDrawBackground) then
       ACanvas.Draw(ARect.Left, ARect.Top, FBackground)
     else begin
-      FBackground.Width := R.Right;
-      FBackground.Height := R.Bottom;
+      FBackground.SetSize(R.Right, R.Bottom);
       FBackground.Canvas.Brush.Color := clWhite;
       FBackground.Canvas.FillRect(R);
 

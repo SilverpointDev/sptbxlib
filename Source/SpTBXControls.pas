@@ -1295,13 +1295,11 @@ begin
               // Another Windows API bug, Windows XP progress bar chunks are 8 x 11,
               // but DrawThemeBackground draws 10 x 11 chunks. We must draw the chunks manually.
               if Vertical then begin
-                B.Width := DeltaR.Right - DeltaR.Left;
-                B.Height := 8;
+                B.SetSize(DeltaR.Right - DeltaR.Left, 8);
                 R := Rect(0, 2, B.Width, B.Height);
               end
               else begin
-                B.Width := 8;
-                B.Height := DeltaR.Bottom - DeltaR.Top;
+                B.SetSize(8, DeltaR.Bottom - DeltaR.Top);
                 R := Rect(0, 0, B.Width - 2, B.Height);
               end;
               if Vertical then Details := SpTBXThemeServices.GetElementDetails(tpChunkVert)
@@ -1322,13 +1320,11 @@ begin
             else begin
               // Chunks are 10 x 13
               if Vertical then begin
-                B.Width := DeltaR.Right - DeltaR.Left;
-                B.Height := 10;
+                B.SetSize(DeltaR.Right - DeltaR.Left, 10);
                 R := Rect(0, 2, B.Width, B.Height);
               end
               else begin
-                B.Width := 10;
-                B.Height := DeltaR.Bottom - DeltaR.Top;
+                B.SetSize(10, DeltaR.Bottom - DeltaR.Top);
                 R := Rect(0, 0, B.Width - 2, B.Height);
               end;
               B.Canvas.Brush.Color := clBtnFace;
@@ -1342,8 +1338,7 @@ begin
         begin
           CurrentSkin.PaintBackground(ACanvas, ARect, skncProgressBar, sknsNormal, True, True);
           if DrawProgress and not IsRectEmpty(DeltaR) then begin
-            B.Width := ARect.Right - ARect.Left;
-            B.Height := ARect.Bottom - ARect.Top;
+            B.SetSize(ARect.Right - ARect.Left, ARect.Bottom - ARect.Top);
             R := Rect(0, 0, B.Width, B.Height);
             B.Canvas.CopyRect(R, ACanvas, ARect); // B is transparent
 
@@ -1650,8 +1645,7 @@ begin
       if (FBackground.Width = R.Right) and (FBackground.Height = R.Bottom) and not Assigned(FOnDrawBackground) then
         ACanvas.Draw(R.Left, R.Top, FBackground)
       else begin
-        FBackground.Width := R.Right;
-        FBackground.Height := R.Bottom;
+        FBackground.SetSize(R.Right, R.Bottom);
 
         if (Color = clNone) and Assigned(Parent) then begin
           if SpIsGlassPainting(Self) then begin
@@ -2518,8 +2512,7 @@ begin
   SpStockHintBitmap.Canvas.Brush.Color := clInfoBk;
   TextR := Rect(0, 0, 1, 1);
   SpDrawXPText(SpStockHintBitmap.Canvas, WideHint, TextR, DT_NOPREFIX or DT_CALCRECT);
-  SpStockHintBitmap.Width := TextR.Right + 8;
-  SpStockHintBitmap.Height := TextR.Bottom + 4;
+  SpStockHintBitmap.SetSize(TextR.Right + 8, TextR.Bottom + 4);
   R := Rect(0, 0, SpStockHintBitmap.Width, SpStockHintBitmap.Height);
   SpDrawXPTooltipBackground(SpStockHintBitmap.Canvas, R);
 
@@ -2540,8 +2533,7 @@ begin
     if WideHint <> PrevWideHint then begin
       TextR := Rect(0, 0, 1, 1);
       SpDrawXPText(SpStockHintBitmap.Canvas, WideHint, TextR, DT_NOPREFIX or DT_CALCRECT);
-      SpStockHintBitmap.Width := TextR.Right + 8;
-      SpStockHintBitmap.Height := TextR.Bottom + 4;
+      SpStockHintBitmap.SetSize(TextR.Right + 8, TextR.Bottom + 4);
       R := Rect(0, 0, SpStockHintBitmap.Width, SpStockHintBitmap.Height);
       SpDrawXPTooltipBackground(SpStockHintBitmap.Canvas, R);
     end
@@ -3422,8 +3414,7 @@ begin
       if BitmapValid then begin
         B := TBitmap.Create;
         try
-          B.Width := ARect.Right - ARect.Left;
-          B.Height := ARect.Bottom - ARect.Top;
+          B.SetSize(ARect.Right - ARect.Left, ARect.Bottom - ARect.Top);
           SetStretchBltMode(B.Canvas.Handle, COLORONCOLOR);
           B.Canvas.CopyRect(ARect, Bitmap.Canvas, GetSkinStateRect);
           if FBitmapTransparent then

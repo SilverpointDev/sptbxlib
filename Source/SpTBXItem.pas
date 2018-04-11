@@ -2796,8 +2796,7 @@ begin
         try
           CurrentSkin.GetThemedElementDetails(skncWindowTitleBar, IsActive, False, False, False, False, False, False, Details);
           ElementSize := CurrentSkin.GetThemedElementSize(ACanvas, Details);
-          B.Width := ARect.Right - ARect.Left;
-          B.Height := ElementSize.cy;
+          B.SetSize(ARect.Right - ARect.Left,  ElementSize.cy);
           CurrentSkin.PaintThemedElementBackground(B.Canvas, Rect(0, 0, B.Width, B.Height), Details);
           ACanvas.StretchDraw(ARect, B);
         finally
@@ -2880,8 +2879,7 @@ begin
         try
           R := ARect;
           R.Bottom := R.Top + BorderSize.Y;
-          B.Width := R.Right - R.Left;
-          B.Height := R.Bottom - R.Top;
+          B.SetSize(R.Right - R.Left, R.Bottom - R.Top);
           CurrentSkin.PaintThemedElementBackground(B.Canvas, Rect(0, 0, B.Width, B.Height), Details);
           // Mirror
           MirrorR := Rect(0, B.Height - 1, B.Width, -1);
@@ -4860,8 +4858,7 @@ begin
   SpStockHintBitmap.Canvas.Brush.Color := clInfoBk;
   TextR := Rect(0, 0, 1, 1);
   SpDrawXPText(SpStockHintBitmap.Canvas, WideHint, TextR, DT_NOPREFIX or DT_CALCRECT);
-  SpStockHintBitmap.Width := TextR.Right + 8;
-  SpStockHintBitmap.Height := TextR.Bottom + 4;
+  SpStockHintBitmap.SetSize(TextR.Right + 8, TextR.Bottom + 4);
   R := Rect(0, 0, SpStockHintBitmap.Width, SpStockHintBitmap.Height);
   SpDrawXPTooltipBackground(SpStockHintBitmap.Canvas, R);
 
@@ -4877,8 +4874,7 @@ begin
     if WideHint <> PrevWideHint then begin
       TextR := Rect(0, 0, 1, 1);
       SpDrawXPText(SpStockHintBitmap.Canvas, WideHint, TextR, DT_NOPREFIX or DT_CALCRECT);
-      SpStockHintBitmap.Width := TextR.Right + 8;
-      SpStockHintBitmap.Height := TextR.Bottom + 4;
+      SpStockHintBitmap.SetSize(TextR.Right + 8, TextR.Bottom + 4);
       R := Rect(0, 0, SpStockHintBitmap.Width, SpStockHintBitmap.Height);
       SpDrawXPTooltipBackground(SpStockHintBitmap.Canvas, R);
     end
@@ -9502,8 +9498,7 @@ begin
     B := TBitmap.Create;
     try
       ARect := GetClientRect;
-      B.Width := ARect.Right;
-      B.Height := ARect.Bottom;
+      B.SetSize(ARect.Right, ARect.Bottom);
       B.Canvas.Brush.Color := Color; // SpDrawXPTitleBarBody needs it to paint the background
       B.Canvas.FillRect(ARect);
 
