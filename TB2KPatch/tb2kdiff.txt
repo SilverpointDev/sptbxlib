@@ -56,7 +56,7 @@
  
  initialization
    InitGradientFillFunc;
---- TB2Dock.pas	Thu Apr  5 23:22:56 2018
+--- TB2Dock.pas	Thu Apr 12 01:57:40 2018
 +++ TB2Dock.pas	Wed Sep 17 15:12:26 2008
 @@ -562,19 +562,14 @@
  uses
@@ -310,6 +310,16 @@
        end;
        Dec(NPoint.X, R.Left-R.Right);
        Dec(NPoint.Y, R.Top-R.Bottom);
+@@ -5217,7 +5215,8 @@
+   if FBitmapCache = nil then begin
+     FBitmapCache := TBitmap.Create;
+     FBitmapCache.Palette := CopyPalette(FBitmap.Palette);
+-    FBitmapCache.SetSize(FBitmap.Width, FBitmap.Height);
++    FBitmapCache.Width := FBitmap.Width;
++    FBitmapCache.Height := FBitmap.Height;
+     if not FTransparent then begin
+       { Copy from a possible DIB to our DDB }
+       BitBlt(FBitmapCache.Canvas.Handle, 0, 0, FBitmapCache.Width,
 --- TB2DsgnItemEditor.pas	Fri Mar 23 11:49:17 2018
 +++ TB2DsgnItemEditor.pas	Thu Sep 25 13:49:32 2008
 @@ -207,8 +207,7 @@
@@ -495,7 +505,7 @@
    //View.FreeNotification(Self);
    FEditControl := TEdit.Create(nil);
    try
---- TB2Item.pas	Fri Apr  6 01:55:08 2018
+--- TB2Item.pas	Thu Apr 12 02:10:54 2018
 +++ TB2Item.pas	Fri Sep 19 11:35:48 2008
 @@ -40,11 +40,7 @@
  uses
@@ -695,7 +705,16 @@
      SetTextColor(DC, ShadowColor);
      Draw;
      SetTextColor(DC, SaveTextColor);
-@@ -2930,16 +2908,16 @@
+@@ -2922,23 +2900,24 @@
+     Bmp := TBitmap.Create;
+     try
+       Bmp.Monochrome := True;
+-      Bmp.SetSize(MenuCheckWidth, MenuCheckHeight);
++      Bmp.Width := MenuCheckWidth;
++      Bmp.Height := MenuCheckHeight;
+       BR := Rect(0, 0, MenuCheckWidth, MenuCheckHeight);
+       DrawFrameControl(Bmp.Canvas.Handle, BR, DFC_MENU, DFCS_MENUARROW);
+       OffsetRect(BR, ClientAreaRect.Right - MenuCheckWidth,
          ClientAreaRect.Top + ((ClientAreaRect.Bottom - ClientAreaRect.Top) - MenuCheckHeight) div 2);
        if not UseDisabledShadow then begin
          if ShowEnabled and (tbisCombo in Item.ItemStyle) and IsSelected then begin
@@ -715,7 +734,7 @@
          DrawWithColor(clBtnShadow);
        end;
      finally
-@@ -2957,21 +2935,21 @@
+@@ -2956,21 +2935,21 @@
        X := (R.Left + R.Right) div 2;
        Y := (R.Top + R.Bottom) div 2;
        if not Rotated then begin
@@ -745,7 +764,7 @@
          P[2].Y := Y;
        end;
        Canvas.Pen.Color := AColor;
-@@ -2983,9 +2961,9 @@
+@@ -2982,9 +2961,9 @@
      if not UseDisabledShadow then
        DrawWithColor(Canvas.Font.Color)
      else begin
@@ -757,7 +776,7 @@
        DrawWithColor(clBtnShadow);
      end;
    end;
-@@ -3028,7 +3006,7 @@
+@@ -3027,7 +3006,7 @@
    LeftMargin := 0;
    if not ToolbarStyle then begin
      if Assigned(ImgList) then
@@ -766,7 +785,7 @@
      else
        LeftMargin := ClientAreaRect.Bottom;
    end;
-@@ -3067,21 +3045,21 @@
+@@ -3066,21 +3045,21 @@
      end;
      if HasArrow then begin
        if not(tbisCombo in Item.ItemStyle) and IsPushed then
@@ -792,7 +811,7 @@
      if HasArrow and not(tbisCombo in Item.ItemStyle) then begin
        if View.Orientation <> tbvoVertical then
          Dec(RC.Right, tbDropdownArrowWidth)
-@@ -3117,9 +3095,9 @@
+@@ -3116,9 +3095,9 @@
      if ToolbarStyle then begin
        if ImageIsShown then begin
          if not IsRotated and not(tboImageAboveCaption in Item.EffectiveOptions) then
@@ -804,7 +823,7 @@
        end;
        DrawItemCaption(Canvas, R, S, UseDisabledShadow,
          DT_SINGLELINE or DT_CENTER or DT_VCENTER or DrawTextFlags)
-@@ -3130,7 +3108,7 @@
+@@ -3129,7 +3108,7 @@
          is 4 pixels less than the total item height. This is done so underlined
          characters aren't displayed too low. }
        if (R.Bottom - R.Top) - (TextMetrics.tmHeight + TextMetrics.tmExternalLeading) = tbMenuVerticalMargin then
@@ -813,7 +832,7 @@
        Inc(R.Top, TextMetrics.tmExternalLeading);
        DrawItemCaption(Canvas, R, S, UseDisabledShadow,
          DT_SINGLELINE or DT_LEFT or DT_VCENTER or DrawTextFlags);
-@@ -3147,7 +3125,7 @@
+@@ -3146,7 +3125,7 @@
          is 4 pixels less than the total item height. This is done so underlined
          characters aren't displayed too low. }
        if (R.Bottom - R.Top) - (TextMetrics.tmHeight + TextMetrics.tmExternalLeading) = tbMenuVerticalMargin then
@@ -822,7 +841,7 @@
        Inc(R.Top, TextMetrics.tmExternalLeading);
        DrawItemCaption(Canvas, R, S, UseDisabledShadow,
          DT_SINGLELINE or DT_LEFT or DT_VCENTER or DT_NOPREFIX);
-@@ -3159,7 +3137,7 @@
+@@ -3158,7 +3137,7 @@
          if IsSelected and ShowEnabled then
            DrawEdge(Canvas.Handle, R, BDR_SUNKENOUTER, BF_RECT or BF_MIDDLE)
          else begin
@@ -831,7 +850,7 @@
            if not IsSelected then
              DrawEdge(Canvas.Handle, R, EDGE_ETCHED, BF_LEFT)
            else
-@@ -3175,23 +3153,23 @@
+@@ -3174,23 +3153,23 @@
      R := RC;
      if ToolbarStyle then begin
        if not IsRotated and not(tboImageAboveCaption in Item.EffectiveOptions) then
@@ -860,7 +879,7 @@
      end;
      if ImageIsShown then begin
        X := R.Left + ((R.Right - R.Left) - ImgList.Width) div 2;
-@@ -3211,21 +3189,21 @@
+@@ -3210,21 +3189,21 @@
          if Item.RadioItem then begin
            Canvas.Pen.Color := clBtnText;
            Canvas.Brush.Color := clBtnText;
@@ -890,7 +909,15 @@
            end;
            Canvas.Pen.Color := clBtnText;
            Polyline(Canvas.Handle, BlackPoints, Length(BlackPoints));
-@@ -4924,7 +4902,7 @@
+@@ -4645,6 +4624,7 @@
+   Ctl: TControl;
+   ChangedBold: Boolean;
+   I, HighestSameWidthViewerWidth, Total, J, TotalVisibleItems: Integer;
++  IsFirst: Boolean;
+   Viewer: TTBItemViewer;
+   UseChevron, NonControlsOffEdge, TempViewerCreated: Boolean;
+   Margins: TRect;
+@@ -4922,7 +4902,7 @@
      TopY := Margins.Top;
      if AWrapOffset > 0 then begin
        Dec(AWrapOffset, Margins.Right);
@@ -899,7 +926,7 @@
      end;
      CurX := LeftX;
      CurY := TopY;
-@@ -5048,10 +5026,10 @@
+@@ -5046,10 +5026,10 @@
    if (ABaseSize.X = 0) or (ABaseSize.Y = 0) then begin
      { If there are no visible items... }
      {}{scale this?}
@@ -914,7 +941,7 @@
    end;
  end;
  
-@@ -5071,12 +5049,8 @@
+@@ -5069,12 +5049,8 @@
    if FWindow.HandleAllocated then
      ValidateRect(FWindow.Handle, nil);
    AutoSize(ASize.X, ASize.Y);
@@ -929,7 +956,7 @@
  end;
  
  function TTBView.UpdatePositions: TPoint;
-@@ -5102,10 +5076,10 @@
+@@ -5100,10 +5076,10 @@
    var Margins: TRect);
  begin
    if AOrientation = tbvoFloating then begin
@@ -944,7 +971,7 @@
    end
    else begin
      Margins.Left := 0;
-@@ -5695,9 +5669,9 @@
+@@ -5693,9 +5669,9 @@
    end
    else
      EndModal;
@@ -957,7 +984,7 @@
  end;
  
  procedure TTBView.Scroll(ADown: Boolean);
-@@ -6362,7 +6336,7 @@
+@@ -6360,7 +6336,7 @@
  begin
    inherited Create(AOwner);
    Visible := False;
@@ -966,7 +993,7 @@
    ControlStyle := ControlStyle - [csCaptureMouse];
    ShowHint := True;
    Color := tbMenuBkColor;
-@@ -6544,18 +6518,18 @@
+@@ -6542,18 +6518,18 @@
    begin
      X := (R.Left + R.Right) div 2;
      Y := (R.Top + R.Bottom) div 2;
@@ -991,7 +1018,7 @@
      end;
      Canvas.Pen.Color := tbMenuTextColor;
      Canvas.Brush.Color := tbMenuTextColor;
-@@ -6615,9 +6589,9 @@
+@@ -6613,9 +6589,9 @@
    else begin
      FrameRect(DC, R, GetSysColorBrush(COLOR_BTNSHADOW));
      Brush := CreateSolidBrush(ColorToRGB(TTBPopupWindow(AppData).Color));
