@@ -101,6 +101,7 @@ type
     procedure WMSize(var Message: TWMSize); message WM_SIZE;
     procedure WMSpSkinChange(var Message: TMessage); message WM_SPSKINCHANGE;
   protected
+    procedure ChangeScale(M, D: Integer{$if CompilerVersion >= 31}; isDpiChange: Boolean{$ifend}); override;
     procedure AdjustClientRect(var Rect: TRect); override;
     procedure AlignControls(AControl: TControl; var ARect: TRect); override;
     function  AutoScrollEnabled: Boolean; virtual;
@@ -456,6 +457,12 @@ end;
 function TSpTBXCustomPageScroller.CanAutoSize(var NewWidth, NewHeight: Integer): Boolean;
 begin
   Result := NewHeight > FButtonSize * 3;
+end;
+
+procedure TSpTBXCustomPageScroller.ChangeScale(M, D: Integer{$if CompilerVersion >= 31}; isDpiChange: Boolean{$ifend});
+begin
+  inherited;
+  FButtonSize := MulDiv(FButtonSize, M, D);
 end;
 
 procedure TSpTBXCustomPageScroller.ConstrainedResize(var MinWidth, MinHeight, MaxWidth, MaxHeight: Integer);
