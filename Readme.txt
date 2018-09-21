@@ -32,9 +32,11 @@ the terms of the Mozilla Public License Version 1.1, found in MPL-LICENSE.txt or
 ---[Installation]
 
 Requirements:
-- Delphi/C++Builder 2009 or up
-- Jordan Russell's Toolbar 2000 
+- RAD Studio XE or newer:
+- Jordan Russell's Toolbar 2000
   http://www.jrsoftware.org
+- TB2K patch
+  http://www.silverpointdevelopment.com/sptbxlib/downloads.htm
 
 To install SpTBXLib manually:
 - If you have a previous version of SpTBXLib installed in the IDE remove it from Component->Install Packages, select SpTBXLib from the list and press the Remove button. 
@@ -50,7 +52,7 @@ The installation folder will end up with this files:
 C:\MyInstall
        |-  SpTBXLib.zip
        |-  tb2k-2.2.2.zip
-       |-  TB2KPatch-2.2.2.zip
+       |-  TB2Kpatch-1.1.zip
        |-  MultiInstaller.exe
        |-  Setup.ini 
 
