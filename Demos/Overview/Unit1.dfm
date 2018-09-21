@@ -18,27 +18,32 @@ object Form1: TForm1
   TextHeight = 13
   object SpTBXSplitter1: TSpTBXSplitter
     Left = 273
-    Top = 72
-    Height = 457
+    Top = 76
+    Height = 452
     Cursor = crSizeWE
+    ParentColor = False
+    ExplicitHeight = 453
   end
   object SpTBXSplitter2: TSpTBXSplitter
     Left = 575
-    Top = 72
-    Height = 457
+    Top = 76
+    Height = 452
     Cursor = crSizeWE
     Align = alRight
+    ParentColor = False
+    ExplicitHeight = 453
   end
   object SpTBXMultiDock1: TSpTBXMultiDock
     Left = 0
-    Top = 72
+    Top = 76
     Width = 273
-    Height = 457
+    Height = 452
+    ExplicitHeight = 453
     object SpTBXDockablePanel1: TSpTBXDockablePanel
       Left = 0
       Top = 154
       Width = 273
-      Height = 303
+      Height = 298
       Caption = 'Options Panel'
       DockPos = 154
       TabOrder = 0
@@ -51,10 +56,11 @@ object Form1: TForm1
         Left = 0
         Top = 19
         Width = 269
-        Height = 280
+        Height = 275
         Align = alClient
         OnResize = SpTBXTabControl2Resize
         ActiveTabIndex = 0
+        ExplicitHeight = 276
         HiddenItems = <>
         object SpTBXTabItem1: TSpTBXTabItem
           Caption = 'Controls'
@@ -68,28 +74,30 @@ object Form1: TForm1
         end
         object SpTBXTabSheet6: TSpTBXTabSheet
           Left = 0
-          Top = 23
+          Top = 25
           Width = 269
-          Height = 257
+          Height = 250
           Caption = 'Editors'
           ImageIndex = -1
+          ExplicitHeight = 251
           DesignSize = (
             269
-            257)
+            250)
           TabItem = 'SpTBXTabItem6'
           object SpTBXPanel2: TSpTBXPanel
             Left = 8
             Top = 112
             Width = 252
-            Height = 72
+            Height = 58
             Anchors = [akLeft, akTop, akRight, akBottom]
             TabOrder = 4
             HotTrack = True
+            ExplicitHeight = 59
             object Memo2: TMemo
               Left = 2
               Top = 22
               Width = 248
-              Height = 48
+              Height = 34
               Align = alClient
               BorderStyle = bsNone
               Lines.Strings = (
@@ -100,6 +108,7 @@ object Form1: TForm1
                 '4) Set the control BorderStyle to bsNone'
                 '4) Change the skin to other than Default')
               TabOrder = 0
+              ExplicitHeight = 35
             end
             object Panel2: TPanel
               Left = 2
@@ -195,7 +204,7 @@ object Form1: TForm1
             Width = 121
             Height = 21
             ItemHeight = 23
-            ItemIndex = 0
+            ItemIndex = 6
             TabOrder = 6
             Text = 'Arial'
             SelectedFont = 'Arial'
@@ -203,14 +212,15 @@ object Form1: TForm1
         end
         object SpTBXTabSheet3: TSpTBXTabSheet
           Left = 0
-          Top = 23
+          Top = 25
           Width = 269
-          Height = 257
+          Height = 250
           Caption = 'Misc'
           ImageIndex = -1
+          ExplicitHeight = 251
           DesignSize = (
             269
-            257)
+            250)
           TabItem = 'SpTBXTabItem3'
           object SpTBXGroupBox5: TSpTBXGroupBox
             Left = 8
@@ -270,14 +280,15 @@ object Form1: TForm1
         end
         object SpTBXTabSheet1: TSpTBXTabSheet
           Left = 0
-          Top = 23
+          Top = 25
           Width = 269
-          Height = 257
+          Height = 250
           Caption = 'Controls'
           ImageIndex = -1
+          ExplicitHeight = 251
           DesignSize = (
             269
-            257)
+            250)
           TabItem = 'SpTBXTabItem1'
           object progressAnimate: TSpTBXButton
             Left = 80
@@ -464,7 +475,7 @@ object Form1: TForm1
     Left = 0
     Top = 0
     Width = 716
-    Height = 72
+    Height = 76
     object SpTBXToolbar1: TSpTBXToolbar
       Left = 0
       Top = 0
@@ -510,7 +521,7 @@ object Form1: TForm1
     end
     object SpTBXToolbar3: TSpTBXToolbar
       Left = 0
-      Top = 23
+      Top = 25
       DockPos = 0
       DockRow = 1
       ShrinkMode = tbsmNone
@@ -518,7 +529,7 @@ object Form1: TForm1
       TabOrder = 1
       Caption = 'SpTBXToolbar3'
       DesignSize = (
-        706
+        708
         22)
       object SpTBXLabelItem3: TSpTBXLabelItem
         Caption = '&Address:'
@@ -537,7 +548,7 @@ object Form1: TForm1
         Images = ImageList1
       end
       object SpTBXComboBox1: TSpTBXComboBox
-        Left = 53
+        Left = 55
         Top = 0
         Width = 605
         Height = 21
@@ -551,7 +562,7 @@ object Form1: TForm1
     end
     object SpTBXToolbar2: TSpTBXToolbar
       Left = 0
-      Top = 49
+      Top = 51
       DockPos = 8
       DockRow = 2
       ShrinkMode = tbsmNone
@@ -573,15 +584,16 @@ object Form1: TForm1
   end
   object SpTBXMultiDock3: TSpTBXMultiDock
     Left = 580
-    Top = 72
+    Top = 76
     Width = 136
-    Height = 457
+    Height = 452
     Position = dpxRight
+    ExplicitHeight = 453
     object DP1: TSpTBXDockablePanel
       Left = 0
       Top = 286
       Width = 136
-      Height = 171
+      Height = 166
       Caption = 'Panel1'
       DockPos = 286
       TabOrder = 0
@@ -704,12 +716,13 @@ object Form1: TForm1
   end
   object Panel1: TPanel
     Left = 278
-    Top = 72
+    Top = 76
     Width = 297
-    Height = 457
+    Height = 452
     Align = alClient
     BevelOuter = bvNone
     TabOrder = 2
+    ExplicitHeight = 453
     object Image1: TImage
       Left = 16
       Top = 248
@@ -1401,10 +1414,11 @@ object Form1: TForm1
       Left = 0
       Top = 0
       Width = 297
-      Height = 457
+      Height = 452
       Align = alClient
       ActiveTabIndex = -1
       Images = ImageList1
+      ExplicitHeight = 453
       HiddenItems = <>
       object SpTBXRightAlignSpacerItem1: TSpTBXRightAlignSpacerItem
         CustomWidth = 210
@@ -1429,12 +1443,12 @@ object Form1: TForm1
   end
   object SpTBXStatusBar1: TSpTBXStatusBar
     Left = 0
-    Top = 529
+    Top = 528
     Width = 716
-    Height = 26
+    Height = 27
     ParentShowHint = False
     ShowHint = True
-    ExplicitTop = 532
+    ExplicitTop = 530
     object TBControlItem2: TTBControlItem
       Control = SpTBXProgressBar2
     end
@@ -1464,7 +1478,7 @@ object Form1: TForm1
     end
     object SpTBXProgressBar2: TSpTBXProgressBar
       Left = 0
-      Top = 1
+      Top = 2
       Width = 140
       Height = 19
       Caption = '30%'
@@ -1510,7 +1524,7 @@ object Form1: TForm1
     Left = 408
     Top = 352
     Bitmap = {
-      494C01010A000E002C0010001000FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
+      494C01010A000E00300010001000FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
       0000000000003600000028000000400000003000000001002000000000000030
       0000000000000000000000000000000000000000000000000000000000000000
       0000000000000000000000000000000000000000000000000000000000000000
