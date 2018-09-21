@@ -240,7 +240,6 @@ object SpTBXCustomizeForm: TSpTBXCustomizeForm
         Height = 241
         OnClickCheck = lbToolbarsClickCheck
         Anchors = [akLeft, akTop, akRight, akBottom]
-        ItemHeight = 20
         TabOrder = 0
         OnClick = lbToolbarsClick
       end
@@ -255,6 +254,8 @@ object SpTBXCustomizeForm: TSpTBXCustomizeForm
     TabOrder = 1
     Borders = False
     TBXStyleBackground = True
+    ExplicitTop = 288
+    ExplicitWidth = 225
     DesignSize = (
       347
       35)

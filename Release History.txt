@@ -1,3 +1,13 @@
+21 September 2018 - version 2.5.4
+  - Added RAD Studio 10.2 Tokyo support.
+  - Added high DPI support, thanks to PyScripter.
+  - Added MouseWheel property to TSpTBXSpinEdit.SpinOptions, when set to true using the
+    mouse wheel will increment or decrement the value of the spin edit control.
+  - TSpTBXSkinGroupItem now lists available VCL Styles.
+  - Minor bug fixes.
+  - New requirement: SpTBXLib supports RAD Studio XE and up.
+  - New requirement: apply TB2K patch 1.1 before installing.
+
 21 May 2016 - version 2.5.3
   - Added support for RAD Studio XE8, RAD Studio 10 Seattle and RAD Studio 10.1 Berlin
   

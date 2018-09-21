@@ -1,7 +1,7 @@
 unit SpTBXExtEditors;
 
 {==============================================================================
-Version 2.5.3
+Version 2.5.4
 
 The contents of this file are subject to the SpTBXLib License; you may
 not use or distribute this file except in compliance with the
@@ -304,7 +304,7 @@ begin
   if not Pushed then
     SpDrawRectangle(ACanvas, R, 0, clBtnHighlight, clBtnShadow);
 
-  InflateRect(R, -2, -2);
+  InflateRect(R, -SpDPIScale(2), -SpDPIScale(2));
   if (AColor = clNone) and CheckeredBkgndWhenTransparent then begin
     // Draw a checkered background when clNone is used
     SpDrawCheckeredBackground(ACanvas, R);
@@ -316,18 +316,18 @@ begin
   SpDrawRectangle(ACanvas, R, 0, clBtnShadow, clBtnHighlight);
 
   R := ARect;
-  R.Left := R.Right - 9;
-  R.Top := R.Bottom - 7;
+  R.Left := R.Right - SpDPIScale(9);
+  R.Top := R.Bottom - SpDPIScale(7);
   ACanvas.Brush.Color := clBtnFace;
   ACanvas.FillRect(R);
   if Pushed then
     SpDrawRectangle(ACanvas, R, 0, clBtnHighlight, clBtnFace)
   else
     SpDrawRectangle(ACanvas, R, 0, clBtnHighlight, clBtnShadow);
-  SpDrawArrow(ACanvas, R.Left + (R.Right - R.Left) div 2, R.Top + (R.Bottom - R.Top) div 2 - 1, clBlack, True, False, 2);
+  SpDrawArrow(ACanvas, R.Left + (R.Right - R.Left) div 2, R.Top + (R.Bottom - R.Top) div 2 - SpDPIScale(1), clBlack, True, False, SpDPIScale(2));
 
   R := ARect;
-  InflateRect(R, -1, -1);
+  InflateRect(R, -SpDPIScale(1), -SpDPIScale(1));
   SpDrawRectangle(ACanvas, R, 0, clBtnFace, clBtnFace);
 end;
 
@@ -445,16 +445,13 @@ end;
 
 procedure TSpTBXColorEdit.UpdateValueFromText(RevertWhenInvalid: Boolean = True);
 var
-  WS: WideString;
   PrevValue, NewValue, C: TColor;
 begin
   PrevValue := SelectedColor;
   NewValue := SelectedColor;
-  WS := Text;
 
   // Try to parse the text to get the value
-  WS := Trim(WS);
-  if SpStringToColor(WS, C) then
+  if SpStringToColor(Trim(Text), C) then
     NewValue := C;
 
   if RevertWhenInvalid or (NewValue <> PrevValue) then begin
@@ -478,10 +475,11 @@ begin
 
   Visible := False;
   SetBounds(0, 0, 0, 0);
-  Color := clWindow;
+  Color := CurrentSkin.GetThemedSystemColor(clWindow);
   FPreviewPanel := TPanel.Create(Self);
   FPreviewPanel.Parent := Self;
-  FPreviewPanel.Color := clWindow;
+  FPreviewPanel.Color := CurrentSkin.GetThemedSystemColor(clWindow);
+  FPreviewPanel.Font.Color := CurrentSkin.GetThemedSystemColor(clWindowText);
   FPreviewPanel.BevelOuter := bvNone;
   FPreviewPanel.Align := alClient;
 end;
@@ -513,14 +511,14 @@ end;
 constructor TSpTBXFontComboBox.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
-  FAutoDropDownWidthRightMargin := 60;
+  FAutoDropDownWidthRightMargin := SpDPIScale(60);
   FFontNamePreview := True;
   FFontPreview := True;
   FMaxMRUItems := 5;
   FMRUCount := 0;
   AutoItemHeight := False;
   AutoDropDownWidth := True;
-  ItemHeight := 23;
+  ItemHeight := SpDPIScale(23);
 end;
 
 destructor TSpTBXFontComboBox.Destroy;
@@ -547,22 +545,22 @@ var
   W: Integer;
   P: TPoint;
   Sz: TSize;
-  WS: WideString;
+  S: string;
 begin
   inherited;
 
   if FFontPreview then begin
-    WS := 'AaBbYyZz';
+    S := 'AaBbYyZz';
     FPreviewWindow := TSpTBXFontComboBoxPreview.Create(Self);
     FPreviewWindow.ParentWindow := Application.Handle;
     FPreviewWindow.PreviewPanel.Font.Size := 14;
 
-    if Assigned(FOnFontPreview) then FOnFontPreview(Self, WS);
+    if Assigned(FOnFontPreview) then FOnFontPreview(Self, S);
 
-    FPreviewWindow.PreviewPanel.Caption := WS;
-    Sz := SpGetControlTextSize(FPreviewWindow.PreviewPanel, FPreviewWindow.PreviewPanel.Font, WS);
-    Inc(Sz.cx, 100);
-    Inc(Sz.cy, 20);
+    FPreviewWindow.PreviewPanel.Caption := S;
+    Sz := SpGetControlTextSize(FPreviewWindow.PreviewPanel, FPreviewWindow.PreviewPanel.Font, S);
+    Inc(Sz.cx, SpDPIScale(100));
+    Inc(Sz.cy, SpDPIScale(20));
 
     W := SendMessage(Handle, CB_GETDROPPEDWIDTH, 0, 0);
     P := Parent.ClientToScreen(Point(Left, Top));
@@ -712,8 +710,9 @@ begin
   I := ItemIndex;
   if I > -1 then begin
     FSelectedFont := Items[I];
-    if AddMRU then
-      MRUAdd(FSelectedFont);
+    if [csDesigning, csLoading] * ComponentState = [] then
+      if AddMRU then
+        MRUAdd(FSelectedFont);
   end
   else
     FSelectedFont := '';
@@ -811,13 +810,13 @@ begin
   if PaintStage = pstPrePaint then begin
     // Paint the color glyphs
     R := ARect;
-    R.Right := R.Left + 16 + 5;
-    ARect.Left := R.Right + 1;
+    R.Right := R.Left + SpDPIScale(16 + 5);
+    ARect.Left := R.Right + SpDPIScale(1);
     inherited DoDrawItem(ACanvas, ARect, Index, State, PaintStage, PaintDefault);
     if PaintDefault then begin
       SavedBrushColor := ACanvas.Brush.Color;
       try
-        InflateRect(R, -1, -1);
+        InflateRect(R, -SpDPIScale(1), -SpDPIScale(1));
 
         ACanvas.Brush.Color := Colors[Index];
         if (ACanvas.Brush.Color = clNone) and (clbsNoneAsTransparent in Style) then
@@ -997,7 +996,7 @@ procedure InitializeStock;
 begin
   Screen.Cursors[crSpTBXEyeDropper] := LoadCursor(HInstance, 'CZEYEDROPPER');
 
-  FontGlyphImgList := TImageList.CreateSize(12, 12);
+  FontGlyphImgList := TImageList.CreateSize(SpDPIScale(12), SpDPIScale(12));
   FontGlyphImgList.ResInstLoad(HInstance, rtBitmap, 'SPTBXTRUETYPE', clFuchsia);
   FontGlyphImgList.ResInstLoad(HInstance, rtBitmap, 'SPTBXOPENTYPE', clFuchsia);
 

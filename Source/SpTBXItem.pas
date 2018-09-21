@@ -1,7 +1,7 @@
 unit SpTBXItem;
 
 {==============================================================================
-Version 2.5.3
+Version 2.5.4
 
 The contents of this file are subject to the SpTBXLib License; you may
 not use or distribute this file except in compliance with the
@@ -147,12 +147,12 @@ type
     X, Y: Integer; var PaintDefault: Boolean) of object;
 
   TSpTBXDrawTextEvent = procedure(Sender: TObject; ACanvas: TCanvas;
-    ClientAreaRect: TRect; State: TSpTBXSkinStatesType; var ACaption: WideString;
+    ClientAreaRect: TRect; State: TSpTBXSkinStatesType; var ACaption: string;
     var CaptionRect: TRect; var CaptionFormat: Cardinal; IsTextRotated: Boolean;
     const PaintStage: TSpTBXPaintStage; var PaintDefault: Boolean) of object;
 
   TSpTBXDrawHintEvent = procedure(Sender: TObject; AHintBitmap: TBitmap;
-    var AHint: WideString; var PaintDefault: Boolean) of object;
+    var AHint: string; var PaintDefault: Boolean) of object;
 
   TSpTBXItemNotificationEvent = procedure(Sender: TObject;
     Ancestor: TTBCustomItem; Relayed: Boolean; Action: TTBItemChangedAction;
@@ -267,11 +267,11 @@ type
     procedure ActionChange(Sender: TObject; CheckDefaults: Boolean); override;
     function DialogChar(CharCode: Word): Boolean; virtual;
     procedure DoDrawAdjustFont(AFont: TFont; State: TSpTBXSkinStatesType); virtual;
-    procedure DoDrawHint(AHintBitmap: TBitmap; var AHint: Widestring; var PaintDefault: Boolean); virtual;
+    procedure DoDrawHint(AHintBitmap: TBitmap; var AHint: string; var PaintDefault: Boolean); virtual;
     procedure DoDrawButton(ACanvas: TCanvas; ARect: TRect; ItemInfo: TSpTBXMenuItemInfo;
       const PaintStage: TSpTBXPaintStage; var PaintDefault: Boolean); virtual;
     procedure DoDrawCaption(ACanvas: TCanvas; ClientAreaRect: TRect; State: TSpTBXSkinStatesType;
-      var ACaption: WideString; var CaptionRect: TRect; var CaptionFormat: Cardinal;
+      var ACaption: string; var CaptionRect: TRect; var CaptionFormat: Cardinal;
       IsTextRotated: Boolean; const PaintStage: TSpTBXPaintStage; var PaintDefault: Boolean); virtual;
     procedure DoDrawImage(ACanvas: TCanvas; State: TSpTBXSkinStatesType;
       const PaintStage: TSpTBXPaintStage; var AImageList: TCustomImageList;
@@ -308,7 +308,6 @@ type
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
     procedure Click; override;
-    function GetShortCutText: WideString; // Reintroduce to support unicode shortcut text
     procedure InitiateAction; override;
     procedure Invalidate;
   published
@@ -333,13 +332,13 @@ type
     procedure DoDrawButton(ACanvas: TCanvas; ARect: TRect; ItemInfo: TSpTBXMenuItemInfo;
       const PaintStage: TSpTBXPaintStage; var PaintDefault: Boolean); virtual;
     procedure DoDrawCaption(ACanvas: TCanvas; ClientAreaRect: TRect;
-      State: TSpTBXSkinStatesType; var ACaption: WideString; var CaptionRect: TRect;
+      State: TSpTBXSkinStatesType; var ACaption: string; var CaptionRect: TRect;
       var CaptionFormat: Cardinal; IsTextRotated: Boolean; const PaintStage: TSpTBXPaintStage;
       var PaintDefault: Boolean); virtual;
     procedure DoDrawImage(ACanvas: TCanvas; State: TSpTBXSkinStatesType;
       const PaintStage: TSpTBXPaintStage; var AImageList: TCustomImageList;
       var AImageIndex: Integer; var ARect: TRect; var PaintDefault: Boolean); virtual;
-    procedure DoDrawHint(AHintBitmap: TBitmap; CursorPos: TPoint; var CursorRect: TRect; var AHint: Widestring; var PaintDefault: Boolean); virtual;
+    procedure DoDrawHint(AHintBitmap: TBitmap; CursorPos: TPoint; var CursorRect: TRect; var AHint: string; var PaintDefault: Boolean); virtual;
 
     // Painting methods
     function CaptionShown: Boolean; override;
@@ -356,8 +355,6 @@ type
     // Hints
     procedure InternalMouseMove(Shift: TShiftState; X, Y: Integer); virtual;
   public
-    function GetCaptionText: WideString; reintroduce; virtual; // Hides the inherited TB2K GetCaptionText function
-    function GetHintText: Widestring; reintroduce; virtual; // Hides the inherited TB2K GetHintText function
     function IsToolbarStyle: Boolean; // Hides the inherited TB2K IsToolbarStyle function
     property Item: TSpTBXCustomItem read GetItem; // Hides the inherited TB2K Item property
   end;
@@ -612,11 +609,11 @@ type
     procedure WMSpSkinChange(var Message: TMessage); message WM_SPSKINCHANGE;
   protected
     procedure DoClick(AItem: TSpTBXItem); override;
-    procedure DoSkinChange; virtual;
     procedure DoFillStrings; override;
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
+    procedure DoSkinChange; virtual;
   published
     property OnSkinChange: TNotifyEvent read FOnSkinChange write FOnSkinChange;
   end;
@@ -649,14 +646,14 @@ type
 
   TSpTBXRowColCount = 1..100;
 
-  TSpTBXTPGetCellHint = procedure(Sender: TObject; ACol, ARow: Integer; var AHint: WideString) of object;
+  TSpTBXTPGetCellHint = procedure(Sender: TObject; ACol, ARow: Integer; var AHint: string) of object;
 
   TSpTBXTPDrawCellImage = procedure(Sender: TObject; ACanvas: TCanvas;
     ARect: TRect; ACol, ARow: Integer; Selected, HotTrack, Enabled: Boolean) of object;
 
   TSpTBXTPCellClick = procedure(Sender: TObject; ACol, ARow: Integer; var Allow: Boolean) of object;
 
-  TSpTBXCPGetColorInfo = procedure(Sender: TObject; ACol, ARow: Integer; var Color: TColor; var Name: WideString) of object;
+  TSpTBXCPGetColorInfo = procedure(Sender: TObject; ACol, ARow: Integer; var Color: TColor; var Name: string) of object;
 
   TSpTBXCustomToolPalette = class(TSpTBXCustomItem)
   private
@@ -673,7 +670,7 @@ type
     function DoCellClick(ACol, ARow: Integer): Boolean; virtual;
     procedure DoChange; virtual;
     procedure DoDrawCellImage(ACanvas: TCanvas; const ARect: TRect; ACol, ARow: Integer; ItemInfo: TSpTBXMenuItemInfo); virtual;
-    procedure DoGetCellHint(ACol, ARow: Integer; var AHint: WideString); virtual;
+    procedure DoGetCellHint(ACol, ARow: Integer; var AHint: string); virtual;
     function GetItemViewerClass(AView: TTBView): TTBItemViewerClass; override;
     procedure HandleClickCell(ACol, ARow: Integer); virtual;
     procedure SetColCount(Value: TSpTBXRowColCount); virtual;
@@ -724,8 +721,8 @@ type
     function GetImageShown: Boolean; override;
     function GetCellAt(X, Y: Integer; out Col, Row: Integer): Boolean;
     function GetCellRect(ClientAreaRect: TRect; Col, Row: Integer): TRect; virtual;
-    function GetCellHint(Col, Row: Integer): WideString;
-    procedure DoDrawHint(AHintBitmap: TBitmap; CursorPos: TPoint; var CursorRect: TRect; var AHint: Widestring; var PaintDefault: Boolean); override;
+    function GetCellHint(Col, Row: Integer): string;
+    procedure DoDrawHint(AHintBitmap: TBitmap; CursorPos: TPoint; var CursorRect: TRect; var AHint: string; var PaintDefault: Boolean); override;
     procedure DrawCellImage(ACanvas: TCanvas; const ARect: TRect; Col, Row: Integer; ItemInfo: TSpTBXMenuItemInfo); virtual;
     procedure Entering; override;
     procedure InvalidateCell(ACol, ARow: Integer);
@@ -751,10 +748,10 @@ type
     procedure SetCustomColors(const Value: Boolean);
   protected
     procedure DoChange; override;
-    procedure DoGetCellHint(ACol, ARow: Integer; var AHint: WideString); override;
+    procedure DoGetCellHint(ACol, ARow: Integer; var AHint: string); override;
     procedure DoDrawCellImage(ACanvas: TCanvas; const ARect: TRect; ACol, ARow: Integer; ItemInfo: TSpTBXMenuItemInfo); override;
     function GetCellColor(ACol, ARow: Integer): TColor;
-    procedure GetCellInfo(ACol, ARow: Integer; out AColor: TColor; out AName: WideString);
+    procedure GetCellInfo(ACol, ARow: Integer; out AColor: TColor; out AName: string);
     procedure SetColCount(Value: TSpTBXRowColCount); override;
     procedure SetRowCount(Value: TSpTBXRowColCount); override;
   public
@@ -893,7 +890,6 @@ type
     FBeginDragIV: TTBItemViewer;
     FAnchoredControlItems: TSpTBXItemCacheCollection;
     FState: TSpTBXToolbarStates;
-    FDefaultToolbarBorderSize: Integer;
 
     // Component
     procedure Resize; override;
@@ -944,7 +940,6 @@ type
     function IsCustomizing: Boolean;
     function IsItemMoving: Boolean;
     function IsVertical: Boolean;
-    property DefaultToolbarBorderSize: Integer read FDefaultToolbarBorderSize;
     property MaxSize: Integer read GetMaxSize write SetMaxSize default -1;
   published
     property ActivateParent;
@@ -1035,7 +1030,6 @@ type
     procedure WMWindowPosChanged(var Message: TWMWindowPosChanged); message WM_WINDOWPOSCHANGED;
   protected
     FBarSize: TSize;
-    FDefaultToolbarBorderSize: Integer;
     function GetFloatingWindowParentClass: TTBFloatingWindowParentClass; override;
 
     // Sizing
@@ -1067,7 +1061,6 @@ type
     function IsVertical: Boolean;
     procedure ReadPositionData(const Data: TTBReadPositionData); override;
     procedure WritePositionData(const Data: TTBWritePositionData); override;
-    property DefaultToolbarBorderSize: Integer read FDefaultToolbarBorderSize;
   published
     property Caption;
     property Color default clNone;
@@ -1304,7 +1297,7 @@ type
     FMinimizeImageIndex: Integer;
     FMaximizeImageIndex: Integer;
     FRestoreImageIndex: Integer;
-    FCaptionLabel: WideString;
+    FCaptionLabel: string;
     FCaption: Boolean;
     FClose: Boolean;
     FMinimize: Boolean;
@@ -1313,7 +1306,7 @@ type
     FTitleBarMaxSize: Integer;
     procedure SetCaptionImageIndex(Value: Integer);
     procedure SetCloseImageIndex(Value: Integer);
-    procedure SetCaptionLabel(const Value: WideString);
+    procedure SetCaptionLabel(const Value: string);
     procedure SetMaximizeImageIndex(Value: Integer);
     procedure SetRestoreImageIndex(Value: Integer);
     procedure SetMinimizeImageIndex(Value: Integer);
@@ -1346,7 +1339,7 @@ type
     property MinimizeButton: TSpTBXItem read FMinimizeButton;
     property MaximizeButton: TSpTBXItem read FMaximizeButton;
     property CloseButton: TSpTBXItem read FCloseButton;
-    property CaptionLabel: WideString read FCaptionLabel write SetCaptionLabel;
+    property CaptionLabel: string read FCaptionLabel write SetCaptionLabel;
   published
     property ButtonBorders: Boolean read FButtonBorders write FButtonBorders default True;
     property Caption: Boolean read FCaption write SetCaption default True;
@@ -1610,6 +1603,9 @@ type
     procedure ActivateHintData(Rect: TRect; const AHint: string; AData: Pointer); override;
   end;
 
+{ Constants }
+function CDefaultToolbarBorderSize: Integer;
+
 { Item helpers }
 procedure SpFillItemInfo(ACanvas: TCanvas; IV: TTBItemViewer; out ItemInfo: TSpTBXMenuItemInfo);
 function SpGetBoundsRect(IV: TTBItemViewer; Root: TTBRootItem): TRect;
@@ -1646,7 +1642,7 @@ procedure SpDrawXPTooltipBackground(ACanvas: TCanvas; ARect: TRect);
 
 { Menu helpers }
 function SpCalcPopupPosition(const X, Y, Width, Height: Integer; PopupControl: TControl = nil; IsVertical: Boolean = False): TPoint;
-function SpHMenuGetCaption(Menu: HMenu; Index: Integer): WideString;
+function SpHMenuGetCaption(Menu: HMenu; Index: Integer): string;
 function SpHMenuToTBMenuItem(Menu: HMenu; ParentItem: TTBCustomItem): Boolean;
 function SpShowSystemPopupMenu(ParentForm: TCustomForm; ScreenPos: TPoint; DoDefault: Boolean = True): Integer;
 function SpFillSystemSpTBXPopup(ParentForm: TCustomForm; ParentItem: TTBCustomItem; ShowSize, ShowMinimize, ShowMaximize, ShowClose: Boolean; ClickEvent: TNotifyEvent = nil): Boolean;
@@ -1678,7 +1674,6 @@ var
   SpTBXHintWindowClass: THintWindowClass = TBitmapHint;
 
 const
-  CDefaultToolbarBorderSize = 2;       // Default size of Floating Toolbar borders
   crSpTBXNewHandPoint = 100;          // Cursor ID to replace crHandPoint for IDC_HAND
   crSpTBXCustomization = 101;         // Cursor ID used for item D&D customization accepted
   crSpTBXCustomizationCancel = 102;   // Cursor ID used for item D&D customization cancelled
@@ -1759,6 +1754,17 @@ type
   TWinControlAccess = class(TWinControl);
   TCustomFormAccess = class(TCustomForm);
   TActionLinkAccess = class(TActionLink);
+
+//WMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWM
+{ Constants }
+
+function CDefaultToolbarBorderSize: Integer;
+begin
+  // Default size of Docked and Floating Toolbar borders
+  // Constant defined on implementation section of TB2Dock
+  // as DockedBorderSize
+  Result := SpDPIScale(2);
+end;
 
 //WMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWM
 { Item Helpers }
@@ -2212,7 +2218,7 @@ begin
   if Assigned(Toolbar.CurrentDock) then
     if Toolbar.CurrentDock.AllowDrag then begin
       T := TTBCustomDockableWindowAccess(Toolbar);
-      Result := DragHandleSizes[T.CloseButtonWhenDocked, Ord(T.DragHandleStyle)]
+      Result := SpDPIScale(DragHandleSizes[T.CloseButtonWhenDocked, Ord(T.DragHandleStyle)]);
     end;
 end;
 
@@ -2457,7 +2463,6 @@ begin
       R := ARect;
       R.Right := R.Left + ItemInfo.MenuMargins.GutterSize;
 
-
       case ItemInfo.SkinType of
         sknNone:
           ToolbarItemDraw(R);
@@ -2490,7 +2495,7 @@ begin
       if ItemInfo.SkinType = sknSkin then
         C := SkinManager.CurrentSkin.Options(skncMenuItem, ItemInfo.State).Borders.Color1
       else
-        C := clBtnShadow;
+        C :=  CurrentSkin.GetThemedSystemColor(clBtnShadow);
       R := ARect;
       R.Left := ARect.Right - 10 - 4;
       SpDrawLine(ACanvas, R.Left, R.Top + 1, R.Left, R.Bottom - 1, C);
@@ -2745,22 +2750,23 @@ begin
         if not IsRectEmpty(ARect) then
           CurrentSkin.PaintBackground(ACanvas, ARect, skncStatusBar, sknsNormal, True, True);
         if not IsRectEmpty(AGripRect) then begin
+          // Grip cells are 4x4 pixels
           R := AGripRect;
           C1 := SkinManager.CurrentSkin.Options(skncStatusBarGrip).Body.Color1;
           C2 := SkinManager.CurrentSkin.Options(skncStatusBarGrip).Body.Color2;
           // Draw 3 cells at the bottom
-          R.Left := R.Right - 12;
-          R.Top := R.Bottom - 4;
+          R.Left := R.Right - SpDPIScale(4) * 3;
+          R.Top := R.Bottom - SpDPIScale(4);
           SpDrawXPGrip(ACanvas, R, C1, C2);
           // Draw 2 cells at the top
           R.Bottom := R.Top;
-          R.Top := R.Bottom - 4;
-          R.Left := R.Left + 4;
+          R.Top := R.Bottom - SpDPIScale(4);
+          R.Left := R.Left + SpDPIScale(4);
           SpDrawXPGrip(ACanvas, R, C1, C2);
           // Draw 1 cell at the top
           R.Bottom := R.Top;
-          R.Top := R.Bottom - 4;
-          R.Left := R.Left + 4;
+          R.Top := R.Bottom - SpDPIScale(4);
+          R.Left := R.Left + SpDPIScale(4);
           SpDrawXPGrip(ACanvas, R, C1, C2);
         end;
       end;
@@ -2792,8 +2798,7 @@ begin
         try
           CurrentSkin.GetThemedElementDetails(skncWindowTitleBar, IsActive, False, False, False, False, False, False, Details);
           ElementSize := CurrentSkin.GetThemedElementSize(ACanvas, Details);
-          B.Width := ARect.Right - ARect.Left;
-          B.Height := ElementSize.cy;
+          B.SetSize(ARect.Right - ARect.Left,  ElementSize.cy);
           CurrentSkin.PaintThemedElementBackground(B.Canvas, Rect(0, 0, B.Width, B.Height), Details);
           ACanvas.StretchDraw(ARect, B);
         finally
@@ -2876,8 +2881,7 @@ begin
         try
           R := ARect;
           R.Bottom := R.Top + BorderSize.Y;
-          B.Width := R.Right - R.Left;
-          B.Height := R.Bottom - R.Top;
+          B.SetSize(R.Right - R.Left, R.Bottom - R.Top);
           CurrentSkin.PaintThemedElementBackground(B.Canvas, Rect(0, 0, B.Width, B.Height), Details);
           // Mirror
           MirrorR := Rect(0, B.Height - 1, B.Width, -1);
@@ -2957,23 +2961,16 @@ begin
   DrawSkinBody := True;
 
   if Toolbar.Docked then begin
-    // Prepare R
+    // Draw the Dock background
     R := Toolbar.CurrentDock.ClientRect;
     OffsetRect(R, -Toolbar.Left, -Toolbar.Top);
     if not PaintOnNCArea then begin
-      if W is TSpTBXToolbar then
-        OffsetRect(R, -TSpTBXToolbar(W).DefaultToolbarBorderSize, -TSpTBXToolbar(W).DefaultToolbarBorderSize)
-      else
-        OffsetRect(R, -CDefaultToolbarBorderSize, -CDefaultToolbarBorderSize);
-      if IsVertical then
-        Dec(R.Top, SpGetDragHandleSize(Toolbar))
-      else
-        Dec(R.Left, SpGetDragHandleSize(Toolbar));
+      // Called by WMEraseBkgnd, map R from toolbar Canvas to dock Canvas
+      // We need to offset the border size
+      OffsetRect(R, -CDefaultToolbarBorderSize, -CDefaultToolbarBorderSize)
     end;
-    // Draw the Dock background
     if Toolbar.CurrentDock is TSpTBXDock then
       TSpTBXDock(Toolbar.CurrentDock).DrawBackground(ACanvas.Handle, R);
-
     DrawSkinBody := not (Toolbar.CurrentDock.BackgroundOnToolbars and SpIsDockUsingBitmap(Toolbar.CurrentDock));
   end
   else begin
@@ -3022,17 +3019,15 @@ begin
 end;
 
 procedure SpDrawXPToolbarGrip(W: TTBCustomDockableWindow; ACanvas: TCanvas; ARect: TRect);
-const
-  Pattern: array [0..15] of Byte = (0, 0, $CC, 0, $78, 0, $30, 0, $78, 0, $CC, 0, 0, 0, 0, 0);
 var
   GripR, CloseR: TRect;
-  GripSize, Z: Integer;
+  GripSize: Integer;
   Vertical: Boolean;
-  C1, C2, PatternColor: TColor;
-  Flags: Integer;
+  C1, C2: TColor;
   Toolbar: TTBCustomDockableWindowAccess;
   State: TSpTBXSkinStatesType;
   Details: TThemedElementDetails;
+  SaveIndex: Integer;
 begin
   Toolbar := TTBCustomDockableWindowAccess(W);
 
@@ -3055,43 +3050,43 @@ begin
     if Toolbar.CloseButtonWhenDocked then begin
       if Vertical then begin
         CloseR.Left := ARect.Right - GripSize;
-        CloseR.Right := CloseR.Left + GripSize - 2;
-        CloseR.Top := ARect.Top + 2;
-        CloseR.Bottom := CloseR.Top + GripSize - 2;
-        Dec(GripR.Right, GripSize - 1);
+        CloseR.Right := CloseR.Left + GripSize - SpDpiScale(2);
+        CloseR.Top := ARect.Top + SpDpiScale(2);
+        CloseR.Bottom := CloseR.Top + GripSize - SpDpiScale(2);
+        Dec(GripR.Right, GripSize - SpDpiScale(1));
       end
       else begin
-        CloseR.Left := ARect.Left + 2;
-        CloseR.Right := CloseR.Left + GripSize - 2;
-        CloseR.Top := ARect.Top + 2;
-        CloseR.Bottom := CloseR.Top + GripSize - 2;
-        Inc(GripR.Top, GripSize - 1);
+        CloseR.Left := ARect.Left + SpDpiScale(2);
+        CloseR.Right := CloseR.Left + GripSize - SpDpiScale(2);
+        CloseR.Top := ARect.Top + SpDpiScale(2);
+        CloseR.Bottom := CloseR.Top + GripSize - SpDpiScale(2);
+        Inc(GripR.Top, GripSize - SpDpiScale(1));
       end;
     end;
 
     case SkinManager.GetSkinType of
       sknNone:
         begin
-          OffsetRect(CloseR, -1, -1);
+          OffsetRect(CloseR, -SpDpiScale(1), -SpDpiScale(1));
           if Vertical then begin
             if Toolbar.CloseButtonWhenDocked then
-              if Toolbar.DragHandleStyle = dhDouble then Inc(GripR.Top, 1)
-              else Inc(GripR.Top, 3);
-            Inc(GripR.Top, 3);
-            GripR.Bottom := GripR.Top + 3;
+              if Toolbar.DragHandleStyle = dhDouble then Inc(GripR.Top, SpDpiScale(1))
+              else Inc(GripR.Top, SpDpiScale(3));
+            Inc(GripR.Top, SpDpiScale(3));
+            GripR.Bottom := GripR.Top + SpDpiScale(3);
           end
           else begin
             if Toolbar.CloseButtonWhenDocked then
-              if Toolbar.DragHandleStyle = dhDouble then Inc(GripR.Left, 1)
-              else Inc(GripR.Left, 3);
-            Inc(GripR.Left, 3);
-            GripR.Right := GripR.Left + 3;
+              if Toolbar.DragHandleStyle = dhDouble then Inc(GripR.Left, SpDpiScale(1))
+              else Inc(GripR.Left, SpDpiScale(3));
+            Inc(GripR.Left, SpDpiScale(3));
+            GripR.Right := GripR.Left + SpDpiScale(3);
           end;
           Windows.DrawEdge(ACanvas.Handle, GripR, BDR_RAISEDINNER, BF_RECT);
           ACanvas.Pixels[GripR.Left, GripR.Bottom - 1] := clBtnHighlight;
           if Toolbar.DragHandleStyle = dhDouble then begin
-            if Vertical then OffsetRect(GripR, 0, 3)
-            else OffsetRect(GripR, 3, 0);
+            if Vertical then OffsetRect(GripR, 0, SpDpiScale(3))
+            else OffsetRect(GripR, SpDpiScale(3), 0);
             Windows.DrawEdge(ACanvas.Handle, GripR, BDR_RAISEDINNER, BF_RECT);
             ACanvas.Pixels[GripR.Left, GripR.Bottom - 1] := clBtnHighlight;
           end;
@@ -3103,71 +3098,67 @@ begin
             else
               if Toolbar. CloseButtonHover then
                 Windows.DrawEdge(ACanvas.Handle, CloseR, BDR_RAISEDINNER, BF_RECT);
-            if Toolbar.CloseButtonDown then OffsetRect(CloseR, 1, 1);
-            SpDrawGlyphPattern(ACanvas.Handle, CloseR, 7, 7, Pattern[0], clBtnText);
+            if Toolbar.CloseButtonDown then OffsetRect(CloseR, SpDpiScale(1), SpDpiScale(1));
+            SpDrawGlyphPattern(ACanvas, CloseR, 4, clBtnText);
           end;
         end;
       sknWindows, sknDelphiStyle:
-        if SkinManager.GetSkinType = sknDelphiStyle then begin  // XE2 Styles
-          if Vertical then begin
-            Details := SpTBXThemeServices.GetElementDetails(trGripperVert);
-            OffsetRect(GripR, 1, 0);
+        begin
+          if SkinManager.GetSkinType = sknDelphiStyle then begin
+            if Vertical then begin
+              Details := SpTBXThemeServices.GetElementDetails(trGripperVert);
+              Inc(GripR.Left, SpDpiScale(2));
+              OffsetRect(GripR, 0, SpDPIScale(2));
+            end
+            else begin
+              Details := SpTBXThemeServices.GetElementDetails(trGripper);
+              Inc(GripR.Top, SpDpiScale(2));
+              OffsetRect(GripR, SpDPIScale(2), 0);
+            end;
           end
           else begin
-            Details := SpTBXThemeServices.GetElementDetails(trGripper);
-            OffsetRect(GripR, 0, 1);
+            // Since GetThemePartSize does not seem to work properly, assume we use default
+            // WindowsXP themes where the gripper pattern repeats itself every 4 pixels
+            if Vertical then begin
+              Details := SpTBXThemeServices.GetElementDetails(trGripperVert);
+              GripR := SpCenterRectVert(GripR, 6);  // Do not use SpDPIScale, Windows paints the grip with 4 pixels
+              GripR.Right := GripR.Left + ((GripR.Right - GripR.Left) div 4) * 4;
+              OffsetRect(GripR, 0, SpDPIScale(1));
+            end
+            else begin
+              Details := SpTBXThemeServices.GetElementDetails(trGripper);
+              GripR := SpCenterRectHoriz(GripR, 6);  // Do not use SpDPIScale, Windows paints the grip with 4 pixels
+              GripR.Bottom := GripR.Top + ((GripR.Bottom - GripR.Top) div 4) * 4;
+              OffsetRect(GripR, SpDPIScale(1), 0);
+            end;
           end;
-          SpTBXThemeServices.DrawElement(ACanvas.Handle, Details, GripR);
+
+          // Weird Delphi styles painting bug, we need to clip the bottom
+          SaveIndex := SaveDC(ACanvas.Handle);
+          try
+            ExcludeClipRect(ACanvas.Handle, ARect.Left, ARect.Bottom - SpDPIScale(3), ARect.Right, ARect.Bottom);
+            SpTBXThemeServices.DrawElement(ACanvas.Handle, Details, GripR);
+          finally
+            RestoreDC(ACanvas.Handle, SaveIndex);
+          end;
 
           // Close button
           if Toolbar.CloseButtonWhenDocked then begin
             CurrentSkin.PaintThemedElementBackground(ACanvas, CloseR, skncToolbarItem, True, Toolbar.CloseButtonDown, Toolbar.CloseButtonHover, False, False, False, False);
-            if Toolbar.CloseButtonDown then OffsetRect(CloseR, 1, 1);
-            SpDrawGlyphPattern(ACanvas.Handle, CloseR, 7, 7, Pattern[0], CurrentSkin.GetThemedSystemColor(clBtnText));
-          end;
-        end
-        else begin
-          // Since GetThemePartSize does not seem to work properly, assume we use default
-          // WindowsXP themes where the gripper pattern repeats itself every 4 pixels
-          if Vertical then begin
-            Details := SpTBXThemeServices.GetElementDetails(trGripperVert);
-            OffsetRect(GripR, -1, 0);
-            GripR := SpCenterRectVert(GripR, 6);
-            Z := GripR.Right - GripR.Left;
-            GripR.Left := GripR.Left - 1 + (Z and $3) shr 1;
-            GripR.Right := GripR.Left + Z and not $3 + 2;
-          end
-          else begin
-            Details := SpTBXThemeServices.GetElementDetails(trGripper);
-            OffsetRect(GripR, 0, -1);
-            GripR := SpCenterRectHoriz(GripR, 6);
-            Z := GripR.Bottom - GripR.Top;
-            GripR.Top := GripR.Top  - 1 + (Z and $3) shr 1;
-            GripR.Bottom := GripR.Top + Z and not $3 + 1;
-          end;
-          SpTBXThemeServices.DrawElement(ACanvas.Handle, Details, GripR);
-
-          // Close button
-          if Toolbar.CloseButtonWhenDocked then begin
-            Flags := TS_NORMAL;
-            if Toolbar.CloseButtonDown then Flags := TS_PRESSED
-            else if Toolbar.CloseButtonHover then Flags := TS_HOT;
-            DrawThemeBackground(SpTBXThemeServices.Theme[teToolbar], ACanvas.Handle, TP_BUTTON, Flags, CloseR, nil);
-            if Toolbar.CloseButtonDown then OffsetRect(CloseR, 1, 1);
-            SpDrawGlyphPattern(ACanvas.Handle, CloseR, 7, 7, Pattern[0], clBtnText);
+            SpDrawGlyphPattern(ACanvas, CloseR, 4, CurrentSkin.GetThemedSystemColor(clBtnText));
           end;
         end;
       sknSkin:
         begin
           if Vertical then begin
-            InflateRect(GripR, -3, 0);
-            OffsetRect(GripR, 0, 2);
-            GripR := SpCenterRectVert(GripR, 4);
+            InflateRect(GripR, SpDpiScale(-3), 0);
+            OffsetRect(GripR, 0, SpDpiScale(2));
+            GripR := SpCenterRectVert(GripR, SpDpiScale(4));
           end
           else begin
-            InflateRect(GripR, 0, -3);
-            OffsetRect(GripR, 2, 0);
-            GripR := SpCenterRectHoriz(GripR, 4);
+            InflateRect(GripR, 0, SpDpiScale(-3));
+            OffsetRect(GripR, SpDpiScale(2), 0);
+            GripR := SpCenterRectHoriz(GripR, SpDpiScale(4));
           end;
           C1 := SkinManager.CurrentSkin.Options(skncToolbarGrip).Body.Color1;
           C2 := SkinManager.CurrentSkin.Options(skncToolbarGrip).Body.Color2;
@@ -3179,9 +3170,8 @@ begin
             if Toolbar.CloseButtonDown then State := sknsPushed
             else if Toolbar.CloseButtonHover then State := sknsHotTrack;
             CurrentSkin.PaintBackground(ACanvas, CloseR, skncToolbarItem, State, True, True);
-            if Toolbar.CloseButtonDown then OffsetRect(CloseR, 1, 1);
-            PatternColor := CurrentSkin.GetTextColor(skncToolbarItem, State);
-            SpDrawGlyphPattern(ACanvas.Handle, CloseR, 7, 7, Pattern[0], PatternColor);
+            if Toolbar.CloseButtonDown then OffsetRect(CloseR, SpDpiScale(1), SpDpiScale(1));
+            SpDrawGlyphPattern(ACanvas, CloseR, 4, CurrentSkin.GetTextColor(skncToolbarItem, State));
           end;
         end;
     end;
@@ -3274,7 +3264,7 @@ begin
   end;
 end;
 
-function SpHMenuGetCaption(Menu: HMenu; Index: Integer): WideString;
+function SpHMenuGetCaption(Menu: HMenu; Index: Integer): string;
 var
   WideBuf: array[0..MAX_PATH] of WideChar;
   Size: Integer;
@@ -3867,7 +3857,7 @@ begin
   // Do nothing
 end;
 
-procedure TSpTBXCustomItem.DoDrawHint(AHintBitmap: TBitmap; var AHint: Widestring; var PaintDefault: Boolean);
+procedure TSpTBXCustomItem.DoDrawHint(AHintBitmap: TBitmap; var AHint: string; var PaintDefault: Boolean);
 begin
   if Assigned(FOnDrawHint) then FOnDrawHint(Self, AHintBitmap, AHint, PaintDefault);
 end;
@@ -3879,7 +3869,7 @@ begin
 end;
 
 procedure TSpTBXCustomItem.DoDrawCaption(ACanvas: TCanvas; ClientAreaRect: TRect;
-  State: TSpTBXSkinStatesType; var ACaption: WideString; var CaptionRect: TRect; var CaptionFormat: Cardinal;
+  State: TSpTBXSkinStatesType; var ACaption: string; var CaptionRect: TRect; var CaptionFormat: Cardinal;
   IsTextRotated: Boolean; const PaintStage: TSpTBXPaintStage; var PaintDefault: Boolean);
 begin
   if Assigned(FOnDrawCaption) then FOnDrawCaption(Self, ACanvas, ClientAreaRect,
@@ -3926,21 +3916,6 @@ end;
 function TSpTBXCustomItem.GetPopupWindowClass: TTBPopupWindowClass;
 begin
   Result := TSpTBXPopupWindow;
-end;
-
-function TSpTBXCustomItem.GetShortCutText: WideString;
-var
-  P: Integer;
-begin
-  P := Pos(#9, Caption);
-  if (P = 0) or (P = Length(Caption)) then begin
-    if ShortCut <> 0 then
-      Result := ShortCutToText(ShortCut)
-    else
-      Result := '';
-  end
-  else
-    Result := Copy(Caption, P+1, Maxint);
 end;
 
 procedure TSpTBXCustomItem.Click;
@@ -4145,7 +4120,7 @@ begin
 end;
 
 procedure TSpTBXItemViewer.DoDrawCaption(ACanvas: TCanvas; ClientAreaRect: TRect;
-  State: TSpTBXSkinStatesType; var ACaption: WideString; var CaptionRect: TRect; var CaptionFormat: Cardinal;
+  State: TSpTBXSkinStatesType; var ACaption: string; var CaptionRect: TRect; var CaptionFormat: Cardinal;
   IsTextRotated: Boolean; const PaintStage: TSpTBXPaintStage; var PaintDefault: Boolean);
 begin
   Item.DoDrawCaption(ACanvas, ClientAreaRect, State, ACaption, CaptionRect,
@@ -4153,7 +4128,7 @@ begin
 end;
 
 procedure TSpTBXItemViewer.DoDrawHint(AHintBitmap: TBitmap; CursorPos: TPoint;
-  var CursorRect: TRect; var AHint: Widestring; var PaintDefault: Boolean);
+  var CursorRect: TRect; var AHint: string; var PaintDefault: Boolean);
 begin
   Item.DoDrawHint(AHintBitmap, AHint, PaintDefault);
 end;
@@ -4218,7 +4193,7 @@ var
   DropDownArrowSize, DropDownArrowMargin, SplitBtnArrowSize: Integer;
   ImgSize, RightImgSize: TSize;
   GlyphTop, ToolbarStyle: Boolean;
-  WS: WideString;
+  WS: string;
   TextMetric: TTextMetric;
   MenuMargins: TSpTBXMenuItemMarginsInfo;
   State: TSpTBXSkinStatesType;
@@ -4254,14 +4229,14 @@ begin
 
   // Measure size
   if ToolbarStyle then begin
-    AWidth := 6;
-    AHeight := 6;
+    AWidth := SpDpiScale(6);
+    AHeight := SpDpiScale(6);
 
     if CaptionShown then begin
       Inc(AWidth, TextInfo.TextSize.CX);
       Inc(AHeight, TextInfo.TextSize.CY);
-      if not TextInfo.IsTextRotated then Inc(AWidth, 4)
-      else Inc(AHeight, 4);
+      if not TextInfo.IsTextRotated then Inc(AWidth, SpDpiScale(4))
+      else Inc(AHeight, SpDpiScale(4));
     end;
 
     if GetImageShown and (ImgSize.CX > 0) and (ImgSize.CY > 0) then begin
@@ -4269,25 +4244,25 @@ begin
         if not TextInfo.IsTextRotated then begin
           Inc(AWidth, ImgSize.CX);
           Inc(AWidth);
-          if AHeight < ImgSize.CY + 6 then AHeight := ImgSize.CY + 6;
+          if AHeight < ImgSize.CY + SpDpiScale(6) then AHeight := ImgSize.CY + SpDpiScale(6);
         end
         else begin
           Inc(AHeight, ImgSize.CY);
           Inc(AHeight);
-          if AWidth < ImgSize.CX + 6 then AWidth := ImgSize.CX + 6;
+          if AWidth < ImgSize.CX + SpDpiScale(6) then AWidth := ImgSize.CX + SpDpiScale(6);
         end;
       end
       else begin
         Inc(AHeight, ImgSize.CY);
-        if AWidth < ImgSize.CX + 7 then AWidth := ImgSize.CX + 7;
+        if AWidth < ImgSize.CX + SpDpiScale(7) then AWidth := ImgSize.CX + SpDpiScale(7);
       end;
     end;
 
     if (RightImgSize.cx > 0) and (RightImgSize.cy > 0) then begin
       if View.Orientation = tbvoVertical then
-        Inc(AHeight, 4 + RightImgSize.cy)
+        Inc(AHeight, SpDpiScale(4) + RightImgSize.cy)
       else
-        Inc(AWidth, 4 + RightImgSize.cx);
+        Inc(AWidth, SpDpiScale(4) + RightImgSize.cx);
     end;
 
     if (tbisSubmenu in Item.ItemStyle) and (tbisCombo in Item.ItemStyle) then
@@ -4300,18 +4275,18 @@ begin
         end
         else
           if GlyphTop and (TextInfo.IsTextRotated xor (View.Orientation <> tbvoVertical)) then begin
-            W := ImgSize.CX + DropDownArrowSize + 2;
-            if W > AWidth - 7 then AWidth := W + 7;
+            W := ImgSize.CX + DropDownArrowSize + SpDpiScale(2);
+            if W > AWidth - SpDpiScale(7) then AWidth := W + SpDpiScale(7);
           end
           else begin
-            H := ImgSize.CY + DropDownArrowSize + 2;
-            if H > AHeight - 7 then AHeight := H + 7;
+            H := ImgSize.CY + DropDownArrowSize + SpDpiScale(2);
+            if H > AHeight - SpDpiScale(7) then AHeight := H + SpDpiScale(7);
           end;
     end;
 
     // Widen MenuBar SubMenuItems
     if (tbisSubmenu in Item.ItemStyle) and (vsMenuBar in View.Style) then
-      Inc(AWidth, 6);
+      Inc(AWidth, SpDpiScale(6));
 
     // Toolbar.Stretch property doesn't work correctly, I don't know how to fix
     // it without changing the TB2K source.
@@ -4331,7 +4306,7 @@ begin
     AWidth := TextInfo.TextSize.cx;
     AHeight := TextInfo.TextSize.cy;
 
-    if ImgSize.cy = 0 then ImgSize.cy := 16;
+    if ImgSize.cy = 0 then ImgSize.cy := SpDpiScale(16);
     if AHeight < ImgSize.cy then AHeight := ImgSize.cy;
 
     if View.Window is TSpTBXPopupWindow then
@@ -4345,7 +4320,7 @@ begin
     Inc(AWidth, MenuMargins.GutterSize + MenuMargins.ImageTextSpace + MenuMargins.LeftCaptionMargin + MenuMargins.RightCaptionMargin);
     WS := Item.GetShortCutText;
     if Length(WS) > 0 then
-      Inc(AWidth, (AHeight - 6) + SpGetTextSize(Canvas.Handle, WS, True).cx);
+      Inc(AWidth, (AHeight - SpDpiScale(6)) + SpGetTextSize(Canvas.Handle, WS, True).cx);
     Inc(AWidth, AHeight); { Note: maybe this should be controlled by the theme }
   end;
 
@@ -4429,11 +4404,6 @@ begin
   InternalCalcSize(Canvas, True, AWidth, AHeight);
 end;
 
-function TSpTBXItemViewer.GetCaptionText: WideString;
-begin
-  Result := SpStripShortcut(Item.Caption);
-end;
-
 function TSpTBXItemViewer.GetTextColor(State: TSpTBXSkinStatesType): TColor;
 begin
   Result := Item.FontSettings.Color;
@@ -4441,8 +4411,14 @@ begin
     if IsToolbarStyle then begin
       if View.Window is TSpTBXToolbar then
         Result := TSpTBXToolbar(View.Window).GetItemsTextColor(State);
-      if Result = clNone then
-        Result := CurrentSkin.GetTextColor(skncToolbarItem, State);
+      if Result = clNone then begin
+        if IsOnToolBoxPopup and not (State in [sknsHotTrack, sknsCheckedAndHotTrack]) then
+          // If it's on a toolbox popup and it's not in a hottrack state then
+          // the background is the popup, get the text color of the menu items
+          Result := CurrentSkin.GetTextColor(skncMenuItem, State)
+        else
+          Result := CurrentSkin.GetTextColor(skncToolbarItem, State);
+      end;
     end
     else
       Result := CurrentSkin.GetTextColor(skncMenuItem, State);
@@ -4467,7 +4443,7 @@ const
     if (TextFlags and (DT_WORDBREAK or DT_END_ELLIPSIS or DT_PATH_ELLIPSIS)) <> 0 then begin
       // will never get here, TextFlags doesn't have wrapping
       CaptionRect := BoundsRect;
-      R := Rect(0, 0, CaptionRect.Right - CaptionRect.Left, 80);
+      R := Rect(0, 0, CaptionRect.Right - CaptionRect.Left, SpDPIScale(80));
     end
     else
       R := Rect(0, 0, 1, 1);
@@ -4532,7 +4508,7 @@ var
   P: TPoint;
 
   DropDownArrowSize, DropDownArrowMargin, SplitBtnArrowSize, ImgAndArrowWidth: Integer;
-  WS: WideString;
+  WS: string;
   TextC, DropDownC: TColor;
 
   GlyphLayout: TSpGlyphLayout;
@@ -4584,10 +4560,10 @@ begin
         else begin
           // Special DropDown, toolbar item with arrow, image and text. The Image is above the caption
           // the arrow must be aligned with the image, above the text
-          ImgAndArrowWidth := ItemInfo.ImageSize.cx + DropDownArrowSize + 2;
-          ItemInfo.ComboRect.Right := (R.Left + R.Right + ImgAndArrowWidth + 2) div 2;
+          ImgAndArrowWidth := ItemInfo.ImageSize.cx + DropDownArrowSize + SpDPIScale(2);
+          ItemInfo.ComboRect.Right := (R.Left + R.Right + ImgAndArrowWidth + SpDPIScale(2)) div 2;
           ItemInfo.ComboRect.Left := ItemInfo.ComboRect.Right - DropDownArrowSize;
-          ItemInfo.ComboRect.Top := (R.Top + R.Bottom - ItemInfo.ImageSize.cy - 2 - TextInfo.TextSize.CY) div 2;
+          ItemInfo.ComboRect.Top := (R.Top + R.Bottom - ItemInfo.ImageSize.cy - SpDPIScale(2) - TextInfo.TextSize.CY) div 2;
           ItemInfo.ComboRect.Bottom := ItemInfo.ComboRect.Top + ItemInfo.ImageSize.cy;
         end;
     end;
@@ -4601,8 +4577,8 @@ begin
 
     // Draw dropdown arrow
     if PaintDefault and ItemInfo.HasArrow then begin
-      P.X := (ItemInfo.ComboRect.Left + ItemInfo.ComboRect.Right) div 2 - 1;
-      P.Y := (ItemInfo.ComboRect.Top + ItemInfo.ComboRect.Bottom) div 2 - 1;
+      P.X := (ItemInfo.ComboRect.Left + ItemInfo.ComboRect.Right) div 2 - SpDPIScale(1);
+      P.Y := (ItemInfo.ComboRect.Top + ItemInfo.ComboRect.Bottom) div 2 - SpDPIScale(1);
       // Don't draw the arrow if is a split button in Windows, it's
       // painted by the Windows theme.
       if not (ItemInfo.IsSplit and (ItemInfo.SkinType in [sknWindows, sknDelphiStyle])) then begin
@@ -4610,8 +4586,8 @@ begin
         if ItemInfo.IsSplit and ItemInfo.Enabled then
           DropDownC := GetTextColor(ItemInfo.ComboState);
         if ItemInfo.IsSunkenCaption then
-          P := Point(P.X + 1, P.Y + 1);
-        SpDrawArrow(Canvas, P.X, P.Y, DropDownC, not ItemInfo.IsVertical, False, 2);
+          P := Point(P.X + SpDPIScale(1), P.Y + SpDPIScale(1));
+        SpDrawArrow(Canvas, P.X, P.Y, DropDownC, not ItemInfo.IsVertical, False, SpDPIScale(2));
       end;
       if not ItemInfo.IsSplit and not IsSpecialDropDown then begin
         if View.Orientation <> tbvoVertical then Dec(R.Right, DropDownArrowSize)
@@ -4619,7 +4595,7 @@ begin
       end;
     end;
 
-    InflateRect(R, -4, -4);  // Adjust
+    InflateRect(R, -SpDPIScale(4), -SpDPIScale(4));  // Adjust
   end
   else begin // Menu items
     PaintDefault := True;
@@ -4631,7 +4607,7 @@ begin
 
     // Draw the submenu arrows
     if PaintDefault and (tbisSubmenu in Item.ItemStyle) then
-      SpDrawArrow(Canvas, R.Right - 10, R.Bottom div 2, TextC, False, False, 3);
+      SpDrawArrow(Canvas, R.Right - SpDPIScale(10), R.Bottom div 2, TextC, False, False, SpDPIScale(3));
 
     // Don't apply the margins if the menu item has
     // tbisClicksTransparent itemstyle (like a SpTBXLabelItem)
@@ -4663,7 +4639,7 @@ begin
       SpCalcXPText(Canvas, R, WS, TextAlignment, TextInfo.TextFlags, ItemInfo.ImageSize, ItemInfo.RightImageSize, GlyphLayout, False, CaptionRect, ImageRect, RightImageRect, TextInfo.TextAngle);
 
       if ItemInfo.IsSunkenCaption then
-        OffsetRect(CaptionRect, 1, 1);
+        OffsetRect(CaptionRect, SpDPIScale(1), SpDPIScale(1));
     end
     else begin
       if tbisClicksTransparent in Item.ItemStyle then begin
@@ -4691,10 +4667,10 @@ begin
       if (not IsSelected or ItemInfo.ToolbarStyle) and
         (ItemInfo.State = sknsDisabled) and (ItemInfo.SkinType = sknNone) then
       begin
-        OffsetRect(CaptionRect, 1, 1);
+        OffsetRect(CaptionRect, SpDPIScale(1), SpDPIScale(1));
         Canvas.Font.Color := clBtnHighlight;
         SpDrawXPText(Canvas, WS, CaptionRect, TextInfo.TextFlags, Item.CaptionGlow, Item.CaptionGlowColor, TextInfo.TextAngle);
-        OffsetRect(CaptionRect, -1, -1);
+        OffsetRect(CaptionRect, -SpDPIScale(1), -SpDPIScale(1));
         Canvas.Font.Color := clGrayText;
       end;
 
@@ -4733,7 +4709,7 @@ begin
     if ItemInfo.ToolBarStyle then begin
       if IsRectEmpty(ImageRect) then
         ImageRect := R;
-      if IsSpecialDropDown then OffsetRect(ImageRect, (-DropDownArrowSize + 1) div 2, 0);
+      if IsSpecialDropDown then OffsetRect(ImageRect, (-DropDownArrowSize + SpDPIScale(1)) div 2, 0);
     end
     else begin
       ImageRect := R;
@@ -4747,9 +4723,9 @@ begin
     else begin
       if not ItemInfo.ToolbarStyle and Item.Checked then begin
         if Item.RadioItem then
-          CurrentSkin.PaintMenuRadioMark(Canvas, ImageRect, True, True, ItemInfo.State)
+          CurrentSkin.PaintMenuRadioMark(Canvas, ImageRect, True, ItemInfo.State)
         else
-          CurrentSkin.PaintMenuCheckMark(Canvas, ImageRect, True, False, True, ItemInfo.State);
+          CurrentSkin.PaintMenuCheckMark(Canvas, ImageRect, True, False, ItemInfo.State);
       end;
     end;
   end;
@@ -4777,48 +4753,12 @@ begin
     Result := nil;
 end;
 
-function TSpTBXItemViewer.GetHintText: Widestring;
-var
-  I: Integer;
-  S: string;
-begin
-  // Get the short hint
-  I := Pos('|', Item.Hint);
-  if I = 0 then
-    Result := Item.Hint
-  else
-    Result := Copy(Item.Hint, 1, I - 1);
-  // Use the caption if there is no hint
-  if (Result = '') and not(tboNoAutoHint in Item.EffectiveOptions) and
-     (not(tbisSubmenu in Item.ItemStyle) or (tbisCombo in Item.ItemStyle) or
-      not CaptionShown) then
-  begin
-    Result := SpStripAccelChars(SpStripTrailingPunctuation(Item.Caption));
-  end;
-
-  // Call associated action's OnHint event handler to post-process the hint
-  if Assigned(Item.ActionLink) and (Item.ActionLink.Action is TCustomAction) and
-    Assigned(TCustomAction(Item.ActionLink.Action).OnHint) then
-  begin
-    S := Result;
-    if TCustomAction(Item.ActionLink.Action).DoHint(S) then
-      Result := S
-    else
-      Result := '';
-    // Note: TControlActionLink.DoShowHint actually misinterprets the result of DoHint, but we get it right...
-  end;
-
-  // Add shortcut text
-  if (Result <> '') and Application.HintShortCuts and (Item.ShortCut <> scNone) then
-    Result := Result + ' (' + ShortCutToText(Item.ShortCut) + ')';
-end;
-
 procedure TSpTBXItemViewer.CMHintShow(var Message: TMessage);
 // Handle the CM_HINTSHOW message to show unicode hints using
 // a custom THintWindow.
 var
   HintInfo: PHintInfo;
-  WideHint, PrevWideHint: Widestring;
+  WideHint, PrevWideHint: string;
   R, TextR, CursorR: TRect;
   PaintDefault: Boolean;
   {$IF CompilerVersion >= 23} //for Delphi XE2 and up
@@ -4851,8 +4791,7 @@ begin
   SpStockHintBitmap.Canvas.Brush.Color := clInfoBk;
   TextR := Rect(0, 0, 1, 1);
   SpDrawXPText(SpStockHintBitmap.Canvas, WideHint, TextR, DT_NOPREFIX or DT_CALCRECT);
-  SpStockHintBitmap.Width := TextR.Right + 8;
-  SpStockHintBitmap.Height := TextR.Bottom + 4;
+  SpStockHintBitmap.SetSize(TextR.Right + 8, TextR.Bottom + 4);
   R := Rect(0, 0, SpStockHintBitmap.Width, SpStockHintBitmap.Height);
   SpDrawXPTooltipBackground(SpStockHintBitmap.Canvas, R);
 
@@ -4868,8 +4807,7 @@ begin
     if WideHint <> PrevWideHint then begin
       TextR := Rect(0, 0, 1, 1);
       SpDrawXPText(SpStockHintBitmap.Canvas, WideHint, TextR, DT_NOPREFIX or DT_CALCRECT);
-      SpStockHintBitmap.Width := TextR.Right + 8;
-      SpStockHintBitmap.Height := TextR.Bottom + 4;
+      SpStockHintBitmap.SetSize(TextR.Right + 8, TextR.Bottom + 4);
       R := Rect(0, 0, SpStockHintBitmap.Width, SpStockHintBitmap.Height);
       SpDrawXPTooltipBackground(SpStockHintBitmap.Canvas, R);
     end
@@ -4998,12 +4936,12 @@ end;
 function TSpTBXColorItemViewer.GetImageSize: TSize;
 begin
   if IsToolbarStyle then begin
-    Result.cx := 12;
-    Result.cy := 12;
+    Result.cx := SpDpiScale(12);
+    Result.cy := SpDPIScale(12);
   end
   else begin
-    Result.cx := 16;
-    Result.cy := 16;
+    Result.cx := SpDpiScale(16);
+    Result.cy := SpDpiScale(16);
   end;
 end;
 
@@ -5096,13 +5034,13 @@ procedure TSpTBXSeparatorItemViewer.CalcSize(const Canvas: TCanvas; var AWidth,
 begin
   if not IsToolbarStyle then begin
     if CurrentSkin.OfficeMenu then
-      AHeight := 4  // For Office XP, 2003, 2007
+      AHeight := SpDpiScale(4)  // For Office XP, 2003, 2007
     else
-      AHeight := 10;
+      AHeight := SpDpiScale(10);
   end
   else begin
-    AWidth := 6;
-    AHeight := 6;
+    AWidth := SpDpiScale(6);
+    AHeight := SpDpiScale(6);
   end;
 end;
 
@@ -5249,8 +5187,19 @@ begin
 end;
 
 procedure TSpTBXSkinGroupItem.DoClick(AItem: TSpTBXItem);
+var
+  S: string;
 begin
-  SkinManager.SetSkin(FStrings[AItem.Tag]);
+  S := FStrings[AItem.Tag];
+  {$IF CompilerVersion >= 23} // for Delphi XE2 and up
+  if SkinManager.IsValidDelphiStyle(S) then
+    SkinManager.SetDelphiStyle(S)  // Set Delphi Style
+  else
+    SkinManager.SetSkin(S); // Set Skin
+  {$ELSE}
+  SkinManager.SetSkin(S); // Set Skin
+  {$IFEND}
+
   inherited;
 end;
 
@@ -5258,7 +5207,15 @@ procedure TSpTBXSkinGroupItem.DoSkinChange;
 var
   I: Integer;
 begin
+  {$IF CompilerVersion >= 23} // for Delphi XE2 and up
+  if TStyleManager.IsCustomStyleActive then
+    I := FStrings.IndexOf(TStyleManager.ActiveStyle.Name)
+  else
+    I := FStrings.IndexOf(SkinManager.CurrentSkinName);
+  {$ELSE}
   I := FStrings.IndexOf(SkinManager.CurrentSkinName);
+  {$IFEND}
+
   if I > -1 then
     Items[I].Click;
 
@@ -5266,15 +5223,8 @@ begin
 end;
 
 procedure TSpTBXSkinGroupItem.DoFillStrings;
-var
-  I: Integer;
 begin
-  SkinManager.SkinsList.GetSkinNames(FStrings);
-
-  // Sort the list and move the Default skin to the top
-  FStrings.Sort;
-  I := FStrings.IndexOf('Default');
-  if I > -1 then FStrings.Move(I, 0);
+  SkinManager.GetSkinsAndDelphiStyles(FStrings);
   inherited;
   FDefaultIndex := FStrings.IndexOf(SkinManager.CurrentSkinName);
 end;
@@ -5350,8 +5300,8 @@ end;
 procedure TSpTBXSystemMenuItemViewer.CalcSize(const Canvas: TCanvas;
   var AWidth, AHeight: Integer);
 begin
-  AWidth := GetSystemMetrics(SM_CXSMICON) + 2;
-  AHeight := GetSystemMetrics(SM_CYSMICON) + 2;
+  AWidth := GetSystemMetrics(SM_CXSMICON) + SpDpiScale(2);
+  AHeight := GetSystemMetrics(SM_CYSMICON) + SpDpiScale(2);
 end;
 
 procedure TSpTBXSystemMenuItemViewer.Paint(const Canvas: TCanvas;
@@ -5420,7 +5370,7 @@ begin
       ItemInfo.HotTrack, ItemInfo.Enabled);
 end;
 
-procedure TSpTBXCustomToolPalette.DoGetCellHint(ACol, ARow: Integer; var AHint: WideString);
+procedure TSpTBXCustomToolPalette.DoGetCellHint(ACol, ARow: Integer; var AHint: string);
 begin
   if Assigned(FOnGetCellHint) then FOnGetCellHint(Self, ACol, ARow, AHint);
 end;
@@ -5474,8 +5424,8 @@ var
   ImageSize: TSize;
 begin
   ImageSize := GetImageSize;
-  AWidth := ImageSize.cx + 6;
-  AHeight := ImageSize.cy + 6;
+  AWidth := ImageSize.cx + SpDpiScale(6);
+  AHeight := ImageSize.cy + SpDpiScale(6);
 end;
 
 procedure TSpTBXToolViewer.CalcSize(const Canvas: TCanvas; var AWidth, AHeight: Integer);
@@ -5500,12 +5450,12 @@ begin
   if not IsToolbarStyle then
     Inc(AWidth, MarginsInfo.RightCaptionMargin);
   AHeight := H * FRowCount;
-  if AWidth < 8 then AWidth := 8;
-  if AHeight < 8 then AHeight := 8;
+  if AWidth < SpDpiScale(8) then AWidth := SpDpiScale(8);
+  if AHeight < SpDpiScale(8) then AHeight := SpDpiScale(8);
 end;
 
 procedure TSpTBXToolViewer.DoDrawHint(AHintBitmap: TBitmap; CursorPos: TPoint;
-  var CursorRect: TRect; var AHint: Widestring; var PaintDefault: Boolean);
+  var CursorRect: TRect; var AHint: string; var PaintDefault: Boolean);
 var
   Col, Row: Integer;
 begin
@@ -5561,7 +5511,7 @@ begin
   Result := (Col >= 0) and (Row >= 0) and (Col < FColCount) and (Row < FRowCount);
 end;
 
-function TSpTBXToolViewer.GetCellHint(Col, Row: Integer): WideString;
+function TSpTBXToolViewer.GetCellHint(Col, Row: Integer): string;
 begin
   Result := '';
   Item.DoGetCellHint(Col, Row, Result);
@@ -5596,8 +5546,8 @@ begin
     Result.cy := IL.Height;
   end
   else begin
-    Result.cx := 12;
-    Result.cy := 12;
+    Result.cx := SpDpiScale(12);
+    Result.cy := SpDpiScale(12);
   end;
 end;
 
@@ -5807,7 +5757,7 @@ begin
   end;
 end;
 
-procedure TSpTBXColorPalette.DoGetCellHint(ACol, ARow: Integer; var AHint: WideString);
+procedure TSpTBXColorPalette.DoGetCellHint(ACol, ARow: Integer; var AHint: string);
 var
   C: TColor;
 begin
@@ -5838,13 +5788,13 @@ end;
 
 function TSpTBXColorPalette.GetCellColor(ACol, ARow: Integer): TColor;
 var
-  W: WideString;
+  S: string;
 begin
-  GetCellInfo(ACol, ARow, Result, W);
+  GetCellInfo(ACol, ARow, Result, S);
 end;
 
 procedure TSpTBXColorPalette.GetCellInfo(ACol, ARow: Integer;
-  out AColor: TColor; out AName: WideString);
+  out AColor: TColor; out AName: string);
 var
   I: Integer;
 begin
@@ -6210,7 +6160,6 @@ begin
   FAnchoredControlItems := TSpTBXItemCacheCollection.Create(TSpTBXItemCache);
   FChevronVertical := True;
   FCustomizable := True;
-  FDefaultToolbarBorderSize := CDefaultToolbarBorderSize;
   FDisplayMode := tbdmSelectiveCaption;
   SkinManager.AddSkinNotification(Self);
 end;
@@ -6505,6 +6454,7 @@ end;
 
 procedure TSpTBXToolbar.DrawNCArea(const DrawToDC: Boolean; const ADC: HDC;
   const Clip: HRGN);
+// Same as TSpTBXCustomToolWindow.DrawNCArea
 var
   DC: HDC;
   R, ExcludeR: TRect;
@@ -6523,7 +6473,7 @@ begin
     if not DrawToDC then begin
       SelectNCUpdateRgn(Handle, DC, Clip);
       ExcludeR := R;
-      InflateRect(ExcludeR, -DefaultToolbarBorderSize, -DefaultToolbarBorderSize);
+      InflateRect(ExcludeR, -CDefaultToolbarBorderSize, -CDefaultToolbarBorderSize);
       if IsVertical then
         Inc(ExcludeR.Top, GripSize)
       else
@@ -6655,7 +6605,7 @@ begin
 end;
 
 procedure TSpTBXToolbar.WMEraseBkgnd(var Message: TWMEraseBkgnd);
-// Same as TSpTBXToolWindow.WMEraseBkgnd
+// Same as TSpTBXCustomToolWindow.WMEraseBkgnd
 var
   ACanvas: TCanvas;
   R: TRect;
@@ -6668,7 +6618,7 @@ begin
   try
     R := ClientRect;
     if Docked then begin
-      InflateRect(R, DefaultToolbarBorderSize, DefaultToolbarBorderSize);
+      InflateRect(R, CDefaultToolbarBorderSize, CDefaultToolbarBorderSize);
       if IsVertical then
         Dec(R.Top, SpGetDragHandleSize(Self))
       else
@@ -6982,9 +6932,8 @@ end;
 constructor TSpTBXCustomToolWindow.Create(AOwner: TComponent);
 begin
   inherited;
-  FDefaultToolbarBorderSize := CDefaultToolbarBorderSize;
-  FMinClientWidth := 32;
-  FMinClientHeight := 32;
+  FMinClientWidth := SpDpiScale(32);
+  FMinClientHeight := SpDpiScale(32);
   SetBounds(Left, Top, FMinClientWidth, FMinClientHeight);
 
   Color := clNone;
@@ -7110,7 +7059,7 @@ begin
     if not DrawToDC then begin
       SelectNCUpdateRgn(Handle, DC, Clip);
       ExcludeR := R;
-      InflateRect(ExcludeR, -DefaultToolbarBorderSize, -DefaultToolbarBorderSize);
+      InflateRect(ExcludeR, -CDefaultToolbarBorderSize, -CDefaultToolbarBorderSize);
       if IsVertical then
         Inc(ExcludeR.Top, GripSize)
       else
@@ -7237,7 +7186,7 @@ begin
   try
     R := ClientRect;
     if Docked then begin
-      InflateRect(R, DefaultToolbarBorderSize, DefaultToolbarBorderSize);
+      InflateRect(R, CDefaultToolbarBorderSize, CDefaultToolbarBorderSize);
       if IsVertical then
         Dec(R.Top, SpGetDragHandleSize(Self))
       else
@@ -7292,15 +7241,13 @@ end;
 
 procedure TSpTBXFloatingWindowParent.DrawNCArea(const DrawToDC: Boolean;
   const ADC: HDC; const Clip: HRGN; RedrawWhat: TTBToolWindowNCRedrawWhat);
-const
-  Pattern: array [0..15] of Byte = ($C6, 0, $EE, 0, $7C, 0, $38, 0, $7C, 0, $EE, 0, $C6, 0, 0, 0);
 var
   DC: HDC;
   R, CaptionR, CloseR: TRect;
   ACanvas: TCanvas;
   DockWindow: TTBCustomDockableWindowAccess;
   FloatingBorderSize: TPoint;
-  WideCaption: WideString;
+  S: string;
   IsActive: Boolean;
   Details: TThemedElementDetails;
   CloseButtonWidth: Integer;
@@ -7360,13 +7307,13 @@ begin
               ACanvas.Font.Color := CurrentSkin.GetTextColor(skncWindowTitleBar, sknsDisabled);
 
             if DockableWindow is TSpTBXToolbar then
-              WideCaption := TSpTBXToolbar(DockWindow).Caption
+              S := TSpTBXToolbar(DockWindow).Caption
             else
               if DockableWindow is TSpTBXCustomToolWindow then
-                WideCaption := TSpTBXCustomToolWindow(DockWindow).Caption
+                S := TSpTBXCustomToolWindow(DockWindow).Caption
               else
-                WideCaption := '';
-            SpDrawXPText(ACanvas, WideCaption, CaptionR, DT_SINGLELINE or DT_VCENTER or DT_END_ELLIPSIS or DT_HIDEPREFIX);
+                S := '';
+            SpDrawXPText(ACanvas, S, CaptionR, DT_SINGLELINE or DT_VCENTER or DT_END_ELLIPSIS or DT_HIDEPREFIX);
           finally
             ACanvas.Brush.Style := bsSolid;
           end;
@@ -7376,10 +7323,10 @@ begin
         if (twrdCloseButton in RedrawWhat) and DockWindow.CloseButton then begin
           CloseR := R;
           Dec(CloseR.Bottom);
-          CloseButtonWidth := (CloseR.Bottom - CloseR.Top) - 2 - 2;
-          CloseR.Left := CloseR.Right - CloseButtonWidth - 2; // TB2Dock.GetCloseButtonRect
+          CloseButtonWidth := (CloseR.Bottom - CloseR.Top) - SpDpiScale(2) - SpDpiScale(2);
+          CloseR.Left := CloseR.Right - CloseButtonWidth - SpDpiScale(2); // TB2Dock.GetCloseButtonRect
           CloseR.Right := CloseR.Left + CloseButtonWidth;
-          CloseR.Top := CloseR.Top + 2;
+          CloseR.Top := CloseR.Top + SpDpiScale(2);
           CloseR.Bottom := CloseR.Top + CloseButtonWidth;
 
           case SkinManager.GetSkinType of
@@ -7603,7 +7550,7 @@ begin
     // If it's used by WM_ERASEBKGND offset the rect
     if PopupWindow.FPaintingClientArea then begin
       PopupWindow.FPaintingClientArea := False;
-      OffsetRect(R, -3, -3);
+      OffsetRect(R, -TB2Common.PopupMenuWindowNCSize, -TB2Common.PopupMenuWindowNCSize);
     end;
 
     PopupWindow.PaintBackground(ACanvas, R);
@@ -7639,7 +7586,7 @@ begin
         OpenIVRect.BottomRight := View.ParentView.Window.ClientToScreen(OpenIVRect.BottomRight);
         OpenIVRect.TopLeft := ScreenToClient(OpenIVRect.TopLeft);
         OpenIVRect.BottomRight := ScreenToClient(OpenIVRect.BottomRight);
-        OffsetRect(OpenIVRect, 3, 3); // Offset to get it on window coordinates
+        OffsetRect(OpenIVRect, TB2Common.PopupMenuWindowNCSize, TB2Common.PopupMenuWindowNCSize); // Offset to get it on window coordinates
         OpenIVSize := OpenIVRect.Right - OpenIVRect.Left;
 
         // Get the Clip rect based on OpenIVRect
@@ -7699,7 +7646,7 @@ begin
       inherited;
     sknWindows, sknDelphiStyle:
       // If it's Windows theme and we're not on Vista do default painting
-      if not SpIsWinVistaOrUp and (SkinManager.GetSkinType <> sknDelphiStyle) then
+      if not SpIsWinVistaOrUp and (SkinManager.GetSkinType = sknWindows) then
         inherited
       else begin
         Message.Result := 1;
@@ -7792,50 +7739,56 @@ end;
 procedure TSpTBXChevronItemViewer.Paint(const Canvas: TCanvas;
   const ClientAreaRect: TRect; IsSelected, IsPushed,
   UseDisabledShadow: Boolean);
-const
-  Pattern: array[Boolean, 0..15] of Byte = (
-    ($CC, 0, $66, 0, $33, 0, $66, 0, $CC, 0, 0, 0, 0, 0, 0, 0),
-    ($88, 0, $D8, 0, $70, 0, $20, 0, $88, 0, $D8, 0, $70, 0, $20, 0));
 var
   ItemInfo: TSpTBXMenuItemInfo;
   R2: TRect;
-  P: PByte;
-  W, H: Integer;
-  DC: HDC;
   PatternColor: TColor;
 begin
-  DC := Canvas.Handle;
   SpFillItemInfo(Canvas, Self, ItemInfo);
   SpDrawXPMenuItem(Canvas, ClientAreaRect, ItemInfo);
 
   // Chevron glyph
   R2 := ClientAreaRect;
   if not ItemInfo.IsVertical then begin
-    Inc(R2.Top, 4);
-    R2.Bottom := R2.Top + 5;
-    W := 8;
-    H := 5;
+    Inc(R2.Top, SpDPIScale(4));
+    R2.Bottom := R2.Top + SpDPIScale(5);
   end
   else begin
-    R2.Left := R2.Right - 9;
-    R2.Right := R2.Left + 5;
-    W := 5;
-    H := 8;
+    R2.Left := R2.Right - SpDPIScale(9);
+    R2.Right := R2.Left + SpDPIScale(5);
   end;
-  if ItemInfo.Pushed then OffsetRect(R2, 1, 1);
+  if ItemInfo.Pushed then OffsetRect(R2, SpDPIScale(1), SpDPIScale(1));
 
-  if SkinManager.GetSkinType = sknSkin then
-    PatternColor := GetTextColor(ItemInfo.State)
-  else
-    PatternColor := clBtnText;
-  P := @Pattern[ItemInfo.IsVertical][0];
-  if ItemInfo.Enabled then
-    SpDrawGlyphPattern(DC, R2, W, H, P^, PatternColor)
+  if ItemInfo.Enabled then begin
+    if SkinManager.GetSkinType = sknSkin then
+      PatternColor := GetTextColor(ItemInfo.State)
+    else
+      PatternColor := CurrentSkin.GetThemedSystemColor(clBtnText);
+    if not ItemInfo.IsVertical then
+      SpDrawGlyphPattern(Canvas, R2, 5, PatternColor)
+    else
+      SpDrawGlyphPattern(Canvas, R2, 6, PatternColor);
+  end
   else begin
-    OffsetRect(R2, 1, 1);
-    SpDrawGlyphPattern(DC, R2, W, H, P^, clBtnHighlight);
-    OffsetRect(R2, -1, -1);
-    SpDrawGlyphPattern(DC, R2, W, H, P^, clBtnShadow);
+    if SkinManager.GetSkinType = sknSkin then
+      PatternColor := GetTextColor(ItemInfo.State)
+    else
+      PatternColor := CurrentSkin.GetThemedSystemColor(clBtnHighlight);
+    OffsetRect(R2, SpDPIScale(1), SpDPIScale(1));
+    if not ItemInfo.IsVertical then
+      SpDrawGlyphPattern(Canvas, R2, 5, PatternColor)
+    else
+      SpDrawGlyphPattern(Canvas, R2, 6, PatternColor);
+
+    if SkinManager.GetSkinType = sknSkin then
+      PatternColor := GetTextColor(ItemInfo.State)
+    else
+      PatternColor := CurrentSkin.GetThemedSystemColor(clBtnShadow);
+    OffsetRect(R2, -SpDPIScale(1), -SpDPIScale(1));
+    if not ItemInfo.IsVertical then
+      SpDrawGlyphPattern(Canvas, R2, 5, PatternColor)
+    else
+      SpDrawGlyphPattern(Canvas, R2, 6, PatternColor);
   end;
 end;
 
@@ -8193,7 +8146,7 @@ begin
   FMinimizeImageIndex := -1;
   FMaximizeImageIndex := -1;
   FRestoreImageIndex := -1;
-  FTitleBarMaxSize := 21;
+  FTitleBarMaxSize := SpDpiScale(21);
   FButtonBorders := True;
   CreateButtons;
 end;
@@ -8237,7 +8190,7 @@ end;
 
 procedure TSpTBXButtonOptions.SetupButton(B: TSpTBXCustomItem);
 begin
-  B.CustomWidth := 17;
+  B.CustomWidth := SpDPIScale(17);
   B.CustomHeight := FTitleBarMaxSize;
   B.DisplayMode := nbdmImageAndText;
   B.OnDrawImage := ButtonsDrawImage;
@@ -8318,7 +8271,7 @@ begin
     PaintDefault := False;
 end;
 
-procedure TSpTBXButtonOptions.SetCaptionLabel(const Value: WideString);
+procedure TSpTBXButtonOptions.SetCaptionLabel(const Value: string);
 begin
   if FCaptionLabel <> Value then begin
     FCaptionLabel := Value;
@@ -8496,7 +8449,7 @@ begin
   R := GetGripRect;
   Result := R.Right - R.Left;
   if Result = 0 then
-    Result := 4;
+    Result := SpDPIScale(4);
 end;
 
 function TSpTBXStatusToolbar.NeedsSeparatorRepaint: Boolean;
@@ -8598,7 +8551,6 @@ procedure TSpTBXCustomStatusBar.DoDrawDockBackground(ACanvas: TCanvas;
   var PaintDefault: Boolean);
 var
   G: TRect;
-  OfficeSeparators: Boolean;
 begin
   inherited DoDrawDockBackground(ACanvas, ARect, PaintStage, PaintDefault);
   if (PaintStage = pstPrePaint) and PaintDefault then begin
@@ -8606,13 +8558,12 @@ begin
     G := Toolbar.GetGripRect;
     if not IsRectEmpty(G) then begin
       // When it's called by the Toolbar the Gripper position should be corrected
-      if (ARect.Left = -2) and (ARect.Top = -2) then
-        OffsetRect(G, -2, -2);
+      if (ARect.Left = SpDPIScale(-2)) and (ARect.Top = SpDPIScale(-2)) then
+        OffsetRect(G, SpDPIScale(-2), SpDPIScale(-2));
     end;
 
-    OfficeSeparators := Toolbar.NeedsSeparatorRepaint;
     SpDrawXPStatusBar(ACanvas, ARect, G);
-    if OfficeSeparators then
+    if Toolbar.NeedsSeparatorRepaint then
       DrawSeparators(ACanvas, ARect);
   end;
 end;
@@ -8634,10 +8585,10 @@ begin
         if IsRectEmpty(R) then
           Continue;
 
-        OffsetRect(R, ARect.Left + 2, ARect.Top + 2);
+        OffsetRect(R, ARect.Left + SpDpiScale(2), ARect.Top + SpDpiScale(2));
         R.Top := ARect.Top;
         R.Bottom := ARect.Bottom;
-        R.Left := ((R.Right + R.Left) div 2) - 2;
+        R.Left := ((R.Right + R.Left) div 2) - SpDpiScale(2);
         R.Right := R.Left + 3;
 
         if SkinManager.GetSkinType = sknNone then begin
@@ -8780,12 +8731,10 @@ var
 begin
   inherited;
 
-  FDefaultToolbarBorderSize := CDefaultToolbarBorderSize;
   if Docked then begin
     TitleBar := GetTitleBar;
     if Assigned(TitleBar) and (TitleBar.WindowState = wsMaximized) then begin
-      InflateRect(Message.CalcSize_Params.rgrc[0], 2, 2);
-      FDefaultToolbarBorderSize := 0;
+      InflateRect(Message.CalcSize_Params.rgrc[0], CDefaultToolbarBorderSize, CDefaultToolbarBorderSize);
     end;
   end;
 end;
@@ -9046,8 +8995,8 @@ begin
         if SpGetTaskBar(TaskBarState, TaskBarEdge, TaskBarBounds) then begin
           if (TaskBarState and ABS_AUTOHIDE) = ABS_AUTOHIDE then
             case TaskBarEdge of
-              ABE_LEFT, ABE_RIGHT: MMI^.ptMaxSize.X :=  MMI^.ptMaxSize.X - 2;
-              ABE_TOP, ABE_BOTTOM: MMI^.ptMaxSize.Y :=  MMI^.ptMaxSize.Y - 2;
+              ABE_LEFT, ABE_RIGHT: MMI^.ptMaxSize.X :=  MMI^.ptMaxSize.X - SpDpiScale(2);
+              ABE_TOP, ABE_BOTTOM: MMI^.ptMaxSize.Y :=  MMI^.ptMaxSize.Y - SpDpiScale(2);
             end;
         end;
 
@@ -9299,14 +9248,14 @@ begin
   InflateRect(R, -FloatingBorderSize.X, -FloatingBorderSize.Y);
   Pt := MousePos;
   if not PtInRect(R, Pt) then begin
-    if (Pt.X < 10) and (Pt.Y < 10) then SizeCode := SC_SizeUpLeft
-    else if (Pt.X > Width - 10) and (Pt.Y < 10) then SizeCode := SC_SizeUpRight
-    else if (Pt.X < 10) and (Pt.Y > Height - 10) then SizeCode := SC_SizeDownLeft
-    else if (Pt.X > Width - 10) and (Pt.Y > Height - 10) then SizeCode := SC_SizeDownRight
-    else if (Pt.X > 10) and (Pt.X < Width - 10) and (Pt.Y < 10) then SizeCode := SC_SizeUp
-    else if (Pt.X > 10) and (Pt.X < Width - 10) and (Pt.Y > Height - 10) then SizeCode := SC_SizeDown
-    else if (Pt.Y > 10) and (Pt.Y < Height - 10) and (Pt.X < 10) then SizeCode := SC_SizeLeft
-    else if (Pt.Y > 10) and (Pt.Y < Height - 10) and (Pt.X > Width - 10) then SizeCode := SC_SizeRight;
+    if (Pt.X < SpDpiScale(10)) and (Pt.Y < SpDpiScale(10)) then SizeCode := SC_SizeUpLeft
+    else if (Pt.X > Width - SpDpiScale(10)) and (Pt.Y < SpDpiScale(10)) then SizeCode := SC_SizeUpRight
+    else if (Pt.X < SpDpiScale(10)) and (Pt.Y > Height - SpDpiScale(10)) then SizeCode := SC_SizeDownLeft
+    else if (Pt.X > Width - SpDpiScale(10)) and (Pt.Y > Height - SpDpiScale(10)) then SizeCode := SC_SizeDownRight
+    else if (Pt.X > SpDpiScale(10)) and (Pt.X < Width - SpDpiScale(10)) and (Pt.Y < SpDpiScale(10)) then SizeCode := SC_SizeUp
+    else if (Pt.X > SpDpiScale(10)) and (Pt.X < Width - SpDpiScale(10)) and (Pt.Y > Height - SpDpiScale(10)) then SizeCode := SC_SizeDown
+    else if (Pt.Y > SpDpiScale(10)) and (Pt.Y < Height - SpDpiScale(10)) and (Pt.X < SpDpiScale(10)) then SizeCode := SC_SizeLeft
+    else if (Pt.Y > SpDpiScale(10)) and (Pt.Y < Height - SpDpiScale(10)) and (Pt.X > Width - SpDpiScale(10)) then SizeCode := SC_SizeRight;
 
     case SizeCode of
       SC_SizeLeft, SC_SizeRight: SizeCursor := -9;
@@ -9444,8 +9393,7 @@ begin
     B := TBitmap.Create;
     try
       ARect := GetClientRect;
-      B.Width := ARect.Right;
-      B.Height := ARect.Bottom;
+      B.SetSize(ARect.Right, ARect.Bottom);
       B.Canvas.Brush.Color := Color; // SpDrawXPTitleBarBody needs it to paint the background
       B.Canvas.FillRect(ARect);
 
@@ -9454,7 +9402,7 @@ begin
       if PaintDefault then begin
         Maximized := (WindowState = wsMaximized) and FMouseActive;
         if Maximized then
-          InflateRect(ARect, 4, 4);
+          InflateRect(ARect, SpDpiScale(4), SpDpiScale(4));
         if Active then begin
           FloatingBorderSize := GetFloatingBorderSize;
           SpDrawXPTitleBarBody(B.Canvas, ARect, True, FloatingBorderSize);
@@ -9578,6 +9526,7 @@ begin
 
   // Dummy ImageList, used by TSpTBXItemViewer and TSpTBXButtonOptions
   MDIButtonsImgList := TImageList.Create(nil);
+  MDIButtonsImgList.SetSize(8, 8);
 
   {$IF CompilerVersion >= 23}
   // XE2 and up

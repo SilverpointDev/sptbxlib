@@ -1,7 +1,7 @@
 unit SpTBXPageScroller;
 
 {==============================================================================
-Version 2.5.3
+Version 2.5.4
 
 The contents of this file are subject to the SpTBXLib License; you may
 not use or distribute this file except in compliance with the
@@ -107,6 +107,7 @@ type
     procedure BeginScrolling(HitTest: Integer);
     function  CalcClientArea: TRect;
     function  CanAutoSize(var NewWidth, NewHeight: Integer): Boolean; override;
+    procedure ChangeScale(M, D: Integer{$if CompilerVersion >= 31}; isDpiChange: Boolean{$ifend}); override;
     procedure ConstrainedResize(var MinWidth, MinHeight, MaxWidth, MaxHeight: Integer); override;
     procedure CreateParams(var Params: TCreateParams); override;
     procedure DoSetRange(Value: Integer); virtual;
@@ -456,6 +457,13 @@ end;
 function TSpTBXCustomPageScroller.CanAutoSize(var NewWidth, NewHeight: Integer): Boolean;
 begin
   Result := NewHeight > FButtonSize * 3;
+end;
+
+procedure TSpTBXCustomPageScroller.ChangeScale(M, D: Integer
+  {$if CompilerVersion >= 31}; isDpiChange: Boolean{$ifend});
+begin
+  inherited;
+  FButtonSize := MulDiv(FButtonSize, M, D);
 end;
 
 procedure TSpTBXCustomPageScroller.ConstrainedResize(var MinWidth, MinHeight, MaxWidth, MaxHeight: Integer);

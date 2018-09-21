@@ -114,7 +114,7 @@ type
 implementation
 
 uses
-  ActnList;
+  ActnList, Themes;
 
 {$R *.dfm}
 
@@ -126,7 +126,7 @@ procedure SpDrawListboxItem(L: TSpTBXListBox; Index: Integer; ARect: TRect;
 var
   Item: TTBCustomItem;
   IL: TCustomImageList;
-  WS: WideString;
+  WS: string;
   TextR, ILRect: TRect;
   Y: Integer;
   ACanvas: TCanvas;
@@ -136,18 +136,19 @@ begin
   ACanvas := L.Canvas;
 
   // Draw the icon image
-  Inc(ARect.Left, 2);  // Apply margins
+  Inc(ARect.Left, SpDPIScale(2));  // Apply margins
   if Item.ImageIndex > -1 then begin
     IL := Item.Images;
     if not Assigned(IL) then
       IL := DefaultImageList;
     if Assigned(IL) then begin
-      ILRect := Bounds(ARect.Left, ARect.Top + ((L.ItemHeight - IL.Height) div 2), IL.Width, IL.Height);
+      Y := (L.ItemHeight - IL.Height) div 2;
+      ILRect := Bounds(ARect.Left, ARect.Top + Y, IL.Width, IL.Height);
       // Draw icon shadow
       if odSelected in State then begin
-        OffsetRect(ILRect, 1, 1);
-        SpDrawIconShadow(ACanvas, ILRect, IL, Item.ImageIndex);
-        OffsetRect(ILRect, -2, -2);
+        OffsetRect(ILRect, SpDPIScale(1), SpDPIScale(1));
+        SpDrawImageList(ACanvas, ILRect, IL, Item.ImageIndex, False, True);
+        OffsetRect(ILRect, SpDPIScale(-2), SpDPIScale(-2));
       end;
       SpDrawImageList(ACanvas, ILRect, IL, Item.ImageIndex, True, True);
     end;
@@ -175,31 +176,22 @@ end;
 { TSpTBXCustomizeForm }
 
 procedure TSpTBXCustomizeForm.FormCreate(Sender: TObject);
-var
-  L: TStringList;
 begin
   ClosePanel.Visible := not Embedded;
 
   // Setup the listboxes
   if Assigned(Customizer.Images) then begin
-    lbCommands.ItemHeight := Customizer.Images.Height + 4;
-    lbShortcuts.ItemHeight := Customizer.Images.Height + 4;
+    lbCommands.ItemHeight := SpDPIScale(Customizer.Images.Height + 4);
+    lbShortcuts.ItemHeight := SpDPIScale(Customizer.Images.Height + 4);
   end;
   // Hide the Icon Options combobox if necessary
   if not Assigned(Customizer.OnIconOptionsChange) then begin
     cbIconLabel.Visible := False;
     cbIcon.Visible := False;
   end;
-  // Fill the Skins combobox
-  L := TStringList.Create;
-  try
-    SkinManager.SkinsList.GetSkinNames(L);
-    L.Sort;
-    cbSkins.Items.Assign(L);
-    cbSkins.ItemIndex := L.IndexOf(SkinManager.CurrentSkinName);
-  finally
-    L.Free;
-  end;
+
+  SkinManager.GetSkinsAndDelphiStyles(cbSkins.Items);
+  cbSkins.ItemIndex := cbSkins.Items.IndexOf(SkinManager.CurrentSkinName);
 end;
 
 procedure TSpTBXCustomizeForm.FormShow(Sender: TObject);
@@ -265,7 +257,10 @@ end;
 procedure TSpTBXCustomizeForm.DoSkinChange;
 begin
   inherited;
-  ClosePanel.Color := SkinManager.CurrentSkin.ColorBtnFace;
+  if SkinManager.GetSkinType = sknSkin then
+    ClosePanel.Color := SkinManager.CurrentSkin.ColorBtnFace
+  else
+    ClosePanel.Color := SkinManager.CurrentSkin.GetThemedSystemColor(clBtnFace);
 end;
 
 //WMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWM
@@ -330,9 +325,19 @@ begin
 end;
 
 procedure TSpTBXCustomizeForm.cbSkinsClick(Sender: TObject);
+var
+  S: String;
 begin
-  if cbSkins.ItemIndex > -1 then
-    SkinManager.SetSkin(cbSkins.Text);
+  if cbSkins.ItemIndex = -1 then Exit;
+  S := cbSkins.Text;
+  {$IF CompilerVersion >= 23} // for Delphi XE2 and up
+  if SkinManager.IsValidDelphiStyle(S) then
+    SkinManager.SetDelphiStyle(S)  // Set Delphi Style
+  else
+    SkinManager.SetSkin(S); // Set Skin
+  {$ELSE}
+  SkinManager.SetSkin(S); // Set Skin
+  {$IFEND}
 end;
 
 //WMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWM
@@ -408,7 +413,7 @@ procedure TSpTBXCustomizeForm.lbCommandsDragDrop(Sender,
   Source: TObject; X, Y: Integer);
 var
   OrigItem: TTBCustomItem;
-  WS: WideString;
+  WS: string;
 begin
   if Assigned(Source) and (Source is TSpTBXItemDragObject) and
     (TSpTBXItemDragObject(Source).SourceControl <> Sender) then
@@ -480,7 +485,7 @@ end;
 procedure TSpTBXCustomizeForm.ChangeShortcutClick(Sender: TObject);
 var
   Item, F: TTBCustomItem;
-  WS, WS2: WideString;
+  WS, WS2: string;
   T: TShortCut;
   I: Integer;
   ChangeShortCut: Boolean;
@@ -496,7 +501,7 @@ begin
     for I := 0 to lbShortcuts.Count - 1 do begin
       F := lbShortcuts.Items.Objects[I] as TTBCustomItem;
       if F.ShortCut = T then begin
-        WS := WideFormat(SSpTBXCustomizerFormChangeShortcut, [SpCustomizerGetWideCaption(F), SpCustomizerGetWideCaption(Item)]);
+        WS := Format(SSpTBXCustomizerFormChangeShortcut, [SpCustomizerGetWideCaption(F), SpCustomizerGetWideCaption(Item)]);
         WS2 := SSpTBXCustomizerFormChangeShortcutTitle;
         ChangeShortCut := MessageBoxW(Handle, PWideChar(WS), PWideChar(WS2), MB_APPLMODAL+MB_ICONWARNING+MB_OKCANCEL+MB_DEFBUTTON1) = IDOK;
         if ChangeShortCut then

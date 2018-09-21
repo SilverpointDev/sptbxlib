@@ -1,7 +1,7 @@
 unit SpTBXDkPanels;
 
 {==============================================================================
-Version 2.5.3
+Version 2.5.4
 
 The contents of this file are subject to the SpTBXLib License; you may
 not use or distribute this file except in compliance with the
@@ -214,6 +214,7 @@ type
     FDockForms: TList;
 
     // Component
+    procedure ChangeScale(M, D: Integer{$if CompilerVersion >= 31}; isDpiChange: Boolean{$ifend}); override;
     procedure CreateParams(var Params: TCreateParams); override;
     procedure Notification(AComponent: TComponent; Operation: TOperation); override;
     procedure Loaded; override;
@@ -375,6 +376,7 @@ type
     procedure WMEraseBkgnd(var Message: TWmEraseBkgnd); message WM_ERASEBKGND;
   protected
     FRestorePos: Integer;
+    procedure ChangeScale(M, D: Integer{$if CompilerVersion >= 31}; isDpiChange: Boolean{$ifend}); override;
     procedure DoDrawBackground(ACanvas: TCanvas; ARect: TRect; const PaintStage: TSpTBXPaintStage; var PaintDefault: Boolean); virtual;
     procedure DoMoved; virtual;
     function DoMoving(var NewSize: Integer): Boolean; virtual;
@@ -386,6 +388,7 @@ type
     procedure Paint; override;
     procedure RequestAlign; override;
     property AutoCalcMaxSize: Boolean read FAutoCalcMaxSize write FAutoCalcMaxSize default True;
+    property Color default clNone;
     property GripSize: Integer read FGripSize write SetGripSize default 50;
     property GripHotTrack: Boolean read FGripHotTrack write FGripHotTrack default True;
     property MinSize: Integer read FMinSize write SetMinSize default 0;
@@ -456,8 +459,9 @@ uses
   {$IFEND}
   Themes, ComCtrls, Registry, TB2Consts, TB2Common;
 
+function DockedBorderSize: Integer; begin Result := SpDPIScale(2); end;
+
 const
-  DockedBorderSize = 2;
   HT_TB2k_Border = 2000;
   HT_DP_SPLITRESIZELEFT = 86;
   HT_DP_SPLITRESIZERIGHT = 87;
@@ -1076,7 +1080,7 @@ begin
         if not IsFloating then begin
           ACanvas.Brush.Color := clBtnFace;
           ACanvas.FrameRect(ARect);
-          InflateRect(ARect, -1, -1);
+          InflateRect(ARect, -SpDPIScale(1), -SpDPIScale(1));
           ACanvas.Brush.Color := clWhite;
           ACanvas.FrameRect(ARect);
         end;
@@ -1664,6 +1668,7 @@ begin
   inherited;
   Maximize := False;
   Minimize := False;
+  // Do not use SpDPIScale, scaled on TSpTBXCustomDockablePanel.ChangeScale
   TitleBarMaxSize := 19;
 end;
 
@@ -1694,6 +1699,7 @@ end;
 procedure TSpTBXDockablePanelButtonOptions.SetupButton(B: TSpTBXCustomItem);
 begin
   inherited;
+  // Do not use SpDPIScale, scaled on TSpTBXCustomDockablePanel.ChangeScale
   TSpTBXCustomItemAccess(B).CustomWidth := 15;
 end;
 
@@ -1728,7 +1734,7 @@ end;
 
 function TSpTBXDockablePanelToolbar.GetRightAlignMargin: Integer;
 begin
-  Result := 4;
+  Result := SpDPIScale(4);
 end;
 
 function TSpTBXDockablePanelToolbar.CanItemClick(Item: TTBCustomItem;
@@ -1829,6 +1835,18 @@ begin
   inherited;
 
   FreeAndNil(FDockForms);  // After inherited, Notification accesses FDockForms
+end;
+
+procedure TSpTBXCustomDockablePanel.ChangeScale(M, D: Integer{$if CompilerVersion >= 31}; isDpiChange: Boolean{$ifend});
+begin
+  inherited;
+  FOptions.TitleBarMaxSize := MulDiv(FOptions.TitleBarMaxSize, M, D);
+  if Assigned(Options.MinimizeButton) then
+    Options.MinimizeButton.CustomWidth := MulDiv(Options.MinimizeButton.CustomWidth, M, D);
+  if Assigned(Options.MaximizeButton) then
+    Options.MaximizeButton.CustomWidth := MulDiv(Options.MaximizeButton.CustomWidth, M, D);
+  if Assigned(Options.CloseButton) then
+    Options.CloseButton.CustomWidth := MulDiv(Options.CloseButton.CustomWidth, M, D);
 end;
 
 procedure TSpTBXCustomDockablePanel.Loaded;
@@ -1975,7 +1993,7 @@ begin
     // Make sure to calculate the floating form constraints taking into
     // account the borders and the close button.
     TotalBorderSize := GetFloatingBorderSize.Y * 2;
-    Parent.Constraints.MinWidth := 20 + TotalBorderSize;
+    Parent.Constraints.MinWidth := SpDPIScale(20) + TotalBorderSize;
     Parent.Constraints.MinHeight := MinClientHeight + TotalBorderSize;
     if (FState.DockedState = wsMinimized) and (Parent.ClientHeight > MinClientHeight) then begin
       FState.DockedState := wsNormal;
@@ -2410,16 +2428,21 @@ begin
     PaintDefault := False;
 
     if Docked and not Floating then begin
-      // When the DP is not floating draws the CaptionBar borders on the NC area
+      // When the DP is docked it draws the CaptionBar borders on the NC area
       // of the DockablePanel, see InternalDrawBackground
-      // Just draw 1 pixel from the left and right, and 2 pixels from the top
-      // ARect.Bottom should remain the same
+      // Map left, top and right from client to parent, Bottom should remain the same
+      // DDDDDDDDDDDDDDDDDDDDDDDDDDD
+      // DTTTTTTTTTTTTTTTTTTTTTTTTTD
+      // DT                       TD
+      // DT                       TD
+      // DTTTTTTTTTTTTTTTTTTTTTTTTTD
+      // DDDDDDDDDDDDDDDDDDDDDDDDDDD
       if IsVerticalTitleBar then begin
-        InflateRect(ARect, 0, 1);
+        InflateRect(ARect, 0, DockedBorderSize);
         ARect.Left := ARect.Left - DockedBorderSize;
       end
       else begin
-        InflateRect(ARect, 1, 0);
+        InflateRect(ARect, DockedBorderSize, 0);
         ARect.Top := ARect.Top - DockedBorderSize;
       end;
     end;
@@ -2472,7 +2495,7 @@ begin
       FPanel.Height := FToolbarDock.Height;
       if Floating and Assigned(Parent) then begin
         Parent.Constraints.MinWidth := 0;
-        Parent.Constraints.MinHeight := FPanel.Height + GetFloatingBorderSize.Y * 2;
+        Parent.Constraints.MinHeight := FPanel.Height + GetFloatingBorderSize.Y * SpDPIScale(2);
       end;
     end;
     MinClientWidth := 0;
@@ -2597,16 +2620,10 @@ begin
   if PaintOnNCArea and FPanel.Visible then begin
     // Draw the CaptionBar borders on the NC Area of the embedded Dock
     // See DockDrawBackground.
-    // Just draw 1 pixel from the left and right, and 2 pixels from the top
-    // ARect.Top should remain the same
-    if IsVerticalTitleBar then begin
-      ARect.Right := ARect.Left + CaptionPanelSize.X + 2;
-      InflateRect(ARect, 0, -(DockedBorderSize - 1));
-    end
-    else begin
-      ARect.Bottom := ARect.Top + CaptionPanelSize.Y + 2;
-      InflateRect(ARect, -(DockedBorderSize - 1), 0);
-    end;
+    if IsVerticalTitleBar then
+      ARect.Right := ARect.Left + CaptionPanelSize.X + DockedBorderSize
+    else
+      ARect.Bottom := ARect.Top + CaptionPanelSize.Y + DockedBorderSize;
 
     DefaultPainting := True;
     DoDrawCaptionPanel(ACanvas, ARect, pstPrePaint, DefaultPainting);
@@ -3107,6 +3124,7 @@ begin
   Height := 100;
   Align := alLeft;
   Cursor := crSizeWE;
+  Color := clNone;
   FResizeStyle := rsUpdate;
   FOldSize := -1;
   FMinSize := 0;
@@ -3238,6 +3256,13 @@ end;
 procedure TSpTBXCustomSplitter.WMSpSkinChange(var Message: TMessage);
 begin
   Invalidate;
+end;
+
+procedure TSpTBXCustomSplitter.ChangeScale(M, D: Integer{$if CompilerVersion >= 31}; isDpiChange: Boolean{$ifend});
+begin
+  inherited;
+  FGripSize := MulDiv(FGripSize, M, D);
+  FRestorePos := MulDiv(FRestorePos, M, D);
 end;
 
 procedure TSpTBXCustomSplitter.MouseAllocateLineDC;
@@ -3465,16 +3490,16 @@ begin
         Canvas.Brush.Color := CurrentSkin.GetThemedSystemColor(clBtnFace)
       else
         Canvas.Brush.Color := Color;
-      Canvas.FillRect(ClientR);
+      SpFillRect(Canvas, ClientR, Canvas.Brush.Color);
     end;
 
     // Paint grip
     R := GripRect;
     DragHandleR := R;
     if IsVertical then
-      InflateRect(DragHandleR, -1, -10)
+      InflateRect(DragHandleR, -SpDPIScale(1), -SpDPIScale(10))
     else
-      InflateRect(DragHandleR, -10, -1);
+      InflateRect(DragHandleR, -SpDPIScale(10), -SpDPIScale(1));
 
     if SkinManager.GetSkinType = sknSkin then begin
       if FMouseOverGrip then

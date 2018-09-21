@@ -45,7 +45,7 @@ uses
   Menus, StdCtrls, ExtCtrls, ActnList, Dialogs,
   TB2Dock, TB2Toolbar, TB2Item, TB2ExtItems,
   SpTBXSkins, SpTBXItem, SpTBXControls, SpTBXEditors, SpTBXFormPopupMenu,
-  SpTBXExtEditors, SpTBXTabs;
+  SpTBXExtEditors, SpTBXTabs, System.ImageList;
 
 type
   { TSpTBXColorPickerDragObject }
@@ -240,8 +240,10 @@ end;
 procedure TSpTBXColorPickerForm.FormCreate(Sender: TObject);
 begin
   btnColorPicker.Caption := SSpTBXClickAndDrag;
-  SpTBXTabControl1.DoubleBuffered := True;
   imgPalette.Cursor := crSpTBXEyeDropper;
+
+  SpDPIScaleImageList(ImageList1);
+  SpTBXColorListBox1.ItemHeight := SpDPIScale(SpTBXColorListBox1.ItemHeight);
 end;
 
 procedure TSpTBXColorPickerForm.FormDestroy(Sender: TObject);
@@ -255,9 +257,17 @@ begin
 end;
 
 procedure TSpTBXColorPickerForm.FormShow(Sender: TObject);
+Var
+  Bitmap : TBitmap;
 begin
-  if SkinManager.GetSkinType <> sknSkin then
-    SpTBXTabControl1.TabBackgroundColor := clBtnFace;
+  Bitmap := TBitmap.Create;
+  try
+    Bitmap.Assign(imgPalette.Picture.Bitmap);
+    SpDPIResizeBitmap(Bitmap, SpDPIScale(ImgPalette.Width), SpDPIScale(ImgPalette.Height));
+    imgPalette.Picture.Assign(Bitmap);
+  finally
+    Bitmap.Free;
+  end;
   UpdateColorLabel(GetSelectedColor);
   CenterImages;
 end;
@@ -282,7 +292,7 @@ procedure TSpTBXColorPickerForm.btnColorDraw(Sender: TObject;
 begin
   if PaintStage = pstPrePaint then begin
     PaintDefault := False;
-    InflateRect(ARect, -3, -3);
+    InflateRect(ARect, -SpDPIScale(3), -SpDPIScale(3));
     if btnColor.CaptionGlowColor = clNone then
       SpDrawCheckeredBackground(ACanvas, ARect)
     else begin
@@ -420,6 +430,7 @@ end;
 procedure TSpTBXColorPickerForm.SpTBXTabControl1ActiveTabChange(Sender: TObject;
   TabIndex: Integer);
 begin
+  SpTBXTabControl1.InvalidateBackground;
   CenterImages;
 end;
 

@@ -13,7 +13,7 @@ uses
   SpTBXSkins, SpTBXItem, SpTBXControls, SpTBXDkPanels, SpTBXTabs, SpTBXEditors,
   SpTBXExtEditors, SpTBXCustomizer,
   { gettext }
-  gnugettext;
+  gnugettext, System.ImageList;
 
 type
   TForm1 = class(TForm)
@@ -133,7 +133,6 @@ type
     SpTBXColorEdit1: TSpTBXColorEdit;
     TBControlItem5: TTBControlItem;
     procedure ActionsExecute(Sender: TObject);
-    procedure FormShow(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure tLayoutSaveClick(Sender: TObject);
     procedure tLayoutsItemClick(Sender: TObject);
@@ -163,25 +162,6 @@ uses
 
 //WMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWM
 { Form }
-
-procedure TForm1.FormShow(Sender: TObject);
-begin
-  FAppPath := IncludeTrailingPathDelimiter(ExtractFilePath(Application.ExeName));
-  FIniPath := FAppPath + 'Options.ini';
-
-  // Load the text files
-  Memo2.Lines.LoadFromFile(FAppPath + 'faq.txt');              
-  Memo3.Lines.LoadFromFile(FAppPath + 'advanced.txt');
-  Memo4.Lines.LoadFromFile(FAppPath + 'translations.txt');
-
-  // Load the items positions and the last layout from the ini file
-  SpTBXCustomizer1.Load(FIniPath);
-
-  // Load the layout list
-  FillLayoutList('LastLayout');
-
-  SpTBXCustomizer1.MenuBar := tbMenuBar;
-end;
 
 procedure TForm1.FormDestroy(Sender: TObject);
 begin
@@ -358,6 +338,24 @@ begin
   SpDxGetTextInitialize('en', [Self], True, True);
   tLanguages.Items.LoadFromFile('langcodes.txt');
   tLanguages.ItemIndex := 2;
+
+  FAppPath := IncludeTrailingPathDelimiter(ExtractFilePath(Application.ExeName));
+  FIniPath := FAppPath + 'Options.ini';
+
+  // Load the text files
+  Memo2.Lines.LoadFromFile(FAppPath + 'faq.txt');
+  Memo3.Lines.LoadFromFile(FAppPath + 'advanced.txt');
+  Memo4.Lines.LoadFromFile(FAppPath + 'translations.txt');
+
+  // Load the items positions and the last layout from the ini file
+  SpTBXCustomizer1.Load(FIniPath);
+  SpTBXCustomizer1.MenuBar := tbMenuBar;
+
+  // Load the layout list
+  FillLayoutList('LastLayout');
+
+  // Enable high DPI on the image list
+  SpDPIScaleImageList(ImageList1);
 end;
 
 end.

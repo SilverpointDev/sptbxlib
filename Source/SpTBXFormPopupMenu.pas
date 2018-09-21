@@ -1,7 +1,7 @@
 unit SpTBXFormPopupMenu;
 
 {==============================================================================
-Version 2.5.3
+Version 2.5.4
 
 The contents of this file are subject to the SpTBXLib License; you may
 not use or distribute this file except in compliance with the
@@ -96,7 +96,7 @@ type
 
   { TSpTBXWrapperPopupForm }
 
-  TSpTBXCustomWrapperPopupForm = class(TForm)  // Descend from TForm instead of TCustomForm otherwise TStringGrid can't receive focus
+  TSpTBXCustomWrapperPopupForm = class(TCustomForm)  // Descend from TForm instead of TCustomForm otherwise TStringGrid can't receive focus
   private
     FHooksInstalled: Boolean;
     FOldAppOnMessage: TMessageEvent;
@@ -150,7 +150,6 @@ type
   TSpTBXWrapperPopupForm = class(TSpTBXCustomWrapperPopupForm)
   private
     procedure CMShowingChanged(var Message: TMessage); message CM_SHOWINGCHANGED;
-    procedure WMEraseBkgnd(var Message: TWMEraseBkgnd); message WM_ERASEBKGND;
   protected
     procedure DestroyWindowHandle; override;
     procedure PaintBackground(ACanvas: TCanvas; ARect: TRect); override;
@@ -237,7 +236,7 @@ begin
   if Assigned(AOwner) and (AOwner is TSpTBXCustomWrapperPopupForm) then
     FPopupForm := AOwner as TSpTBXCustomWrapperPopupForm;
   Align := alBottom;
-  Height := 10;
+  Height := SpDPIScale(10);
 end;
 
 procedure TSpTBXPopupSizeGrip.DoDrawBackground(ACanvas: TCanvas; ARect: TRect;
@@ -274,13 +273,13 @@ begin
       pbsSizeableBottom:
         begin
           Result := ClientRect;
-          Result.Left := (Result.Right + Result.Left - 20) div 2;
-          Result.Right := Result.Left + 20;
+          Result.Left := (Result.Right + Result.Left - SpDPIScale(20)) div 2;
+          Result.Right := Result.Left + SpDPIScale(20);
         end;
       pbsSizeableRightBottom:
         begin
           Result := ClientRect;
-          Result.Left := Result.Right - 14;
+          Result.Left := Result.Right - SpDPIScale(14);
         end;
     end;
   end;
@@ -355,27 +354,25 @@ begin
       C2 := SkinManager.CurrentSkin.Options(skncStatusBarGrip).Body.Color2;
       if (C2 = clNone) or (SkinManager.GetSkinType <> sknSkin) then C2 := clBtnHighlight;
       // Grip cells are 4x4 pixels
+      GR := GetGripSizerRect;
+      CellR := GR;
       case FPopupForm.BorderStyle of
         pbsSizeableBottom:
           begin
-            GR := GetGripSizerRect;
-            CellR := GR;
-            CellR.Top := (CellR.Top + CellR.Bottom - 4) div 2 + 1;
-            CellR.Bottom := CellR.Top + 3;
+            CellR.Top := (CellR.Top + CellR.Bottom - SpDPIScale(4)) div 2 + SpDPIScale(1);
+            CellR.Bottom := CellR.Top + SpDPIScale(3);
             SpDrawXPGrip(ACanvas, CellR, C1, C2);
           end;
         pbsSizeableRightBottom:
           begin
-            GR := GetGripSizerRect;
-            CellR := GR;
             // Draw 2 cells at the bottom
-            CellR.Left := GR.Right - 8;
-            CellR.Top := CellR.Bottom - 4;
+            CellR.Left := GR.Right - SpDPIScale(4) * 2;
+            CellR.Top := CellR.Bottom - SpDPIScale(4);
             SpDrawXPGrip(ACanvas, CellR, C1, C2);
             // Draw 1 cell at the top
             CellR.Bottom := CellR.Top;
-            CellR.Top := CellR.Bottom - 4;
-            CellR.Left := CellR.Left + 4;
+            CellR.Top := CellR.Bottom - SpDPIScale(4);
+            CellR.Left := CellR.Left + SpDPIScale(4);
             SpDrawXPGrip(ACanvas, CellR, C1, C2);
           end;
       end;
@@ -530,35 +527,35 @@ var
 begin
   // Instead of checking for Self.Visible check if the actual wrapped form
   // is visible.
-  if FFormPopupMenu.PopupForm.Visible then begin
-    UninstallHooks;
+  UninstallHooks;
+  if Assigned(FFormPopupMenu.PopupForm) then
+    if FFormPopupMenu.PopupForm.Visible then begin
+      if Assigned(FPopupControl) and (FPopupControl is TWinControl) then begin
+        W := FPopupControl as TWinControl;
+        if FocusParentControl and W.CanFocus then
+          W.SetFocus;
+        // Send a message to the PopupControl and it's children controls
+        // to inform that the Popup was closed.
+        Msg.Msg := CM_SPPOPUPCLOSE;
+        Msg.WParam := WPARAM(Self);
+        if Selected then
+          Msg.LParam := 1
+        else
+          Msg.LParam := 0;
+        Msg.Result := 0;
+        PostMessage(W.Handle, Msg.Msg, Msg.WParam, Msg.LParam);
+        W.Broadcast(Msg);
+      end;
 
-    if Assigned(FPopupControl) and (FPopupControl is TWinControl) then begin
-      W := FPopupControl as TWinControl;
-      if FocusParentControl and W.CanFocus then
-        W.SetFocus;
-      // Send a message to the PopupControl and it's children controls
-      // to inform that the Popup was closed.
-      Msg.Msg := CM_SPPOPUPCLOSE;
-      Msg.WParam := WPARAM(Self);
-      if Selected then
-        Msg.LParam := 1
-      else
-        Msg.LParam := 0;
-      Msg.Result := 0;
-      PostMessage(W.Handle, Msg.Msg, Msg.WParam, Msg.LParam);
-      W.Broadcast(Msg);
+      Visible := False;
+
+      // Broadcast the close message to all the notifies
+      if Assigned(ActiveFormPopupMenu) then
+        ActiveFormPopupMenu.BroadcastCloseMessage(Selected);
+      ActiveFormPopupMenu := nil; // Reset global variable
+      FPopupControl := nil;
+      DoRollUp(Selected);
     end;
-
-    Visible := False;
-
-    // Broadcast the close message to all the notifies
-    if Assigned(ActiveFormPopupMenu) then
-      ActiveFormPopupMenu.BroadcastCloseMessage(Selected);
-    ActiveFormPopupMenu := nil; // Reset global variable
-    FPopupControl := nil;
-    DoRollUp(Selected);
-  end;
 end;
 
 procedure TSpTBXCustomWrapperPopupForm.SetBorderStyle(const Value: TSpTBXPopupBorderStyleType);
@@ -776,11 +773,19 @@ end;
 procedure TSpTBXCustomWrapperPopupForm.WMNCPaint(var Message: TMessage);
 var
   DC: HDC;
+  R: TRect;
 begin
   DC := GetWindowDC(Handle);
   try
     FPaintingClientArea := False;
     SelectNCUpdateRgn(Handle, DC, HRGN(Message.WParam));
+
+    // Make sure we clip the client area
+    Windows.GetWindowRect(Handle, R);
+    OffsetRect(R, -R.Left, -R.Top);
+    InflateRect(R, -DefaultBorderSize, -DefaultBorderSize);
+    ExcludeClipRect(DC, R.Left, R.Top, R.Right, R.Bottom);
+
     PopupWindowNCPaintProc(Handle, DC, Self);
   finally
     ReleaseDC(Handle, DC);
@@ -796,7 +801,7 @@ end;
 procedure TSpTBXCustomWrapperPopupForm.WMSpTBXPopupInvalidate(var Message: TMessage);
 begin
   if HandleAllocated then
-    RedrawWindow(Handle, nil, 0, RDW_ERASE or RDW_INVALIDATE or RDW_ALLCHILDREN or RDW_FRAME);
+    RedrawWindow(Handle, nil, 0, RDW_FRAME or RDW_INVALIDATE or RDW_ERASE or RDW_ALLCHILDREN);
 end;
 
 procedure TSpTBXCustomWrapperPopupForm.WMSpTBXPopupRollUp(var Message: TMessage);
@@ -856,11 +861,6 @@ end;
 procedure TSpTBXWrapperPopupForm.PaintBackground(ACanvas: TCanvas; ARect: TRect);
 begin
   SpDrawXPMenuPopupWindow(ACanvas, ARect, Rect(0, 0, 0, 0), False, 0);
-end;
-
-procedure TSpTBXWrapperPopupForm.WMEraseBkgnd(var Message: TWMEraseBkgnd);
-begin
-  Message.Result := 1;
 end;
 
 //WMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWM
@@ -1082,4 +1082,17 @@ begin
   FWrapperForm.ShowShadows := Value;
 end;
 
+procedure InitializeStock;
+begin
+  {$IF CompilerVersion >= 23}
+  // XE2 and up
+  // When Styles are used WM_NCHITTEST and WM_NCCALCSIZE are handled by
+  // TFormStyleHook. We need to override the handling by re-registering
+  // the hook by using an empty style hook (TStyleHook)
+  TCustomStyleEngine.RegisterStyleHook(TSpTBXWrapperPopupForm, TStyleHook);
+  {$IFEND}
+end;
+
+initialization
+  InitializeStock;
 end.

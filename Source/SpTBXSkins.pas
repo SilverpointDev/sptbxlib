@@ -1,7 +1,7 @@
 unit SpTBXSkins;
 
 {==============================================================================
-Version 2.5.3
+Version 2.5.4
 
 The contents of this file are subject to the SpTBXLib License; you may
 not use or distribute this file except in compliance with the
@@ -64,7 +64,7 @@ uses
   {$IF CompilerVersion >= 25} // for Delphi XE4 and up
   System.UITypes,
   {$IFEND}
-  Themes;
+  Themes, System.Generics.Collections;
 
 const
   WM_SPSKINCHANGE = WM_APP + 2007;   // Skin change notification message
@@ -351,8 +351,8 @@ type
     procedure PaintThemedElementBackground(ACanvas: TCanvas; ARect: TRect; Component: TSpTBXSkinComponentsType; Enabled, Pushed, HotTrack, Checked, Focused, Defaulted, Grayed: Boolean); overload;
 
     // Element Paint
-    procedure PaintMenuCheckMark(ACanvas: TCanvas; ARect: TRect; Checked, Grayed, MenuItemStyle: Boolean; State: TSpTBXSkinStatesType); virtual;
-    procedure PaintMenuRadioMark(ACanvas: TCanvas; ARect: TRect; Checked, MenuItemStyle: Boolean; State: TSpTBXSkinStatesType); virtual;
+    procedure PaintMenuCheckMark(ACanvas: TCanvas; ARect: TRect; Checked, Grayed: Boolean; State: TSpTBXSkinStatesType); virtual;
+    procedure PaintMenuRadioMark(ACanvas: TCanvas; ARect: TRect; Checked: Boolean; State: TSpTBXSkinStatesType); virtual;
     procedure PaintWindowFrame(ACanvas: TCanvas; ARect: TRect; IsActive, DrawBody: Boolean; BorderSize: Integer = 4); virtual;
 
     // Properties
@@ -377,19 +377,8 @@ type
     destructor Destroy; override;
   end;
 
-  TSpTBXSkinsList = class(TStringList)
-  private
-    function GetSkinOption(Index: Integer): TSpTBXSkinsListEntry;
-  public
-    procedure Delete(Index: Integer); override;
-    destructor Destroy; override;
-    function AddSkin(SkinName: string; SkinClass: TSpTBXSkinOptionsClass): Integer; overload;
-    function AddSkin(SkinOptions: TStrings): Integer; overload;
-    function AddSkinFromFile(Filename: string): Integer;
-    procedure AddSkinsFromFolder(Folder: string);
-    procedure GetSkinNames(SkinNames: TStrings);
-    property SkinOptions[Index: Integer]: TSpTBXSkinsListEntry read GetSkinOption;
-  end;
+  TSpTBXSkinsDictionary = TObjectDictionary<string, TSpTBXSkinsListEntry>;
+  TSpTBXSkinsDictionaryPair = TPair<string, TSpTBXSkinsListEntry>;
 
   { TSpTBXSkinManager }
 
@@ -397,16 +386,17 @@ type
   private
     FCurrentSkin: TSpTBXSkinOptions;
     FNotifies: TList;
-    FSkinsList: TSpTBXSkinsList;
+    FSkinsList: TSpTBXSkinsDictionary;
     FOnSkinChange: TNotifyEvent;
     procedure Broadcast;
-    procedure ResetDelphiStyle;
     function GetCurrentSkinName: string;
+    procedure ResetToSystemStyle;
   public
     constructor Create; virtual;
     destructor Destroy; override;
 
     function GetSkinType: TSpTBXSkinType;
+    procedure GetSkinsAndDelphiStyles(SkinsAndStyles: TStrings);
     function IsDefaultSkin: Boolean;
     function IsXPThemesEnabled: Boolean;
 
@@ -417,12 +407,21 @@ type
     procedure LoadFromFile(Filename: string);
     procedure SaveToFile(Filename: string);
 
+    procedure AddSkin(SkinName: string; SkinClass: TSpTBXSkinOptionsClass); overload;
+    procedure AddSkin(SkinOptions: TStrings); overload;
+    function AddSkinFromFile(Filename: string): string;
     procedure SetToDefaultSkin;
     procedure SetSkin(SkinName: string);
 
+    // [Old-Themes]
+    {$IF CompilerVersion >= 23} // for Delphi XE2 and up
+    procedure SetDelphiStyle(StyleName: string);
+    function IsValidDelphiStyle(StyleName: string): Boolean;
+    {$IFEND}
+
     property CurrentSkin: TSpTBXSkinOptions read FCurrentSkin;
     property CurrentSkinName: string read GetCurrentSkinName;
-    property SkinsList: TSpTBXSkinsList read FSkinsList;
+    property SkinsList: TSpTBXSkinsDictionary read FSkinsList;
     property OnSkinChange: TNotifyEvent read FOnSkinChange write FOnSkinChange;
   end;
 
@@ -518,8 +517,7 @@ procedure SpGradientFillGlass(ACanvas: TCanvas; const ARect: TRect; const C1, C2
 procedure SpDrawArrow(ACanvas: TCanvas; X, Y: Integer; AColor: TColor; Vertical, Reverse: Boolean; Size: Integer);
 procedure SpDrawDropMark(ACanvas: TCanvas; DropMark: TRect);
 procedure SpDrawFocusRect(ACanvas: TCanvas; const ARect: TRect);
-procedure SpDrawGlyphPattern(DC: HDC; const R: TRect; Width, Height: Integer; const PatternBits; PatternColor: TColor); overload;
-procedure SpDrawGlyphPattern(ACanvas: TCanvas; ARect: TRect; PatternIndex: Integer; PatternColor: TColor); overload;
+procedure SpDrawGlyphPattern(ACanvas: TCanvas; ARect: TRect; PatternIndex: Integer; PatternColor: TColor);
 procedure SpDrawXPButton(ACanvas: TCanvas; ARect: TRect; Enabled, Pushed, HotTrack, Checked, Focused, Defaulted: Boolean);
 procedure SpDrawXPCheckBoxGlyph(ACanvas: TCanvas; ARect: TRect; Enabled: Boolean; State: TCheckBoxState; HotTrack, Pushed: Boolean);
 procedure SpDrawXPRadioButtonGlyph(ACanvas: TCanvas; ARect: TRect; Enabled, Checked, HotTrack, Pushed: Boolean);
@@ -536,6 +534,9 @@ procedure SpPaintSkinBorders(ACanvas: TCanvas; ARect: TRect; SkinOption: TSpTBXS
 { Misc }
 function SpIsWinVistaOrUp: Boolean;
 function SpGetDirectories(Path: string; L: TStringList): Boolean;
+function SpDPIScale(I: Integer): Integer;
+procedure SpDPIResizeBitmap(Bitmap: TBitmap; const NewWidth, NewHeight: Integer);
+procedure SpDPIScaleImageList(const ImageList: TCustomImageList);
 
 { Stock Objects }
 var
@@ -546,7 +547,7 @@ implementation
 
 uses
   UxTheme, Forms, Math, TypInfo,
-  SpTBXDefaultSkins;
+  SpTBXDefaultSkins, CommCtrl;
 
 const
   ROP_DSPDxax = $00E20746;
@@ -864,9 +865,9 @@ begin
   Spacing := Point(0, 0);
   RightSpacing := Point(0, 0);
   if (Caption <> '') and (GlyphSize.cx > 0) and (GlyphSize.cy > 0) then
-    Spacing := Point(4, 1);
+    Spacing := Point(SpDPIScale(4), SpDPIScale(1));
   if (Caption <> '') and (RightGlyphSize.cx > 0) and (RightGlyphSize.cy > 0) then
-    RightSpacing := Point(4, 1);
+    RightSpacing := Point(SpDPIScale(4), SpDPIScale(1));
 
   Flags := Flags and not DT_CENTER;
   Flags := Flags and not DT_VCENTER;
@@ -882,12 +883,12 @@ begin
   // Get the caption size
   if ((Flags and DT_WORDBREAK) <> 0) or ((Flags and DT_END_ELLIPSIS) <> 0) or ((Flags and DT_PATH_ELLIPSIS) <> 0) then begin
     if Layout = ghlGlyphLeft then  // Glyph on left or right side
-      R := Rect(0, 0, ARect.Right - ARect.Left - GlyphSize.cx - Spacing.X - RightGlyphSize.cx - RightSpacing.X + 2, 1)
+      R := Rect(0, 0, ARect.Right - ARect.Left - GlyphSize.cx - Spacing.X - RightGlyphSize.cx - RightSpacing.X + SpDPIScale(2), SpDPIScale(1))
     else  // Glyph on top
-      R := Rect(0, 0, ARect.Right - ARect.Left + 2, 1);
+      R := Rect(0, 0, ARect.Right - ARect.Left + SpDPIScale(2), SpDPIScale(1));
   end
   else
-    R := Rect(0, 0, 1, 1);
+    R := Rect(0, 0, SpDPIScale(1), SpDPIScale(1));
 
   if (fsBold in ACanvas.Font.Style) and (RotationAngle = tra0) and (((Flags and DT_END_ELLIPSIS) <> 0) or ((Flags and DT_PATH_ELLIPSIS) <> 0)) then begin
     // [Bugfix] Windows bug:
@@ -927,10 +928,10 @@ begin
     // try to fix it by padding the text 8 pixels to the right
     if (RotationAngle <> tra0) and (R.Right + 8 < ARect.Right) then
       if ((Flags and DT_END_ELLIPSIS) <> 0) or ((Flags and DT_PATH_ELLIPSIS) <> 0) then
-        R.Right := R.Right + 8;
+        R.Right := R.Right + SpDPIScale(8);
 
     if PushedCaption then
-      OffsetRect(R, 1, 1);
+      OffsetRect(R, SpDPIScale(1), SpDPIScale(1));
 
     ACaptionRect := R;
   end;
@@ -977,7 +978,7 @@ begin
     AGlyphRect.Bottom := AGlyphRect.Top + GlyphSize.cy;
 
     if PushedCaption then
-      OffsetRect(AGlyphRect, 1, 1);
+      OffsetRect(AGlyphRect, SpDPIScale(1), SpDPIScale(1));
   end;
 
   // Move the text according to the icon position
@@ -1310,23 +1311,23 @@ begin
   L := Length(S);
   if L < 2 then Exit;
 
-  if (S[1] = '#') and (L = 7) then begin
-    Delete(S, 1, 1); // strip the # char
+  if (S[1] = '#') and (L = 7) then begin  // HTML format: #FFFFFF
+    S[1] := '$';
     if TryStrToInt(S, C) then begin
-      S := Format('$00%s%s%s', [Copy(S, 5, 2), Copy(S, 3, 2), Copy(S, 1, 2)]);
+      S := Format('$00%s%s%s', [Copy(S, 6, 2), Copy(S, 4, 2), Copy(S, 2, 2)]);
       Color := StringToColor(S);
       Result := True;
     end;
   end
   else
-    if (S[1] = '$') and (L >= 7) and (L <= 9) then begin
+    if (S[1] = '$') and (L >= 7) and (L <= 9) then begin  // TColor format: $FFFFFF
       if TryStrToInt(S, C) then begin
         Color := C;
         Result := True;
       end;
     end
     else
-      Result := IdentToColor(S, Longint(Color));
+      Result := IdentToColor(S, Longint(Color));  // Ident format: clWhite
 end;
 
 procedure SpGetRGB(Color: TColor; out R, G, B: Integer);
@@ -1410,8 +1411,8 @@ end;
 
 function SpCenterRect(Parent: TRect; ChildWidth, ChildHeight: Integer): TRect;
 begin
-  Result.Left := Parent.Left + (Parent.Right - Parent.Left - ChildWidth) div 2;
-  Result.Top := Parent.Top + (Parent.Bottom - Parent.Top - ChildHeight) div 2;
+  Result.Left := (Parent.Left + Parent.Right - ChildWidth) div 2;
+  Result.Top := (Parent.Top + Parent.Bottom - ChildHeight) div 2;
   Result.Right := Result.Left + ChildWidth;
   Result.Bottom := Result.Top + ChildHeight;
 end;
@@ -1481,6 +1482,8 @@ var
   Color: TColor;
   CornerSizeTL, CornerSizeTR, CornerSizeBL, CornerSizeBR: Integer;
 begin
+  // Do not use SpDPIScale
+  ACanvas.Pen.Width := 1;
   Color := ACanvas.Pen.Color;
 
   if CornerSize < 0 then CornerSize := 0;
@@ -1543,31 +1546,30 @@ begin
       ACanvas.PolyLine([
         Point(Left, Top + CornerSizeTL),
         Point(Left + CornerSizeTL, Top),
-        Point(Right - CornerSizeTR + 1, Top),
+        Point(Right - CornerSizeTR, Top),
         Point(Right, Top + CornerSizeTR)
       ]);
     end;
     if ColorR <> clNone then begin
       ACanvas.Pen.Color := ColorR;
       ACanvas.PolyLine([
-        Point(Right, Top + CornerSizeTR),
-        Point(Right , Bottom - CornerSizeBR)
+        Point(Right , Bottom - CornerSizeBR),
+        Point(Right, Top - 1 + CornerSizeTR)
       ]);
     end;
     if ColorB <> clNone then begin
       ACanvas.Pen.Color := ColorB;
       ACanvas.PolyLine([
-        Point(Right, Bottom - CornerSizeBR),
-        Point(Right - CornerSizeBR, Bottom),
+        Point(Left, Bottom - CornerSizeBL),
         Point(Left + CornerSizeBL, Bottom),
-        Point(Left, Bottom - CornerSizeBL)
+        Point(Right - CornerSizeBR, Bottom),
+        Point(Right, Bottom - CornerSizeBR)
       ]);
     end;
   end;
 
   ACanvas.Pen.Color := Color;
 end;
-
 
 procedure SpDrawRectangle(ACanvas: TCanvas; ARect: TRect;
   CornerSize: Integer; ColorTL, ColorBR, ColorTLInternal, ColorBRInternal: TColor;
@@ -1577,83 +1579,11 @@ procedure SpDrawRectangle(ACanvas: TCanvas; ARect: TRect;
 // TLColor, ColorBR: external border color
 // InternalTL, ColorBRInternal: internal border color
 // ForceRectBorders: forces the borders to be rect
-var
-  Color: TColor;
-  CornerSizeTL, CornerSizeTR, CornerSizeBL, CornerSizeBR: Integer;
 begin
-  Color := ACanvas.Pen.Color;
-
-  if CornerSize < 0 then CornerSize := 0;
-  if CornerSize > 2 then CornerSize := 2;
-  CornerSizeTL := CornerSize;
-  CornerSizeTR := CornerSize;
-  CornerSizeBL := CornerSize;
-  CornerSizeBR := CornerSize;
-  if akLeft in ForceRectBorders then begin
-    CornerSizeTL := 0;
-    CornerSizeBL := 0;
-  end;
-  if akRight in ForceRectBorders then begin
-    CornerSizeTR := 0;
-    CornerSizeBR := 0;
-  end;
-  if akTop in ForceRectBorders then begin
-    CornerSizeTL := 0;
-    CornerSizeTR := 0;
-  end;
-  if akBottom in ForceRectBorders then begin
-    CornerSizeBL := 0;
-    CornerSizeBR := 0;
-  end;
-
-  with ARect do begin
-    Dec(Right);
-    Dec(Bottom);
-
-    // Internal borders
-    InflateRect(ARect, -1, -1);
-    if ColorTLInternal <> clNone then begin
-      ACanvas.Pen.Color := ColorTLInternal;
-      ACanvas.PolyLine([
-        Point(Left, Bottom),
-        Point(Left, Top),
-        Point(Right, Top)
-      ]);
-    end;
-    if ColorBRInternal <> clNone then begin
-      ACanvas.Pen.Color := ColorBRInternal;
-      ACanvas.PolyLine([
-        Point(Left, Bottom),
-        Point(Right, Bottom),
-        Point(Right, Top - 1)
-      ]);
-    end;
-
-    // External borders
-    InflateRect(ARect, 1, 1);
-    if ColorTL <> clNone then begin
-      ACanvas.Pen.Color := ColorTL;
-      ACanvas.PolyLine([
-        Point(Left + CornerSizeBL, Bottom),
-        Point(Left, Bottom - CornerSizeBL),
-        Point(Left, Top + CornerSizeTL),
-        Point(Left + CornerSizeTL, Top),
-        Point(Right - CornerSizeTR, Top),
-        Point(Right, Top + CornerSizeTR)
-      ]);
-    end;
-    if ColorBR <> clNone then begin
-      ACanvas.Pen.Color := ColorBR;
-      ACanvas.PolyLine([
-        Point(Right, Top + CornerSizeTR),
-        Point(Right , Bottom - CornerSizeBR),
-        Point(Right - CornerSizeBR, Bottom),
-        Point(Left + CornerSizeBL - 1, Bottom)
-      ]);
-    end;
-  end;
-
-  ACanvas.Pen.Color := Color;
+  SpDrawRectangle(ACanvas, ARect, CornerSize,
+    ColorTL, ColorTL, ColorBR, ColorBR,
+    ColorTLInternal, ColorTLInternal, ColorBRInternal, ColorBRInternal,
+    ForceRectBorders);
 end;
 
 procedure SpAlphaBlend(SrcDC, DstDC: HDC; SrcR, DstR: TRect; Alpha: Byte;
@@ -1742,10 +1672,8 @@ begin
   try
     B1.PixelFormat := pf32bit;
     B2.PixelFormat := pf32bit;
-    B1.Width := ImageWidth;
-    B1.Height := ImageHeight;
-    B2.Width := ImageWidth;
-    B2.Height := ImageHeight;
+    B1.SetSize(ImageWidth, ImageHeight);
+    B2.SetSize(ImageWidth, ImageHeight);
 
     BitBlt(B1.Canvas.Handle, 0, 0, ImageWidth, ImageHeight, ACanvas.Handle, ARect.Left, ARect.Top, SRCCOPY);
     BitBlt(B2.Canvas.Handle, 0, 0, ImageWidth, ImageHeight, ACanvas.Handle, ARect.Left, ARect.Top, SRCCOPY);
@@ -1782,13 +1710,10 @@ procedure SpDrawImageList(ACanvas: TCanvas; const ARect: TRect; ImageList: TCust
   ImageIndex: Integer; Enabled, DisabledIconCorrection: Boolean);
 begin
   if Assigned(ImageList) and (ImageIndex > -1) and (ImageIndex < ImageList.Count) then
-    if Enabled then
-      ImageList.Draw(ACanvas, ARect.Left, ARect.Top, ImageIndex)
+    if not Enabled and DisabledIconCorrection then
+      SpDrawIconShadow(ACanvas, ARect, ImageList, ImageIndex)
     else
-      if DisabledIconCorrection then
-        SpDrawIconShadow(ACanvas, ARect, ImageList, ImageIndex)
-      else
-        ImageList.Draw(ACanvas, ARect.Left, ARect.Top, ImageIndex, False);
+      ImageList.Draw(ACanvas, ARect.Left, ARect.Top, ImageIndex, Enabled);
 end;
 
 //WMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWM
@@ -1933,8 +1858,9 @@ var
 begin
   C1 := ACanvas.Pen.Color;
   C2 := ACanvas.Brush.Color;
-  ACanvas.Pen.Color := AColor;
   ACanvas.Brush.Color := AColor;
+  ACanvas.Pen.Color := AColor;
+  ACanvas.Pen.Width := 1;
 
   if Vertical then
     if Reverse then
@@ -2007,57 +1933,254 @@ begin
   end;
 end;
 
-procedure SpDrawGlyphPattern(DC: HDC; const R: TRect; Width, Height: Integer;
-  const PatternBits; PatternColor: TColor);
-var
-  B: TBitmap;
-  OldTextColor, OldBkColor: Longword;
-  OldBrush, Brush: HBrush;
-  BitmapWidth, BitmapHeight: Integer;
-begin
-  OldTextColor := SetTextColor(DC, clBlack);
-  OldBkColor := SetBkColor(DC, clWhite);
-  B := TBitmap.Create;
-  try
-    BitmapWidth := 8;
-    if Width > BitmapWidth then BitmapWidth := Width;
-    BitmapHeight := 8;
-    if Height > BitmapHeight then BitmapHeight := Height;
-    
-    B.Handle := CreateBitmap(BitmapWidth, BitmapHeight, 1, 1, @PatternBits);
-    if PatternColor < 0 then Brush := GetSysColorBrush(PatternColor and $FF)
-    else Brush := CreateSolidBrush(PatternColor);
-    OldBrush := SelectObject(DC, Brush);
-    BitBlt(DC, (R.Left + R.Right + 1 - Width) div 2, (R.Top + R.Bottom  + 1 - Height) div 2,
-      Width, Height, B.Canvas.Handle, 0, 0, ROP_DSPDxax);
-    SelectObject(DC, OldBrush);
-    if PatternColor >= 0 then DeleteObject(Brush);
-  finally
-    SetTextColor(DC, OldTextColor);
-    SetBkColor(DC, OldBkColor);
-    B.Free;
-  end;
-end;
-
 procedure SpDrawGlyphPattern(ACanvas: TCanvas; ARect: TRect; PatternIndex: Integer; PatternColor: TColor);
-// The pattern is a 8x8 bitmap
-// The array has 16 elements, only the odd elements are used
-// The first value of an element represents the bits from the 4 first horizontal pixels,
-// and the next value represents the bits of the 4 last horizontal pixels.
-// For example: 0   represents --------
-//              $FF represents xxxxxxxx
-//              $C6 represents xx---xx-
-const
-  ClosePattern: array [0..15] of Byte    = ($C6, 0, $EE, 0, $7C, 0, $38, 0, $7C, 0, $EE, 0, $C6, 0, 0, 0);
-  MaximizePattern: array [0..15] of Byte = ($FF, 0, $FF, 0, $81, 0, $81, 0, $81, 0, $81, 0, $81, 0, $FF, 0);
-  MinimizePattern: array [0..15] of Byte = (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, $7E, 0, $7E, 0, 0, 0);
-  RestorePattern: array [0..17] of Byte = ($3F, 0, $3F, 0, $21, 0, $FD, 0, $FD, 0, $87, 0, $84, 0, $84, 0, $FC, 0);
+var
+  Size: Integer;
+  PenStyle: Cardinal;
+  R: TRect;
+  BrushInfo: TLogBrush;
 begin
+  {
+  Close, 7x7   Maximize, 8x8   Minimize, 8x8   Restore pattern, 9x9
+  xx---xx      xxxxxxxx        --------        --xxxxxx-
+  xxx-xxx      xxxxxxxx        --------        --xxxxxx-
+  -xxxxx-      x------x        --------        --x----x-
+  --xxx--      x------x        --------        xxxxxx-x-
+  -xxxxx-      x------x        --------        xxxxxx-x-
+  xxx-xxx      x------x        -xxxxxx-        x----xxx-
+  xx---xx      x------x        -xxxxxx-        x----x---
+               xxxxxxxx        --------        x----x---
+                                               xxxxxx---
+
+  Toolbar Close, 6x6   Chevron, 8x8    Vertical Chevron, 8x8
+  xx--xx               xx--xx--        x---x---
+  -xxxx-               -xx--xx-        xx-xx---
+  --xx--               --xx--xx        -xxx----
+  -xxxx-               -xx--xx-        --x-----
+  xx--xx               xx--xx--        x---x---
+  ------               --------        xx-xx---
+                       --------        -xxx----
+                       --------        --x-----
+
+  Menu Checkmark, 7x7  Checkmark, 7x7  Menu Radiomark, 6x6
+  ------x              ------x         --xx--
+  -----xx              -----xx         -xxxx-
+  x---xx-              x---xxx         xxxxxx
+  xx-xx--              xx-xxx-         xxxxxx
+  -xxx---              xxxxx--         -xxxx-
+  --x----              -xxx---         --xx--
+  -------              --x----
+  }
+
+  ACanvas.Pen.Width := SpDPIScale(1);
+  PenStyle := PS_GEOMETRIC or PS_ENDCAP_SQUARE or PS_SOLID or PS_JOIN_MITER;
   case PatternIndex of
-    0: SpDrawGlyphPattern(ACanvas.Handle, ARect, 8, 8, ClosePattern[0], PatternColor);
-    1: SpDrawGlyphPattern(ACanvas.Handle, ARect, 8, 8, MaximizePattern[0], PatternColor);
-    2: SpDrawGlyphPattern(ACanvas.Handle, ARect, 8, 8, MinimizePattern[0], PatternColor);
-    3: SpDrawGlyphPattern(ACanvas.Handle, ARect, 8, 9, RestorePattern[0], PatternColor);
+    0: begin
+         Size := SpDPIScale(7);
+         // Round EndCap/Join
+         PenStyle := PS_GEOMETRIC or PS_ENDCAP_ROUND or PS_SOLID or PS_JOIN_ROUND;
+       end;
+    1: Size := SpDPIScale(8);
+    2: Size := SpDPIScale(8);
+    3: Size := SpDPIScale(9);
+    4: begin
+         Size := SpDPIScale(6);
+         // Round EndCap/Join
+         PenStyle := PS_GEOMETRIC or PS_ENDCAP_ROUND or PS_SOLID or PS_JOIN_ROUND;
+       end;
+    5: Size := SpDPIScale(8);
+    6: Size := SpDPIScale(8);
+    7: Size := SpDPIScale(7);
+    8: Size := SpDPIScale(7);
+    9: begin
+         Size := SpDPIScale(7);
+         // Round EndCap/Join
+         PenStyle := PS_GEOMETRIC or PS_ENDCAP_ROUND or PS_SOLID or PS_JOIN_ROUND;
+         ACanvas.Pen.Width := 1; // always 1 pixel
+       end;
+  else
+    Size := SpDPIScale(8);
+  end;
+
+  // Create a pen with a Square endcap
+  BrushInfo.lbStyle := BS_SOLID;
+  BrushInfo.lbColor := ColorToRGB(PatternColor);
+  BrushInfo.lbHatch := 0;
+  ACanvas.Pen.Handle := ExtCreatePen(PenStyle, ACanvas.Pen.Width, BrushInfo, 0, nil);
+
+  // Center the pattern on ARect
+  R := SpCenterRect(ARect, Size-1, Size-1);
+
+  case PatternIndex of
+    0:begin  // Close
+        ACanvas.Polyline([
+          Point(R.Left, R.Top + 1),
+          Point(R.Right - 1, R.Bottom)
+        ]);
+        ACanvas.Polyline([
+          Point(R.Left, R.Top),
+          Point(R.Right, R.Bottom)
+        ]);
+        ACanvas.Polyline([
+          Point(R.Left + 1, R.Top),
+          Point(R.Right, R.Bottom - 1)
+        ]);
+
+        ACanvas.Polyline([
+          Point(R.Right, R.Top + 1),
+          Point(R.Left + 1, R.Bottom)
+        ]);
+        ACanvas.Polyline([
+          Point(R.Right, R.Top),
+          Point(R.Left, R.Bottom)
+        ]);
+        ACanvas.Polyline([
+          Point(R.Right - 1, R.Top),
+          Point(R.Left, R.Bottom - 1)
+        ]);
+      end;
+    1:begin  // Maximize
+        ACanvas.Polyline([
+          Point(R.Left, R.Top + SpDPIScale(1)),
+          Point(R.Right, R.Top + SpDPIScale(1))
+        ]);
+        ACanvas.Polyline([
+          Point(R.Left, R.Top),
+          Point(R.Right, R.Top),
+          Point(R.Right, R.Bottom),
+          Point(R.Left, R.Bottom),
+          Point(R.Left, R.Top)
+        ]);
+      end;
+    2:begin  // Minimize
+        ACanvas.Polyline([
+          Point(R.Left + SpDPIScale(1), R.Bottom - SpDPIScale(2)),
+          Point(R.Right - SpDPIScale(1), R.Bottom - SpDPIScale(2)),
+          Point(R.Right - SpDPIScale(1), R.Bottom - SpDPIScale(1)),
+          Point(R.Left + SpDPIScale(1), R.Bottom - SpDPIScale(1)),
+          Point(R.Left + SpDPIScale(1), R.Bottom - SpDPIScale(2))
+        ]);
+      end;
+    3:begin  // Restore
+        ACanvas.Polyline([
+          Point(R.Left + SpDPIScale(2), R.Top + SpDPIScale(2)),
+          Point(R.Left + SpDPIScale(2), R.Top),
+          Point(R.Left + SpDPIScale(7), R.Top),
+          Point(R.Left + SpDPIScale(7), R.Top + SpDPIScale(5)),
+          Point(R.Left + SpDPIScale(6), R.Top + SpDPIScale(5))
+        ]);
+        ACanvas.Polyline([
+          Point(R.Left + SpDPIScale(2), R.Top + SpDPIScale(1)),
+          Point(R.Left + SpDPIScale(7), R.Top + SpDPIScale(1))
+        ]);
+        ACanvas.Polyline([
+          Point(R.Left, R.Top + SpDPIScale(3)),
+          Point(R.Left + SpDPIScale(5), R.Top + SpDPIScale(3)),
+          Point(R.Left + SpDPIScale(5), R.Bottom),
+          Point(R.Left, R.Bottom),
+          Point(R.Left, R.Top + SpDPIScale(3))
+        ]);
+        ACanvas.Polyline([
+          Point(R.Left, R.Top + SpDPIScale(4)),
+          Point(R.Left + SpDPIScale(5), R.Top + SpDPIScale(4))
+        ]);
+      end;
+    4:begin  // Toolbar Close
+        ACanvas.Polyline([
+          Point(R.Left, R.Top),
+          Point(R.Right - 1, R.Bottom - 1)
+        ]);
+        ACanvas.Polyline([
+          Point(R.Left + 1, R.Top),
+          Point(R.Right, R.Bottom - 1)
+        ]);
+        ACanvas.Polyline([
+          Point(R.Right, R.Top),
+          Point(R.Left + 1, R.Bottom - 1)
+        ]);
+        ACanvas.Polyline([
+          Point(R.Right - 1, R.Top),
+          Point(R.Left, R.Bottom - 1)
+        ]);
+      end;
+    5:begin  // Chevron
+        ACanvas.Polyline([
+          Point(R.Left, R.Top),
+          Point(R.Left + SpDPIScale(2), R.Top + SpDPIScale(2)),
+          Point(R.Left, R.Top + SpDPIScale(2) * 2)
+        ]);
+        ACanvas.Polyline([
+          Point(R.Left + 1, R.Top),
+          Point(R.Left + SpDPIScale(2) + 1, R.Top + SpDPIScale(2)),
+          Point(R.Left + 1, R.Top + SpDPIScale(2) * 2)
+        ]);
+        ACanvas.Polyline([
+          Point(R.Left + SpDPIScale(4), R.Top),
+          Point(R.Left + SpDPIScale(6), R.Top + SpDPIScale(2)),
+          Point(R.Left + SpDPIScale(4), R.Top + SpDPIScale(2) * 2)
+        ]);
+        ACanvas.Polyline([
+          Point(R.Left + SpDPIScale(4) + 1, R.Top),
+          Point(R.Left + SpDPIScale(6) + 1, R.Top + SpDPIScale(2)),
+          Point(R.Left + SpDPIScale(4) + 1, R.Top + SpDPIScale(2) * 2)
+        ]);
+      end;
+    6:begin  // Vertical Chevron
+        ACanvas.Polyline([
+          Point(R.Left, R.Top),
+          Point(R.Left + SpDPIScale(2), R.Top + SpDPIScale(2)),
+          Point(R.Left + SpDPIScale(2) * 2, R.Top)
+        ]);
+        ACanvas.Polyline([
+          Point(R.Left, R.Top + 1),
+          Point(R.Left + SpDPIScale(2), R.Top + SpDPIScale(2) + 1),
+          Point(R.Left + SpDPIScale(2) * 2, R.Top + 1)
+        ]);
+
+        ACanvas.Polyline([
+          Point(R.Left, R.Top + SpDPIScale(4)),
+          Point(R.Left + SpDPIScale(2), R.Top + SpDPIScale(6)),
+          Point(R.Left + SpDPIScale(2) * 2, R.Top + SpDPIScale(4))
+        ]);
+        ACanvas.Polyline([
+          Point(R.Left, R.Top + SpDPIScale(4) + 1),
+          Point(R.Left + SpDPIScale(2), R.Top + SpDPIScale(6) + 1),
+          Point(R.Left + SpDPIScale(2) * 2, R.Top + SpDPIScale(4) + 1)
+        ]);
+      end;
+    7:begin  // Menu Checkmark
+        ACanvas.Polyline([
+          Point(R.Left, R.Top + SpDPIScale(2)),
+          Point(R.Left + SpDPIScale(2), R.Top + SpDPIScale(2) * 2),
+          Point(R.Right, R.Top)
+        ]);
+        ACanvas.Polyline([
+          Point(R.Left, R.Top + SpDPIScale(2) + 1),
+          Point(R.Left + SpDPIScale(2), R.Top + SpDPIScale(2) * 2 + 1),
+          Point(R.Right, R.Top + 1)
+        ]);
+      end;
+    8:begin  // Checkmark
+        ACanvas.Polyline([
+          Point(R.Left, R.Top + SpDPIScale(2)),
+          Point(R.Left + SpDPIScale(2), R.Top + SpDPIScale(2) * 2),
+          Point(R.Right, R.Top)
+        ]);
+        ACanvas.Polyline([
+          Point(R.Left, R.Top + SpDPIScale(2) + 1),
+          Point(R.Left + SpDPIScale(2), R.Top + SpDPIScale(2) * 2 + 1),
+          Point(R.Right, R.Top + 1)
+        ]);
+        ACanvas.Polyline([
+          Point(R.Left, R.Top + SpDPIScale(2) + 2),
+          Point(R.Left + SpDPIScale(2), R.Top + SpDPIScale(2) * 2 + 2),
+          Point(R.Right, R.Top + 2)
+        ]);
+      end;
+    9:begin  // Menu Radiomark
+        ACanvas.Brush.Color := PatternColor;
+        ACanvas.Ellipse(R);
+      end;
   end;
 end;
 
@@ -2106,6 +2229,7 @@ procedure SpDrawXPCheckBoxGlyph(ACanvas: TCanvas; ARect: TRect; Enabled: Boolean
 var
   Flags: Cardinal;
   SknState: TSpTBXSkinStatesType;
+  CheckColor: TColor;
 begin
   Flags := 0;
   case SkinManager.GetSkinType of
@@ -2127,7 +2251,17 @@ begin
     sknSkin:
       begin
         SknState := CurrentSkin.GetState(Enabled, Pushed, HotTrack, State in [cbChecked, cbGrayed]);
-        CurrentSkin.PaintMenuCheckMark(ACanvas, ARect, State = cbChecked, State = cbGrayed, False, SknState);
+        CurrentSkin.PaintBackground(ACanvas, ARect, skncCheckBox, SknState, True, True);
+        if State = cbChecked then begin
+          CheckColor := CurrentSkin.GetTextColor(skncCheckBox, SknState);
+          SpDrawGlyphPattern(ACanvas, ARect, 8, CheckColor);
+        end
+        else
+          if State = cbGrayed then begin
+            InflateRect(ARect, -SpDPIScale(3), -SpDPIScale(3));
+            CheckColor := CurrentSkin.Options(skncCheckBox, sknsChecked).Borders.Color1;
+            SpFillRect(ACanvas, ARect, CheckColor);
+          end;
       end;
   end;
 end;
@@ -2135,7 +2269,7 @@ end;
 procedure SpDrawXPRadioButtonGlyph(ACanvas: TCanvas; ARect: TRect; Enabled: Boolean;
   Checked, HotTrack, Pushed: Boolean);
 var
-  Flags: Integer;
+  Size, Flags: Integer;
   SknState: TSpTBXSkinStatesType;
 begin
   case SkinManager.GetSkinType of
@@ -2155,7 +2289,28 @@ begin
     sknSkin:
       begin
         SknState := CurrentSkin.GetState(Enabled, Pushed, HotTrack, Checked);
-        CurrentSkin.PaintMenuRadioMark(ACanvas, ARect, Checked, False, SknState);
+        // Keep it simple make the radio 13x13
+        ARect := SpCenterRect(ARect, SpDPIScale(13), SpDPIScale(13));
+
+        // Background
+        BeginPath(ACanvas.Handle);
+        ACanvas.Ellipse(ARect);
+        EndPath(ACanvas.Handle);
+        SelectClipPath(ACanvas.Handle, RGN_COPY);
+        CurrentSkin.PaintBackground(ACanvas, ARect, skncRadioButton, SknState, True, False);
+        SelectClipPath(ACanvas.Handle, 0);
+        SelectClipRgn(ACanvas.Handle, 0);
+        // Frame
+        ACanvas.Brush.Style := bsClear;
+        ACanvas.Pen.Color := CurrentSkin.Options(skncRadioButton, SknState).Borders.Color1;;
+        ACanvas.Ellipse(ARect);
+        // Radio
+        if Checked then begin
+          ACanvas.Brush.Color := CurrentSkin.GetTextColor(skncRadioButton, SknState);
+          ACanvas.Pen.Color := ACanvas.Brush.Color;
+          Size := SpDpiScale(5);
+          ACanvas.Ellipse(SpCenterRect(ARect, Size, Size));
+        end;
       end;
   end;
 end;
@@ -2227,7 +2382,7 @@ begin
       GetWindowRect(AWinControl.Handle, R);
       OffsetRect(R, -R.Left, -R.Top);
       with R do
-        ExcludeClipRect(DC, Left + 2, Top + 2, Right - 2, Bottom - 2);
+        ExcludeClipRect(DC, Left + 2, Top + 2, Right - 2, Bottom - 2); // Do not use SpDPIScale
 
       if HideFrame then begin
         ACanvas.Brush.Color := TControlAccess(AWinControl).Color;
@@ -2265,21 +2420,21 @@ begin
   //  ----
 
   C := ACanvas.Brush.Color;
-  XCellCount := (ARect.Right - ARect.Left) div 4;
-  YCellCount := (ARect.Bottom - ARect.Top) div 4;
+  XCellCount := (ARect.Right - ARect.Left) div SpDPIScale(4);
+  YCellCount := (ARect.Bottom - ARect.Top) div SpDPIScale(4);
   if XCellCount = 0 then XCellCount := 1;
   if YCellCount = 0 then YCellCount := 1;
   
   for J := 0 to YCellCount - 1 do
     for I := 0 to XCellCount - 1 do begin
-      R.Left := ARect.Left + (I * 4) + 1;
-      R.Right := R.Left + 2;
-      R.Top := ARect.Top + (J * 4) + 1;
-      R.Bottom := R.Top + 2;
+      R.Left := ARect.Left + (I * SpDPIScale(4)) + SpDPIScale(1);
+      R.Right := R.Left + SpDPIScale(2);
+      R.Top := ARect.Top + (J * SpDPIScale(4)) + SpDPIScale(1);
+      R.Bottom := R.Top + SpDPIScale(2);
 
       ACanvas.Brush.Color := HiC;
       ACanvas.FillRect(R);
-      OffsetRect(R, -1, -1);
+      OffsetRect(R, -SpDPIScale(1), -SpDPIScale(1));
       ACanvas.Brush.Color := LoC;
       ACanvas.FillRect(R);
     end;
@@ -2450,6 +2605,77 @@ begin
         FindClose(SearchRec);
       end;
     end;
+  end;
+end;
+
+function SpDPIScale(I: Integer): Integer;
+begin
+  Result := MulDiv(I, Screen.PixelsPerInch, 96);
+end;
+
+procedure SpDPIResizeBitmap(Bitmap: TBitmap; const NewWidth, NewHeight: Integer);
+var
+  B: TBitmap;
+begin
+  B := TBitmap.Create;
+  try
+    B.SetSize(NewWidth, NewHeight);
+
+    if Screen.PixelsPerInch * 100 / 96 >= 150 then begin // Stretch if >= 150%
+      SetStretchBltMode(B.Canvas.Handle, STRETCH_HALFTONE);
+      B.Canvas.StretchDraw(Rect(0, 0, NewWidth, NewHeight), Bitmap);
+    end
+    else // Center if < 150%
+      B.Canvas.Draw((NewWidth - Bitmap.Width) div 2, (NewHeight - Bitmap.Height) div 2, Bitmap);
+
+    Bitmap.SetSize(NewWidth, NewHeight);
+    Bitmap.Canvas.Draw(0, 0, B);
+  finally
+    B.Free;
+  end;
+end;
+
+procedure SpDPIScaleImageList(const ImageList: TCustomImageList);
+var
+  I: integer;
+  Bimage, Bmask: TBitmap;
+  TempIL : TImageList;
+begin
+  if Screen.PixelsPerInch = 96 then Exit;
+
+  TempIL := TImageList.Create(nil);
+  try
+    // Set size to match DPI (like 250% of 16px = 40px)
+    TempIL.Assign(ImageList);
+    ImageList.Clear;
+    ImageList.SetSize(MulDiv(ImageList.Width, Screen.PixelsPerInch, 96), MulDiv(ImageList.Height, Screen.PixelsPerInch, 96));
+
+    // Add images back to original ImageList
+    for I := 0 to -1 + TempIL.Count do begin
+      Bimage := TBitmap.Create;
+      Bmask := TBitmap.Create;
+      try
+        // Get the image bitmap
+        Bimage.SetSize(TempIL.Width, TempIL.Height);
+        Bimage.Canvas.FillRect(Bimage.Canvas.ClipRect);
+        ImageList_DrawEx(TempIL.Handle, I, Bimage.Canvas.Handle, 0, 0, Bimage.Width, Bimage.Height, CLR_NONE, CLR_NONE, ILD_NORMAL);
+        SpDPIResizeBitmap(Bimage, ImageList.Width, ImageList.Height); // Resize
+
+        // Get the mask bitmap
+        Bmask.SetSize(TempIL.Width, TempIL.Height);
+        Bmask.Canvas.FillRect(Bmask.Canvas.ClipRect);
+        ImageList_DrawEx(TempIL.Handle, I, Bmask.Canvas.Handle, 0, 0, Bmask.Width, Bmask.Height, CLR_NONE, CLR_NONE, ILD_MASK);
+        SpDPIResizeBitmap(Bmask, ImageList.Width, ImageList.Height); // Resize
+
+        // Add the bitmaps
+        ImageList.Add(Bimage, Bmask);
+      finally
+        Bimage.Free;
+        Bmask.Free;
+      end;
+    end;
+  finally
+    TempIL.Free;
   end;
 end;
 
@@ -2628,8 +2854,10 @@ end;
 
 procedure TSpTBXSkinOptions.BroadcastChanges;
 begin
-  if Self = SkinManager.CurrentSkin then
+  if Self = SkinManager.CurrentSkin then begin
+    SkinManager.ResetToSystemStyle;
     SkinManager.BroadcastSkinNotification;
+  end;
 end;
 
 procedure TSpTBXSkinOptions.CopyOptions(AComponent, ToComponent: TSpTBXSkinComponentsType);
@@ -2831,25 +3059,25 @@ begin
   if SkinManager.GetSkinType = sknSkin then
     Result := FFloatingWindowBorderSize
   else
-    Result := 4;
+    Result := SpDPIScale(4);
 end;
 
 procedure TSpTBXSkinOptions.SetFloatingWindowBorderSize(const Value: Integer);
 begin
   FFloatingWindowBorderSize := Value;
   if FFloatingWindowBorderSize < 0 then FFloatingWindowBorderSize := 0;
-  if FFloatingWindowBorderSize > 4 then FFloatingWindowBorderSize := 4;
+  if FFloatingWindowBorderSize > SpDPIScale(4) then FFloatingWindowBorderSize := SpDPIScale(4);
 end;
 
 procedure TSpTBXSkinOptions.GetDropDownArrowSize(out DropDownArrowSize,
   DropDownArrowMargin, SplitBtnArrowSize: Integer);
 begin
-  DropDownArrowSize := 8; // TB2Item.tbDropdownArrowWidth
-  DropDownArrowMargin := 3; // TB2Item.tbDropdownArrowMargin
+  DropDownArrowSize := SpDPIScale(8); // TB2Item.tbDropdownArrowWidth
+  DropDownArrowMargin := SpDPIScale(3); // TB2Item.tbDropdownArrowMargin
 
-  SplitBtnArrowSize := 12; // TB2Item.tbDropdownComboArrowWidth + 1
+  SplitBtnArrowSize := SpDPIScale(12); // TB2Item.tbDropdownComboArrowWidth + 1
   if SkinManager.GetSkinType in [sknWindows, sknDelphiStyle] then
-    SplitBtnArrowSize := SplitBtnArrowSize + 1;
+    SplitBtnArrowSize := SpDPIScale(12+1);
 end;
 
 procedure TSpTBXSkinOptions.GetMenuItemMargins(ACanvas: TCanvas; ImgSize: Integer;
@@ -2860,31 +3088,31 @@ var
   SkinType: TSpTBXSkinType;
 begin
   if ImgSize = 0 then
-    ImgSize := 16;
+    ImgSize := SpDPIScale(16);
 
   FillChar(MarginsInfo, SizeOf(MarginsInfo), 0);
   SkinType := SkinManager.GetSkinType;
 
   if ((SkinType = sknWindows) and SpIsWinVistaOrUp) or (SkinType = sknDelphiStyle) then begin
     // Vista-like spacing
-    MarginsInfo.Margins := Rect(1, 3, 1, 3); // MID_MENUITEM
-    MarginsInfo.ImageTextSpace := 5 + 1;     // TMI_MENU_IMGTEXTSPACE
-    MarginsInfo.LeftCaptionMargin := 3;      // TMI_MENU_LCAPTIONMARGIN
-    MarginsInfo.RightCaptionMargin := 3;     // TMI_MENU_RCAPTIONMARGIN
+    MarginsInfo.Margins := Rect(SpDPIScale(1), SpDPIScale(3), SpDPIScale(1), SpDPIScale(3)); // MID_MENUITEM
+    MarginsInfo.ImageTextSpace := SpDPIScale(5 + 1);     // TMI_MENU_IMGTEXTSPACE
+    MarginsInfo.LeftCaptionMargin := SpDPIScale(3);      // TMI_MENU_LCAPTIONMARGIN
+    MarginsInfo.RightCaptionMargin := SpDPIScale(3);     // TMI_MENU_RCAPTIONMARGIN
   end
   else
     if (SkinType = sknSkin) then begin
       // Office-like spacing
-      MarginsInfo.Margins := Rect(1, 3, 1, 3); // MID_MENUITEM
-      MarginsInfo.ImageTextSpace := 5;         // TMI_MENU_IMGTEXTSPACE
-      MarginsInfo.LeftCaptionMargin := 3;      // TMI_MENU_LCAPTIONMARGIN
-      MarginsInfo.RightCaptionMargin := 3;     // TMI_MENU_RCAPTIONMARGIN
+      MarginsInfo.Margins := Rect(SpDPIScale(1), SpDPIScale(3), SpDPIScale(1), SpDPIScale(3)); // MID_MENUITEM
+      MarginsInfo.ImageTextSpace := SpDPIScale(5);         // TMI_MENU_IMGTEXTSPACE
+      MarginsInfo.LeftCaptionMargin := SpDPIScale(3);      // TMI_MENU_LCAPTIONMARGIN
+      MarginsInfo.RightCaptionMargin := SpDPIScale(3);     // TMI_MENU_RCAPTIONMARGIN
     end
     else begin
-      MarginsInfo.Margins := Rect(0, 2, 0, 2); // MID_MENUITEM
-      MarginsInfo.ImageTextSpace := 1;         // TMI_MENU_IMGTEXTSPACE
-      MarginsInfo.LeftCaptionMargin := 2;      // TMI_MENU_LCAPTIONMARGIN
-      MarginsInfo.RightCaptionMargin := 2;     // TMI_MENU_RCAPTIONMARGIN
+      MarginsInfo.Margins := Rect(0, SpDPIScale(2), 0, SpDPIScale(2)); // MID_MENUITEM
+      MarginsInfo.ImageTextSpace := SpDPIScale(1);         // TMI_MENU_IMGTEXTSPACE
+      MarginsInfo.LeftCaptionMargin := SpDPIScale(2);      // TMI_MENU_LCAPTIONMARGIN
+      MarginsInfo.RightCaptionMargin := SpDPIScale(2);     // TMI_MENU_RCAPTIONMARGIN
     end;
 
   GetTextMetrics(ACanvas.Handle, TextMetric);
@@ -2938,15 +3166,17 @@ begin
       Exit; // Exit if the State is not valid
   end;
 
-  if State = sknsDisabled then Result := clGrayText
-  else Result := clBtnText;
+ if State = sknsDisabled then Result := clGrayText
+ else Result := clBtnText;
+ if SkinType = sknDelphiStyle then
+   Result := GetThemedSystemColor(Result);
 
   case Component of
     skncMenuItem:
       if ((SkinType = sknWindows) and SpIsWinVistaOrUp) or (SkinType = sknDelphiStyle) then begin
         // Use the new API on Windows Vista
-        if CurrentSkin.GetThemedElementDetails(Component, State, Details) then
-          CurrentSkin.GetThemedElementTextColor(Details, Result);
+        if GetThemedElementDetails(Component, State, Details) then
+          GetThemedElementTextColor(Details, Result);
       end
       else
         if State <> sknsDisabled then begin
@@ -2958,8 +3188,8 @@ begin
     skncMenuBarItem:
       if ((SkinType = sknWindows) and SpIsWinVistaOrUp) or (SkinType = sknDelphiStyle) then begin
         // Use the new API on Windows Vista
-        if CurrentSkin.GetThemedElementDetails(Component, State, Details) then
-          CurrentSkin.GetThemedElementTextColor(Details, Result);
+        if GetThemedElementDetails(Component, State, Details) then
+          GetThemedElementTextColor(Details, Result);
       end
       else
         if State <> sknsDisabled then begin
@@ -2970,15 +3200,15 @@ begin
         end;
     skncToolbarItem:
       if SkinType = sknDelphiStyle then begin
-        if CurrentSkin.GetThemedElementDetails(Component, State, Details) then
-          CurrentSkin.GetThemedElementTextColor(Details, Result);
+        if GetThemedElementDetails(Component, State, Details) then
+          GetThemedElementTextColor(Details, Result);
       end
       else
         if State <> sknsDisabled then Result := clMenuText;
     skncButton, skncCheckBox, skncRadioButton, skncLabel, skncTab, skncEditButton:
       if (SkinType = sknWindows) or (SkinType = sknDelphiStyle) then
-        if CurrentSkin.GetThemedElementDetails(Component, State, Details) then
-          CurrentSkin.GetThemedElementTextColor(Details, Result);
+        if GetThemedElementDetails(Component, State, Details) then
+          GetThemedElementTextColor(Details, Result);
     skncListItem:
       if SkinType <> sknSkin then
         if SkinType = sknDelphiStyle then begin
@@ -2997,15 +3227,15 @@ begin
         Result := GetTextColor(skncToolbarItem, State) // Use skncToolbarItem to get the default text color
       else
         if (SkinType = sknWindows) or (SkinType = sknDelphiStyle) then
-          if CurrentSkin.GetThemedElementDetails(Component, State, Details) then
-            CurrentSkin.GetThemedElementTextColor(Details, Result);
+          if GetThemedElementDetails(Component, State, Details) then
+            GetThemedElementTextColor(Details, Result);
     skncStatusBar:
       if SkinType = sknSkin then
         Result := GetTextColor(skncToolbarItem, State) // Use skncToolbarItem to get the default text color
       else
         if (SkinType = sknWindows) or (SkinType = sknDelphiStyle) then begin
           Details := SpTBXThemeServices.GetElementDetails(tsPane);
-          CurrentSkin.GetThemedElementTextColor(Details, Result);
+          GetThemedElementTextColor(Details, Result);
         end;
     skncTabToolbar:
       if SkinType = sknSkin then
@@ -3018,8 +3248,8 @@ begin
         Result := GetTextColor(skncToolbarItem, State)  // Use skncToolbarItem to get the default text color
       else
         if (SkinType = sknWindows) or (SkinType = sknDelphiStyle) then begin
-          if CurrentSkin.GetThemedElementDetails(Component, State, Details) then
-            CurrentSkin.GetThemedElementTextColor(Details, Result);
+          if GetThemedElementDetails(Component, State, Details) then
+            GetThemedElementTextColor(Details, Result);
         end;
   end;
 end;
@@ -3411,7 +3641,7 @@ procedure TSpTBXSkinOptions.PaintThemedElementBackground(ACanvas: TCanvas;
 var
   Details: TThemedElementDetails;
 begin
-  if CurrentSkin.GetThemedElementDetails(Component, Enabled, Pushed, HotTrack, Checked, Focused, Defaulted, Grayed, Details) then
+  if GetThemedElementDetails(Component, Enabled, Pushed, HotTrack, Checked, Focused, Defaulted, Grayed, Details) then
     PaintThemedElementBackground(ACanvas, ARect, Details);
 end;
 
@@ -3421,21 +3651,22 @@ procedure TSpTBXSkinOptions.PaintThemedElementBackground(ACanvas: TCanvas;
 var
   Details: TThemedElementDetails;
 begin
-  if CurrentSkin.GetThemedElementDetails(Component, State, Details) then
+  if GetThemedElementDetails(Component, State, Details) then
     PaintThemedElementBackground(ACanvas, ARect, Details);
 end;
 
 procedure TSpTBXSkinOptions.PaintMenuCheckMark(ACanvas: TCanvas; ARect: TRect;
-  Checked, Grayed, MenuItemStyle: Boolean; State: TSpTBXSkinStatesType);
+  Checked, Grayed: Boolean; State: TSpTBXSkinStatesType);
 var
-  X, Y: Integer;
-  PenC, BrushC, CheckColor: TColor;
+  CheckColor: TColor;
   VistaCheckSize: TSize;
   Details: TThemedElementDetails;
   SkinType: TSpTBXSkinType;
 begin
   SkinType := SkinManager.GetSkinType;
-  if MenuItemStyle and ((SkinType = sknWindows) and SpIsWinVistaOrUp) or (SkinType = sknDelphiStyle) then begin
+  // Vcl Styles does not DPI scale, Windows does
+  if ((SkinType = sknWindows) and SpIsWinVistaOrUp) or ((SkinType = sknDelphiStyle) and (Screen.PixelsPerInch = 96)) then
+  begin
     // [Old-Themes]
     {$IF CompilerVersion >= 23} //for Delphi XE2 and up
     if State = sknsDisabled then Details := SpTBXThemeServices.GetElementDetails(tmPopupCheckDisabled)
@@ -3446,63 +3677,35 @@ begin
     if State = sknsDisabled then Details.State := MC_CHECKMARKDISABLED
     else Details.State := MC_CHECKMARKNORMAL;
     {$IFEND}
-    VistaCheckSize := CurrentSkin.GetThemedElementSize(ACanvas, Details);
+    VistaCheckSize := GetThemedElementSize(ACanvas, Details);
     ARect := SpCenterRect(ARect, VistaCheckSize.cx, VistaCheckSize.cy);
-    CurrentSkin.PaintThemedElementBackground(ACanvas, ARect, Details);
+    PaintThemedElementBackground(ACanvas, ARect, Details);
   end
   else begin
-    X := ARect.Left + (ARect.Right - ARect.Left) div 2 - 1;
-    Y := ARect.Top + (ARect.Bottom - ARect.Top) div 2 + 1;
-
-    PenC := ACanvas.Pen.Color;
-    BrushC := ACanvas.Brush.Color;
-    try
-      if MenuItemStyle then begin
-        CheckColor := clMenuText; // On sknNone it's clMenuText even when disabled
-        case SkinManager.GetSkinType of
-          sknWindows:
-            CheckColor := GetTextColor(skncCheckBox, State);
-          sknSkin:
-            CheckColor := GetTextColor(skncMenuItem, State);
-        end;
-        ACanvas.Brush.Color := CheckColor;
-        ACanvas.Pen.Color := CheckColor;
-        ACanvas.Polygon([Point(X - 3, Y - 2), Point(X - 1, Y), Point(X + 3, Y - 4),
-          Point(X + 3, Y - 3), Point(X - 1, Y + 1), Point(X - 3, Y - 1), Point(X - 3, Y -2)]);
-      end
-      else begin
+    CheckColor := clMenuText; // On sknNone it's clMenuText even when disabled
+    case SkinType of
+      sknWindows, sknDelphiStyle:
         CheckColor := GetTextColor(skncCheckBox, State);
-        ACanvas.Brush.Color := CheckColor;
-        ACanvas.Pen.Color := CheckColor;
-        PaintBackground(ACanvas, ARect, skncCheckBox, State, True, True);
-        if Checked then
-          ACanvas.Polygon([Point(X - 2, Y), Point(X, Y + 2), Point(X + 4, Y - 2),
-            Point(X + 4, Y - 4), Point(X, Y), Point(X - 2, Y - 2), Point(X - 2, Y)])
-        else
-          if Grayed then begin
-            InflateRect(ARect, -3, -3);
-            // ACanvas.Brush.Color := Options(skncCheckBox, sknsChecked).Borders.Color1;
-            ACanvas.FillRect(ARect);
-          end;
-      end;
-    finally
-      ACanvas.Pen.Color := PenC;
-      ACanvas.Brush.Color := BrushC;
+      sknSkin:
+        CheckColor := GetTextColor(skncMenuItem, State);
     end;
+    SpDrawGlyphPattern(ACanvas, ARect, 7, CheckColor);
   end;
 end;
 
 procedure TSpTBXSkinOptions.PaintMenuRadioMark(ACanvas: TCanvas; ARect: TRect;
-  Checked, MenuItemStyle: Boolean; State: TSpTBXSkinStatesType);
+  Checked: Boolean; State: TSpTBXSkinStatesType);
 var
-  X, Y: Integer;
-  PenC, BrushC, CheckColor, FrameColor: TColor;
+  PenC, BrushC, CheckColor: TColor;
   VistaCheckSize: TSize;
   Details: TThemedElementDetails;
   SkinType: TSpTBXSkinType;
 begin
   SkinType := SkinManager.GetSkinType;
-  if MenuItemStyle and ((SkinType = sknWindows) and SpIsWinVistaOrUp) or (SkinType = sknDelphiStyle) then begin
+  // Vcl.Styles does not scale menu radio buttons
+  if ((SkinType = sknWindows) and SpIsWinVistaOrUp) or
+     ((SkinType = sknDelphiStyle) and (Screen.PixelsPerInch = 96)) then
+  begin
     // [Old-Themes]
     {$IF CompilerVersion >= 23} //for Delphi XE2 and up
     if State = sknsDisabled then Details := SpTBXThemeServices.GetElementDetails(tmPopupBulletDisabled)
@@ -3513,78 +3716,22 @@ begin
     if State = sknsDisabled then Details.State := MC_BULLETDISABLED
     else Details.State := MC_BULLETNORMAL;
     {$IFEND}
-    VistaCheckSize := CurrentSkin.GetThemedElementSize(ACanvas, Details);
+    VistaCheckSize := GetThemedElementSize(ACanvas, Details);
     ARect := SpCenterRect(ARect, VistaCheckSize.cx, VistaCheckSize.cy);
-    CurrentSkin.PaintThemedElementBackground(ACanvas, ARect, Details);
+    PaintThemedElementBackground(ACanvas, ARect, Details);
   end
   else begin
     PenC := ACanvas.Pen.Color;
     BrushC := ACanvas.Brush.Color;
     try
-      if MenuItemStyle then begin
-        CheckColor := clMenuText; // On sknNone it's clMenuText even when disabled
-        case SkinManager.GetSkinType of
-          sknWindows:
-            CheckColor := GetTextColor(skncRadioButton, State);
-          sknSkin:
-            CheckColor := GetTextColor(skncMenuItem, State);
-        end;
-        ACanvas.Brush.Color := CheckColor;
-        ACanvas.Pen.Color := CheckColor;
-        X := ARect.Left + (ARect.Right - ARect.Left) div 2;
-        Y := ARect.Top + (ARect.Bottom - ARect.Top) div 2;
-        ACanvas.RoundRect(X - 3, Y - 3, X + 3, Y + 3, 2, 2);
-      end
-      else begin
-        CheckColor := GetTextColor(skncRadioButton, State);
-        FrameColor := Options(skncRadioButton, State).Borders.Color1;
-        if not Checked then CheckColor := clNone;
-
-        // Keep it simple make the radio 13x13
-        ARect.Left := ARect.Left + (ARect.Right - ARect.Left - 13) div 2;
-        ARect.Right := ARect.Left + 13;
-        ARect.Top := ARect.Top + (ARect.Bottom - ARect.Top - 13) div 2;
-        ARect.Bottom := ARect.Top + 13;
-        X := ARect.Left;
-        Y := ARect.Top;
-
-        // Background
-        BeginPath(ACanvas.Handle);
-        ACanvas.Polyline([Point(X, Y + 8), Point(X, Y + 4), Point(X + 1, Y + 3),
-            Point(X + 1, Y + 2), Point(X + 2, Y + 1), Point(X + 3, Y + 1),
-              Point(X + 4, Y), Point(X + 8, Y), Point(X + 9, Y + 1),
-              Point(X + 10, Y + 1), Point(X + 11, Y + 2), Point(X + 11, Y + 3),
-              Point(X + 12, Y + 4), Point(X + 12, Y + 8), Point(X + 11, Y + 9),
-              Point(X + 11, Y + 10), Point(X + 10, Y + 11), Point(X + 9, Y + 11),
-              Point(X + 8, Y + 12), Point(X + 4, Y + 12), Point(X + 3, Y + 11),
-              Point(X + 2, Y + 11), Point(X + 1, Y + 10), Point(X + 1, Y + 8)]);
-        EndPath(ACanvas.Handle);
-        SelectClipPath(ACanvas.Handle, RGN_COPY);
-        PaintBackground(ACanvas, ARect, skncRadioButton, State, True, False);
-        SelectClipPath(ACanvas.Handle, 0);
-        SelectClipRgn(ACanvas.Handle, 0);
-
-        // Frame
-        ACanvas.Brush.Color := FrameColor;
-        ACanvas.Pen.Color := FrameColor;
-        ACanvas.Polyline([Point(X, Y + 8), Point(X, Y + 4), Point(X + 1, Y + 3),
-            Point(X + 1, Y + 2), Point(X + 2, Y + 1), Point(X + 3, Y + 1),
-              Point(X + 4, Y), Point(X + 8, Y), Point(X + 9, Y + 1),
-              Point(X + 10, Y + 1), Point(X + 11, Y + 2), Point(X + 11, Y + 3),
-              Point(X + 12, Y + 4), Point(X + 12, Y + 8), Point(X + 11, Y + 9),
-              Point(X + 11, Y + 10), Point(X + 10, Y + 11), Point(X + 9, Y + 11),
-              Point(X + 8, Y + 12), Point(X + 4, Y + 12), Point(X + 3, Y + 11),
-              Point(X + 2, Y + 11), Point(X + 1, Y + 10), Point(X + 1, Y + 8)]);
-
-        // Radio
-        if CheckColor <> clNone then begin
-          ACanvas.Brush.Color := CheckColor;
-          ACanvas.Pen.Color := CheckColor;
-          X := (ARect.Left + ARect.Right) div 2;
-          Y := (ARect.Top + ARect.Bottom) div 2 + 1;
-          ACanvas.RoundRect(X - 2, Y - 3, X + 3, Y + 2, 2, 2);
-        end;
+      CheckColor := clNone;
+      case SkinType of
+        sknWindows, sknDelphiStyle:
+          CheckColor := GetTextColor(skncRadioButton, State);
+        sknSkin:
+          CheckColor := GetTextColor(skncMenuItem, State);
       end;
+      SpDrawGlyphPattern(ACanvas, ARect, 9, CheckColor);
     finally
       ACanvas.Pen.Color := PenC;
       ACanvas.Brush.Color := BrushC;
@@ -3637,124 +3784,13 @@ begin
 end;
 
 //WMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWM
-{ TSpTBXSkinsList }
-
-destructor TSpTBXSkinsList.Destroy;
-begin
-  // Free all the skins options
-  while Count > 0 do
-    Delete(0);
-  inherited;
-end;
-
-function TSpTBXSkinsList.AddSkin(SkinName: string; SkinClass: TSpTBXSkinOptionsClass): Integer;
-var
-  K: TSpTBXSkinsListEntry;
-begin
-  Result := -1;
-  if (SkinName <> '') and (IndexOf(SkinName) = -1) then begin
-    K := TSpTBXSkinsListEntry.Create;
-    try
-      K.SkinClass := SkinClass;
-      Result := AddObject(SkinName, K);  // the list owns K
-    except
-      K.Free;
-    end;
-  end;
-end;
-
-function TSpTBXSkinsList.AddSkin(SkinOptions: TStrings): Integer;
-var
-  K: TSpTBXSkinsListEntry;
-  S: string;
-begin
-  Result := -1;
-  K := TSpTBXSkinsListEntry.Create;
-  try
-    K.SkinStrings := TStringList.Create;
-    S := SkinOptions.Values['Name '];
-    if S = '' then
-      S := SkinOptions.Values['Name'];
-    S := Trim(S);
-    if (S <> '') and  (IndexOf(S) = -1) then begin
-      K.SkinStrings.Assign(SkinOptions);
-      Result := AddObject(S, K);  // the list owns K
-    end
-    else
-      K.Free;
-  except
-    K.Free;
-  end;
-end;
-
-function TSpTBXSkinsList.AddSkinFromFile(Filename: string): Integer;
-var
-  L: TStringList;
-begin
-  L := TStringList.Create;
-  try
-    L.LoadFromFile(Filename);
-    Result := AddSkin(L);
-  finally
-    L.Free;
-  end;
-end;
-
-procedure TSpTBXSkinsList.AddSkinsFromFolder(Folder: string);
-var
-  L: TStringList;
-  I: Integer;
-  S: string;
-begin
-  L := TStringList.Create;
-  try
-    if SpGetDirectories(Folder, L) then begin
-      for I := 0 to L.Count - 1 do begin
-        S := IncludeTrailingPathDelimiter(Folder) + L[I] + '\Skin.ini';
-        if FileExists(S) then
-          AddSkinFromFile(S);
-      end;
-    end;
-  finally
-    L.Free;
-  end;
-end;
-
-procedure TSpTBXSkinsList.Delete(Index: Integer);
-begin
-  if (Index > -1) and (Index < Count) then
-    SkinOptions[Index].Free;
-  inherited Delete(Index);
-end;
-
-procedure TSpTBXSkinsList.GetSkinNames(SkinNames: TStrings);
-var
-  I: Integer;
-begin
-  SkinNames.BeginUpdate;
-  try
-    SkinNames.Clear;
-    SkinNames.Add('Default');
-    for I := 0 to Count - 1 do
-      SkinNames.Add(Strings[I]);
-  finally
-    SkinNames.EndUpdate;
-  end;
-end;
-
-function TSpTBXSkinsList.GetSkinOption(Index: Integer): TSpTBXSkinsListEntry;
-begin
-  Result := TSpTBXSkinsListEntry(Objects[Index]);
-end;
-
-//WMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWM
 { TSpTBXSkinManager }
 
 constructor TSpTBXSkinManager.Create;
 begin
   FNotifies := TList.Create;
   FCurrentSkin := TSpTBXSkinOptions.Create;
-  FSkinsList := TSpTBXSkinsList.Create;
+  FSkinsList := TSpTBXSkinsDictionary.Create([doOwnsValues]);
 end;
 
 destructor TSpTBXSkinManager.Destroy;
@@ -3763,6 +3799,63 @@ begin
   FreeAndNil(FCurrentSkin);
   FreeAndNil(FSkinsList);
   inherited;
+end;
+
+procedure TSpTBXSkinManager.AddSkin(SkinName: string;
+  SkinClass: TSpTBXSkinOptionsClass);
+var
+  K: TSpTBXSkinsListEntry;
+begin
+  if not FSkinsList.ContainsKey(SkinName) then begin
+    K := TSpTBXSkinsListEntry.Create;
+    try
+      K.SkinClass := SkinClass;
+      FSkinsList.Add(SkinName, K);  // the list owns K
+    except
+      K.Free;
+    end;
+  end;
+end;
+
+procedure TSpTBXSkinManager.AddSkin(SkinOptions: TStrings);
+var
+  K: TSpTBXSkinsListEntry;
+  S: string;
+begin
+  K := TSpTBXSkinsListEntry.Create;
+  try
+    K.SkinStrings := TStringList.Create;
+    S := SkinOptions.Values['Name '];
+    if S = '' then
+      S := SkinOptions.Values['Name'];
+    S := Trim(S);
+    if (S <> '') and not FSkinsList.ContainsKey(S) then begin
+      K.SkinStrings.Assign(SkinOptions);
+      FSkinsList.Add(S, K);  // the list owns K
+    end
+    else
+      K.Free;
+  except
+    K.Free;
+  end;
+end;
+
+function TSpTBXSkinManager.AddSkinFromFile(Filename: string): string;
+var
+  L: TStringList;
+begin
+  L := TStringList.Create;
+  try
+    L.LoadFromFile(Filename);
+    AddSkin(L);
+
+    Result := L.Values['Name '];
+    if Result = '' then
+      Result := L.Values['Name'];
+    Result := Trim(Result);
+  finally
+    L.Free;
+  end;
 end;
 
 procedure TSpTBXSkinManager.AddSkinNotification(AObject: TObject);
@@ -3775,12 +3868,12 @@ begin
   FNotifies.Remove(AObject);
 end;
 
-procedure TSpTBXSkinManager.ResetDelphiStyle;
+procedure TSpTBXSkinManager.ResetToSystemStyle;
 begin
   {$IF CompilerVersion >= 23} // for Delphi XE2 and up
+  // Reset the Delphi Style to System Style
   if TStyleManager.IsCustomStyleActive then
-    if TStyleManager.ActiveStyle <> TStyleManager.SystemStyle then
-      TStyleManager.SetStyle(TStyleManager.SystemStyle);
+    TStyleManager.SetStyle(TStyleManager.SystemStyle);
   {$IFEND}
 end;
 
@@ -3823,20 +3916,55 @@ end;
 function TSpTBXSkinManager.GetSkinType: TSpTBXSkinType;
 begin
   Result := sknSkin;
-  if (Result = sknSkin) and IsDefaultSkin then begin
+
+  {$IF CompilerVersion >= 23} // for Delphi XE2 and up
+  if TStyleManager.IsCustomStyleActive then
+    Result := sknDelphiStyle;
+  {$IFEND}
+
+  if (Result = sknSkin) and IsDefaultSkin then
     Result := sknWindows;
-    {$IF CompilerVersion >= 23} // for Delphi XE2 and up
-    if TStyleManager.IsCustomStyleActive then
-      Result := sknDelphiStyle;
-    {$IFEND}
-  end;
 
   if (Result = sknWindows) and not SkinManager.IsXPThemesEnabled then
     Result := sknNone;
 end;
 
+procedure TSpTBXSkinManager.GetSkinsAndDelphiStyles(SkinsAndStyles: TStrings);
+var
+  I: Integer;
+  S: string;
+  L: TStringList;
+begin
+  L := TStringList.Create;
+  try
+    SkinsAndStyles.Clear;
+
+    // Fill Skins
+    L.Add('Default');
+    for S in SkinManager.SkinsList.Keys do
+      L.Add(S);
+
+    // Fill Styles
+    {$IF CompilerVersion >= 23} // for Delphi XE2 and up
+    for S in TStyleManager.StyleNames do
+      if S <> TStyleManager.SystemStyle.Name then
+        L.Add(S);
+    {$IFEND}
+
+    // Sort the list and move the Default skin to the top
+    L.Sort;
+    I := L.IndexOf('Default');
+    if I > -1 then L.Move(I, 0);
+    SkinsAndStyles.AddStrings(L);
+  finally
+    L.Free;
+  end;
+end;
+
 function TSpTBXSkinManager.IsDefaultSkin: Boolean;
 begin
+  // Returns True if CurrentSkin is the default Windows theme
+  // For Delphi XE2 and up make sure setting System style sets CurrentSkin to Default
   Result := CurrentSkinName = 'Default';
 end;
 
@@ -3851,41 +3979,63 @@ end;
 
 procedure TSpTBXSkinManager.SetSkin(SkinName: string);
 var
-  I: Integer;
   K: TSpTBXSkinsListEntry;
 begin
-  if not SameText(SkinName, CurrentSkinName) then
+  if not SameText(SkinName, CurrentSkinName) or (GetSkinType = sknDelphiStyle) then
     if (SkinName = '') or SameText(SkinName, 'Default') then
       SetToDefaultSkin
     else begin
-      I := FSkinsList.IndexOf(SkinName);
-      if I > -1 then begin
-        K := FSkinsList.SkinOptions[I];
+      if FSkinsList.TryGetValue(SkinName, K) then
         if Assigned(K.SkinClass) then begin
           FCurrentSkin.Free;
           FCurrentSkin := K.SkinClass.Create;
-          ResetDelphiStyle;
-          Broadcast;
+          ResetToSystemStyle;
+          BroadcastSkinNotification;
         end
         else
           if Assigned(K.SkinStrings) then begin
             FCurrentSkin.Free;
             FCurrentSkin := TSpTBXSkinOptions.Create;
             FCurrentSkin.LoadFromStrings(K.SkinStrings);
-            ResetDelphiStyle;
-            Broadcast;
+            ResetToSystemStyle;
+            BroadcastSkinNotification;
           end;
-      end;
     end;
 end;
 
+// [Old-Themes]
+{$IF CompilerVersion >= 23} // for Delphi XE2 and up
+procedure TSpTBXSkinManager.SetDelphiStyle(StyleName: string);
+begin
+  if not SameText(StyleName, TStyleManager.ActiveStyle.Name) then begin
+    if not IsDefaultSkin then
+      SetToDefaultSkin;
+    TStyleManager.SetStyle(StyleName);
+    Broadcast;
+  end;
+end;
+
+function TSpTBXSkinManager.IsValidDelphiStyle(StyleName: string): Boolean;
+var
+  S: string;
+begin
+  Result := False;
+  for S in TStyleManager.StyleNames do
+    if SameText(S, StyleName) then begin
+      Result := True;
+      Exit;
+    end;
+end;
+{$IFEND}
+
 procedure TSpTBXSkinManager.SetToDefaultSkin;
 begin
-  if not IsDefaultSkin then begin
+  if GetSkinType <> sknWindows then begin
+//  if not IsDefaultSkin or IsDelphiStyleActive then begin
     FCurrentSkin.Free;
     FCurrentSkin := TSpTBXSkinOptions.Create;
-    ResetDelphiStyle;
-    Broadcast;
+    ResetToSystemStyle;
+    BroadcastSkinNotification;
   end;
 end;
 
@@ -3925,8 +4075,7 @@ end;
 procedure InitializeStock;
 begin
   StockBitmap := TBitmap.Create;
-  StockBitmap.Width := 8;
-  StockBitmap.Height := 8;
+  StockBitmap.SetSize(8, 8);
 
   @SpPrintWindow := GetProcAddress(GetModuleHandle(user32), 'PrintWindow');
 
