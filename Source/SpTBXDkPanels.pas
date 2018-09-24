@@ -459,8 +459,6 @@ uses
   {$IFEND}
   Themes, ComCtrls, Registry, TB2Consts, TB2Common;
 
-function DockedBorderSize: Integer; begin Result := SpDPIScale(2); end;
-
 const
   HT_TB2k_Border = 2000;
   HT_DP_SPLITRESIZELEFT = 86;
@@ -482,7 +480,6 @@ type
   TTBDockAccess = class(TTBDock);
   TControlAccess = class(TControl);
   TWinControlAccess = class(TWinControl);
-
 
 //WMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWM
 { Helpers }
@@ -885,9 +882,9 @@ begin
                 Exit;
 
               if MultiDock.IsVertical then
-                MinSize := DPSibling.MinClientHeight + (DockedBorderSize * 2)
+                MinSize := DPSibling.MinClientHeight + (CDefaultToolbarBorderSize * 2)
               else
-                MinSize := DPSibling.MinClientWidth + (DockedBorderSize * 2);
+                MinSize := DPSibling.MinClientWidth + (CDefaultToolbarBorderSize * 2);
 
               // If DP can't be resized find another sibling
               if not (csDesigning in MultiDock.ComponentState) and DP.FixedDockedSize then begin
@@ -904,16 +901,16 @@ begin
 
                 if MultiDock.IsVertical then begin
                   NewSize := DP.Height - Delta;
-                  if (DPSibling.Height + Delta < DPSibling.MinClientHeight + (DockedBorderSize * 2)) or
-                     (NewSize < DP.MinClientHeight + (DockedBorderSize * 2)) then
+                  if (DPSibling.Height + Delta < DPSibling.MinClientHeight + (CDefaultToolbarBorderSize * 2)) or
+                     (NewSize < DP.MinClientHeight + (CDefaultToolbarBorderSize * 2)) then
                   begin
                     Exit;
                   end;
                 end
                 else begin
                   NewSize := DP.Width - Delta;
-                  if (DPSibling.Width + Delta < DPSibling.MinClientWidth + (DockedBorderSize * 2)) or
-                     (NewSize < DP.MinClientWidth + (DockedBorderSize * 2)) then
+                  if (DPSibling.Width + Delta < DPSibling.MinClientWidth + (CDefaultToolbarBorderSize * 2)) or
+                     (NewSize < DP.MinClientWidth + (CDefaultToolbarBorderSize * 2)) then
                   begin
                     Exit;
                   end;
@@ -2438,12 +2435,12 @@ begin
       // DTTTTTTTTTTTTTTTTTTTTTTTTTD
       // DDDDDDDDDDDDDDDDDDDDDDDDDDD
       if IsVerticalTitleBar then begin
-        InflateRect(ARect, 0, DockedBorderSize);
-        ARect.Left := ARect.Left - DockedBorderSize;
+        InflateRect(ARect, 0, CDefaultToolbarBorderSize);
+        ARect.Left := ARect.Left - CDefaultToolbarBorderSize;
       end
       else begin
-        InflateRect(ARect, DockedBorderSize, 0);
-        ARect.Top := ARect.Top - DockedBorderSize;
+        InflateRect(ARect, CDefaultToolbarBorderSize, 0);
+        ARect.Top := ARect.Top - CDefaultToolbarBorderSize;
       end;
     end;
 
@@ -2621,9 +2618,9 @@ begin
     // Draw the CaptionBar borders on the NC Area of the embedded Dock
     // See DockDrawBackground.
     if IsVerticalTitleBar then
-      ARect.Right := ARect.Left + CaptionPanelSize.X + DockedBorderSize
+      ARect.Right := ARect.Left + CaptionPanelSize.X + CDefaultToolbarBorderSize
     else
-      ARect.Bottom := ARect.Top + CaptionPanelSize.Y + DockedBorderSize;
+      ARect.Bottom := ARect.Top + CaptionPanelSize.Y + CDefaultToolbarBorderSize;
 
     DefaultPainting := True;
     DoDrawCaptionPanel(ACanvas, ARect, pstPrePaint, DefaultPainting);
@@ -2858,7 +2855,7 @@ begin
           end
           else begin
             if not Docked then // If it's not docked compute the borders
-              EffectiveWidth := D.ClientWidth - (DockedBorderSize * 2)
+              EffectiveWidth := D.ClientWidth - (CDefaultToolbarBorderSize * 2)
             else
               EffectiveWidth := D.ClientWidth;
             // Append the DP to the bottom if it's being docked by code
@@ -2874,7 +2871,7 @@ begin
           end
           else begin
             if not Docked then // If it's not docked compute the borders
-              EffectiveHeight := D.ClientHeight - (DockedBorderSize * 2)
+              EffectiveHeight := D.ClientHeight - (CDefaultToolbarBorderSize * 2)
             else
               EffectiveHeight := D.ClientHeight;
             // Append the DP to the bottom if it's being docked by code
@@ -3037,7 +3034,7 @@ begin
   Message.Result := 0;
   if Docked then
     with Message.CalcSize_Params^ do
-      InflateRect(rgrc[0], -DockedBorderSize, -DockedBorderSize);
+      InflateRect(rgrc[0], -CDefaultToolbarBorderSize, -CDefaultToolbarBorderSize);
 end;
 
 procedure TSpTBXCustomDockablePanel.WMNCHitTest(var Message: TWMNCHitTest);
@@ -3052,14 +3049,14 @@ begin
     GetWindowRect(Handle, R);
 
     if IsVertical then begin
-      if (P.Y >= R.Bottom - DockedBorderSize) and CanSplitResize(dpBottom) then
+      if (P.Y >= R.Bottom - CDefaultToolbarBorderSize) and CanSplitResize(dpBottom) then
         Message.Result := HT_DP_SPLITRESIZEBOTTOM
-      else if (P.Y <= R.Top + DockedBorderSize) and CanSplitResize(dpTop) then
+      else if (P.Y <= R.Top + CDefaultToolbarBorderSize) and CanSplitResize(dpTop) then
         Message.Result := HT_DP_SPLITRESIZETOP;
     end
     else begin
-      if (P.X >= R.Right - DockedBorderSize) and CanSplitResize(dpRight) then Message.Result := HT_DP_SPLITRESIZERIGHT
-      else if (P.X <= R.Left + DockedBorderSize) and CanSplitResize(dpLeft) then Message.Result := HT_DP_SPLITRESIZELEFT;
+      if (P.X >= R.Right - CDefaultToolbarBorderSize) and CanSplitResize(dpRight) then Message.Result := HT_DP_SPLITRESIZERIGHT
+      else if (P.X <= R.Left + CDefaultToolbarBorderSize) and CanSplitResize(dpLeft) then Message.Result := HT_DP_SPLITRESIZELEFT;
     end;
   end;
 end;
@@ -3120,7 +3117,7 @@ begin
   inherited Create(AOwner);
   ControlStyle := ControlStyle + [csOpaque];
 
-  Width := 5;
+  Width := SpDPIScale(5);
   Height := 100;
   Align := alLeft;
   Cursor := crSizeWE;

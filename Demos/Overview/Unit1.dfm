@@ -22,7 +22,6 @@ object Form1: TForm1
     Height = 452
     Cursor = crSizeWE
     ParentColor = False
-    ExplicitHeight = 453
   end
   object SpTBXSplitter2: TSpTBXSplitter
     Left = 575
@@ -31,14 +30,12 @@ object Form1: TForm1
     Cursor = crSizeWE
     Align = alRight
     ParentColor = False
-    ExplicitHeight = 453
   end
   object SpTBXMultiDock1: TSpTBXMultiDock
     Left = 0
     Top = 76
     Width = 273
     Height = 452
-    ExplicitHeight = 453
     object SpTBXDockablePanel1: TSpTBXDockablePanel
       Left = 0
       Top = 154
@@ -60,7 +57,6 @@ object Form1: TForm1
         Align = alClient
         OnResize = SpTBXTabControl2Resize
         ActiveTabIndex = 0
-        ExplicitHeight = 276
         HiddenItems = <>
         object SpTBXTabItem1: TSpTBXTabItem
           Caption = 'Controls'
@@ -79,7 +75,6 @@ object Form1: TForm1
           Height = 250
           Caption = 'Editors'
           ImageIndex = -1
-          ExplicitHeight = 251
           DesignSize = (
             269
             250)
@@ -88,16 +83,15 @@ object Form1: TForm1
             Left = 8
             Top = 112
             Width = 252
-            Height = 58
+            Height = 49
             Anchors = [akLeft, akTop, akRight, akBottom]
             TabOrder = 4
             HotTrack = True
-            ExplicitHeight = 59
             object Memo2: TMemo
               Left = 2
               Top = 22
               Width = 248
-              Height = 34
+              Height = 25
               Align = alClient
               BorderStyle = bsNone
               Lines.Strings = (
@@ -108,7 +102,6 @@ object Form1: TForm1
                 '4) Set the control BorderStyle to bsNone'
                 '4) Change the skin to other than Default')
               TabOrder = 0
-              ExplicitHeight = 35
             end
             object Panel2: TPanel
               Left = 2
@@ -217,7 +210,6 @@ object Form1: TForm1
           Height = 250
           Caption = 'Misc'
           ImageIndex = -1
-          ExplicitHeight = 251
           DesignSize = (
             269
             250)
@@ -285,7 +277,6 @@ object Form1: TForm1
           Height = 250
           Caption = 'Controls'
           ImageIndex = -1
-          ExplicitHeight = 251
           DesignSize = (
             269
             250)
@@ -588,7 +579,6 @@ object Form1: TForm1
     Width = 136
     Height = 452
     Position = dpxRight
-    ExplicitHeight = 453
     object DP1: TSpTBXDockablePanel
       Left = 0
       Top = 286
@@ -722,7 +712,6 @@ object Form1: TForm1
     Align = alClient
     BevelOuter = bvNone
     TabOrder = 2
-    ExplicitHeight = 453
     object Image1: TImage
       Left = 16
       Top = 248
@@ -1418,7 +1407,6 @@ object Form1: TForm1
       Align = alClient
       ActiveTabIndex = -1
       Images = ImageList1
-      ExplicitHeight = 453
       HiddenItems = <>
       object SpTBXRightAlignSpacerItem1: TSpTBXRightAlignSpacerItem
         CustomWidth = 210
@@ -1524,7 +1512,7 @@ object Form1: TForm1
     Left = 408
     Top = 352
     Bitmap = {
-      494C01010A000E00300010001000FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
+      494C01010A000E00340010001000FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
       0000000000003600000028000000400000003000000001002000000000000030
       0000000000000000000000000000000000000000000000000000000000000000
       0000000000000000000000000000000000000000000000000000000000000000

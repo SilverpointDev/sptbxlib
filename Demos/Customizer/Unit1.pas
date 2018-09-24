@@ -13,7 +13,7 @@ uses
   SpTBXSkins, SpTBXItem, SpTBXControls, SpTBXDkPanels, SpTBXTabs, SpTBXEditors,
   SpTBXExtEditors, SpTBXCustomizer,
   { gettext }
-  gnugettext, System.ImageList;
+  gnugettext;
 
 type
   TForm1 = class(TForm)

@@ -64,7 +64,7 @@ uses
   {$IF CompilerVersion >= 25} // for Delphi XE4 and up
   System.UITypes,
   {$IFEND}
-  Themes, System.Generics.Collections;
+  Themes, Generics.Collections;
 
 const
   WM_SPSKINCHANGE = WM_APP + 2007;   // Skin change notification message
@@ -207,6 +207,19 @@ type
     gldAll,                       // Glow on Left, Top, Right and Bottom of the text
     gldTopLeft,                   // Glow on Top-Left of the text
     gldBottomRight                // Glow on Bottom-Right of the text
+  );
+
+  TSpTBXGlyphPattern = (
+    gptClose,
+    gptMaximize,
+    gptMinimize,
+    gptRestore,
+    gptToolbarClose,
+    gptChevron,
+    gptVerticalChevron,
+    gptMenuCheckmark,
+    gptCheckmark,
+    gptMenuRadiomark
   );
 
   { MenuItem }
@@ -517,7 +530,7 @@ procedure SpGradientFillGlass(ACanvas: TCanvas; const ARect: TRect; const C1, C2
 procedure SpDrawArrow(ACanvas: TCanvas; X, Y: Integer; AColor: TColor; Vertical, Reverse: Boolean; Size: Integer);
 procedure SpDrawDropMark(ACanvas: TCanvas; DropMark: TRect);
 procedure SpDrawFocusRect(ACanvas: TCanvas; const ARect: TRect);
-procedure SpDrawGlyphPattern(ACanvas: TCanvas; ARect: TRect; PatternIndex: Integer; PatternColor: TColor);
+procedure SpDrawGlyphPattern(ACanvas: TCanvas; ARect: TRect; Pattern: TSpTBXGlyphPattern; PatternColor: TColor);
 procedure SpDrawXPButton(ACanvas: TCanvas; ARect: TRect; Enabled, Pushed, HotTrack, Checked, Focused, Defaulted: Boolean);
 procedure SpDrawXPCheckBoxGlyph(ACanvas: TCanvas; ARect: TRect; Enabled: Boolean; State: TCheckBoxState; HotTrack, Pushed: Boolean);
 procedure SpDrawXPRadioButtonGlyph(ACanvas: TCanvas; ARect: TRect; Enabled, Checked, HotTrack, Pushed: Boolean);
@@ -1933,15 +1946,16 @@ begin
   end;
 end;
 
-procedure SpDrawGlyphPattern(ACanvas: TCanvas; ARect: TRect; PatternIndex: Integer; PatternColor: TColor);
+procedure SpDrawGlyphPattern(ACanvas: TCanvas; ARect: TRect; Pattern: TSpTBXGlyphPattern; PatternColor: TColor);
 var
   Size: Integer;
   PenStyle: Cardinal;
   R: TRect;
   BrushInfo: TLogBrush;
+  PColor, BColor: TColor;
 begin
   {
-  Close, 7x7   Maximize, 8x8   Minimize, 8x8   Restore pattern, 9x9
+  Close, 7x7   Maximize, 8x8   Minimize, 8x8   Restore, 9x9
   xx---xx      xxxxxxxx        --------        --xxxxxx-
   xxx-xxx      xxxxxxxx        --------        --xxxxxx-
   -xxxxx-      x------x        --------        --x----x-
@@ -1974,25 +1988,25 @@ begin
 
   ACanvas.Pen.Width := SpDPIScale(1);
   PenStyle := PS_GEOMETRIC or PS_ENDCAP_SQUARE or PS_SOLID or PS_JOIN_MITER;
-  case PatternIndex of
-    0: begin
+  case Pattern of
+    gptClose: begin
          Size := SpDPIScale(7);
          // Round EndCap/Join
          PenStyle := PS_GEOMETRIC or PS_ENDCAP_ROUND or PS_SOLID or PS_JOIN_ROUND;
        end;
-    1: Size := SpDPIScale(8);
-    2: Size := SpDPIScale(8);
-    3: Size := SpDPIScale(9);
-    4: begin
+    gptMaximize: Size := SpDPIScale(8);
+    gptMinimize: Size := SpDPIScale(8);
+    gptRestore: Size := SpDPIScale(9);
+    gptToolbarClose: begin
          Size := SpDPIScale(6);
          // Round EndCap/Join
          PenStyle := PS_GEOMETRIC or PS_ENDCAP_ROUND or PS_SOLID or PS_JOIN_ROUND;
        end;
-    5: Size := SpDPIScale(8);
-    6: Size := SpDPIScale(8);
-    7: Size := SpDPIScale(7);
-    8: Size := SpDPIScale(7);
-    9: begin
+    gptChevron: Size := SpDPIScale(8);
+    gptVerticalChevron: Size := SpDPIScale(8);
+    gptMenuCheckmark: Size := SpDPIScale(7);
+    gptCheckmark: Size := SpDPIScale(7);
+    gptMenuRadiomark: begin
          Size := SpDPIScale(7);
          // Round EndCap/Join
          PenStyle := PS_GEOMETRIC or PS_ENDCAP_ROUND or PS_SOLID or PS_JOIN_ROUND;
@@ -2011,8 +2025,13 @@ begin
   // Center the pattern on ARect
   R := SpCenterRect(ARect, Size-1, Size-1);
 
-  case PatternIndex of
-    0:begin  // Close
+  // Save colors
+  PColor := ACanvas.Pen.Color;
+  BColor := ACanvas.Brush.Color;
+
+  case Pattern of
+    gptClose:
+      begin
         ACanvas.Polyline([
           Point(R.Left, R.Top + 1),
           Point(R.Right - 1, R.Bottom)
@@ -2039,7 +2058,8 @@ begin
           Point(R.Left, R.Bottom - 1)
         ]);
       end;
-    1:begin  // Maximize
+    gptMaximize:
+      begin
         ACanvas.Polyline([
           Point(R.Left, R.Top + SpDPIScale(1)),
           Point(R.Right, R.Top + SpDPIScale(1))
@@ -2052,7 +2072,8 @@ begin
           Point(R.Left, R.Top)
         ]);
       end;
-    2:begin  // Minimize
+    gptMinimize:
+      begin
         ACanvas.Polyline([
           Point(R.Left + SpDPIScale(1), R.Bottom - SpDPIScale(2)),
           Point(R.Right - SpDPIScale(1), R.Bottom - SpDPIScale(2)),
@@ -2061,7 +2082,8 @@ begin
           Point(R.Left + SpDPIScale(1), R.Bottom - SpDPIScale(2))
         ]);
       end;
-    3:begin  // Restore
+    gptRestore:
+      begin
         ACanvas.Polyline([
           Point(R.Left + SpDPIScale(2), R.Top + SpDPIScale(2)),
           Point(R.Left + SpDPIScale(2), R.Top),
@@ -2085,7 +2107,8 @@ begin
           Point(R.Left + SpDPIScale(5), R.Top + SpDPIScale(4))
         ]);
       end;
-    4:begin  // Toolbar Close
+    gptToolbarClose:
+      begin
         ACanvas.Polyline([
           Point(R.Left, R.Top),
           Point(R.Right - 1, R.Bottom - 1)
@@ -2103,7 +2126,8 @@ begin
           Point(R.Left, R.Bottom - 1)
         ]);
       end;
-    5:begin  // Chevron
+    gptChevron:
+      begin
         ACanvas.Polyline([
           Point(R.Left, R.Top),
           Point(R.Left + SpDPIScale(2), R.Top + SpDPIScale(2)),
@@ -2125,7 +2149,8 @@ begin
           Point(R.Left + SpDPIScale(4) + 1, R.Top + SpDPIScale(2) * 2)
         ]);
       end;
-    6:begin  // Vertical Chevron
+    gptVerticalChevron:
+      begin
         ACanvas.Polyline([
           Point(R.Left, R.Top),
           Point(R.Left + SpDPIScale(2), R.Top + SpDPIScale(2)),
@@ -2148,7 +2173,8 @@ begin
           Point(R.Left + SpDPIScale(2) * 2, R.Top + SpDPIScale(4) + 1)
         ]);
       end;
-    7:begin  // Menu Checkmark
+    gptMenuCheckmark:
+      begin
         ACanvas.Polyline([
           Point(R.Left, R.Top + SpDPIScale(2)),
           Point(R.Left + SpDPIScale(2), R.Top + SpDPIScale(2) * 2),
@@ -2160,7 +2186,8 @@ begin
           Point(R.Right, R.Top + 1)
         ]);
       end;
-    8:begin  // Checkmark
+    gptCheckmark:
+      begin
         ACanvas.Polyline([
           Point(R.Left, R.Top + SpDPIScale(2)),
           Point(R.Left + SpDPIScale(2), R.Top + SpDPIScale(2) * 2),
@@ -2177,11 +2204,16 @@ begin
           Point(R.Right, R.Top + 2)
         ]);
       end;
-    9:begin  // Menu Radiomark
+    gptMenuRadiomark:
+      begin
         ACanvas.Brush.Color := PatternColor;
         ACanvas.Ellipse(R);
       end;
   end;
+
+  ACanvas.Pen.Width := 1;
+  ACanvas.Pen.Color := PColor;
+  ACanvas.Brush.Color := BColor;
 end;
 
 procedure SpDrawXPButton(ACanvas: TCanvas; ARect: TRect; Enabled, Pushed,
@@ -2254,7 +2286,7 @@ begin
         CurrentSkin.PaintBackground(ACanvas, ARect, skncCheckBox, SknState, True, True);
         if State = cbChecked then begin
           CheckColor := CurrentSkin.GetTextColor(skncCheckBox, SknState);
-          SpDrawGlyphPattern(ACanvas, ARect, 8, CheckColor);
+          SpDrawGlyphPattern(ACanvas, ARect, gptCheckmark, CheckColor);
         end
         else
           if State = cbGrayed then begin
@@ -3664,8 +3696,9 @@ var
   SkinType: TSpTBXSkinType;
 begin
   SkinType := SkinManager.GetSkinType;
-  // Vcl Styles does not DPI scale, Windows does
-  if ((SkinType = sknWindows) and SpIsWinVistaOrUp) or ((SkinType = sknDelphiStyle) and (Screen.PixelsPerInch = 96)) then
+  // Vcl Styles does not DPI scale menu checkmarks, Windows does
+  if ((SkinType = sknWindows) and SpIsWinVistaOrUp) or
+    ((SkinType = sknDelphiStyle) and (Screen.PixelsPerInch = 96)) then
   begin
     // [Old-Themes]
     {$IF CompilerVersion >= 23} //for Delphi XE2 and up
@@ -3682,27 +3715,24 @@ begin
     PaintThemedElementBackground(ACanvas, ARect, Details);
   end
   else begin
-    CheckColor := clMenuText; // On sknNone it's clMenuText even when disabled
-    case SkinType of
-      sknWindows, sknDelphiStyle:
-        CheckColor := GetTextColor(skncCheckBox, State);
-      sknSkin:
-        CheckColor := GetTextColor(skncMenuItem, State);
-    end;
-    SpDrawGlyphPattern(ACanvas, ARect, 7, CheckColor);
+    if SkinType = sknNone then
+      CheckColor := clMenuText // On sknNone it's clMenuText even when disabled
+    else
+      CheckColor := GetTextColor(skncMenuItem, State);
+    SpDrawGlyphPattern(ACanvas, ARect, gptMenuCheckmark, CheckColor);
   end;
 end;
 
 procedure TSpTBXSkinOptions.PaintMenuRadioMark(ACanvas: TCanvas; ARect: TRect;
   Checked: Boolean; State: TSpTBXSkinStatesType);
 var
-  PenC, BrushC, CheckColor: TColor;
+  CheckColor: TColor;
   VistaCheckSize: TSize;
   Details: TThemedElementDetails;
   SkinType: TSpTBXSkinType;
 begin
   SkinType := SkinManager.GetSkinType;
-  // Vcl.Styles does not scale menu radio buttons
+  // Vcl Styles does not DPI scale menu radio buttons, Windows does
   if ((SkinType = sknWindows) and SpIsWinVistaOrUp) or
      ((SkinType = sknDelphiStyle) and (Screen.PixelsPerInch = 96)) then
   begin
@@ -3721,21 +3751,11 @@ begin
     PaintThemedElementBackground(ACanvas, ARect, Details);
   end
   else begin
-    PenC := ACanvas.Pen.Color;
-    BrushC := ACanvas.Brush.Color;
-    try
-      CheckColor := clNone;
-      case SkinType of
-        sknWindows, sknDelphiStyle:
-          CheckColor := GetTextColor(skncRadioButton, State);
-        sknSkin:
-          CheckColor := GetTextColor(skncMenuItem, State);
-      end;
-      SpDrawGlyphPattern(ACanvas, ARect, 9, CheckColor);
-    finally
-      ACanvas.Pen.Color := PenC;
-      ACanvas.Brush.Color := BrushC;
-    end;
+    if SkinType = sknNone then
+      CheckColor := clMenuText // On sknNone it's clMenuText even when disabled
+    else
+      CheckColor := GetTextColor(skncMenuItem, State);
+    SpDrawGlyphPattern(ACanvas, ARect, gptMenuRadiomark, CheckColor);
   end;
 end;
 

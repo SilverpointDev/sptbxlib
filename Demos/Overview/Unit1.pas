@@ -9,7 +9,7 @@ uses
   TB2Item, TB2Toolbar, TB2Dock, TB2ExtItems,
   // SpTBXLib
   SpTBXSkins, SpTBXItem, SpTBXDkPanels, SpTBXTabs, SpTBXEditors, SpTBXControls,
-  SpTBXExtEditors, System.ImageList;
+  SpTBXExtEditors;
 
 type
   TForm1 = class(TForm)

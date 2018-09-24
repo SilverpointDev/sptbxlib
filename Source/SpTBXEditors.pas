@@ -594,13 +594,18 @@ implementation
 uses
   Themes, UxTheme, Math, TB2Common;
 
-const
-  DefaultSpinButtonSize = 14;
-
 type
   TTBViewAccess = class(TTBView);
   TSpTBXFontSettingsAccess = class(TSpTBXFontSettings);
   TCustomEditAccess = class(TCustomEdit);
+
+//WMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWM
+{ Constants }
+
+function CDefaultSpinButtonSize: Integer;
+begin
+  Result := SpDPIScale(14);
+end;
 
 //WMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWM
 { Helpers }
@@ -1468,7 +1473,7 @@ begin
   FSpinButton.OnUpClick := UpClick;
   FSpinButton.OnDownClick := DownClick;
   FSpinButton.Align := alRight;
-  FSpinButton.Width := DefaultSpinButtonSize;
+  FSpinButton.Width := CDefaultSpinButtonSize;
   UpdateEditRect;
 
   Text := '0';
@@ -3230,7 +3235,7 @@ end;
 function TSpTBXSpinEditViewer.GetIndentAfter: Integer;
 begin
   if IsToolbarStyle then
-    Result := DefaultSpinButtonSize + SpDPIScale(1)
+    Result := CDefaultSpinButtonSize + SpDPIScale(1)
   else
     Result := GetSystemMetrics(SM_CXMENUCHECK) + SpDPIScale(1);
 end;

@@ -45,7 +45,7 @@ uses
   Menus, StdCtrls, ExtCtrls, ActnList, Dialogs,
   TB2Dock, TB2Toolbar, TB2Item, TB2ExtItems,
   SpTBXSkins, SpTBXItem, SpTBXControls, SpTBXEditors, SpTBXFormPopupMenu,
-  SpTBXExtEditors, SpTBXTabs, System.ImageList;
+  SpTBXExtEditors, SpTBXTabs;
 
 type
   { TSpTBXColorPickerDragObject }
@@ -199,6 +199,7 @@ begin
 
     // Draw the crosshair
     if DrawCrosshair then begin
+      DestCanvas.Pen.Color := CurrentSkin.GetThemedSystemColor(clHighlight);
       DestCanvas.MoveTo(CenterP.X - (CenterP.X div 2), CenterP.Y);
       DestCanvas.LineTo(CenterP.X + (CenterP.X div 2), CenterP.Y);
       DestCanvas.MoveTo(CenterP.X, CenterP.Y - (CenterP.Y div 2));

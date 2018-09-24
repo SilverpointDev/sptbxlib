@@ -3099,7 +3099,7 @@ begin
               if Toolbar. CloseButtonHover then
                 Windows.DrawEdge(ACanvas.Handle, CloseR, BDR_RAISEDINNER, BF_RECT);
             if Toolbar.CloseButtonDown then OffsetRect(CloseR, SpDpiScale(1), SpDpiScale(1));
-            SpDrawGlyphPattern(ACanvas, CloseR, 4, clBtnText);
+            SpDrawGlyphPattern(ACanvas, CloseR, gptToolbarClose, clBtnText);
           end;
         end;
       sknWindows, sknDelphiStyle:
@@ -3145,7 +3145,7 @@ begin
           // Close button
           if Toolbar.CloseButtonWhenDocked then begin
             CurrentSkin.PaintThemedElementBackground(ACanvas, CloseR, skncToolbarItem, True, Toolbar.CloseButtonDown, Toolbar.CloseButtonHover, False, False, False, False);
-            SpDrawGlyphPattern(ACanvas, CloseR, 4, CurrentSkin.GetThemedSystemColor(clBtnText));
+            SpDrawGlyphPattern(ACanvas, CloseR, gptToolbarClose, CurrentSkin.GetThemedSystemColor(clBtnText));
           end;
         end;
       sknSkin:
@@ -3171,7 +3171,7 @@ begin
             else if Toolbar.CloseButtonHover then State := sknsHotTrack;
             CurrentSkin.PaintBackground(ACanvas, CloseR, skncToolbarItem, State, True, True);
             if Toolbar.CloseButtonDown then OffsetRect(CloseR, SpDpiScale(1), SpDpiScale(1));
-            SpDrawGlyphPattern(ACanvas, CloseR, 4, CurrentSkin.GetTextColor(skncToolbarItem, State));
+            SpDrawGlyphPattern(ACanvas, CloseR, gptToolbarClose, CurrentSkin.GetTextColor(skncToolbarItem, State));
           end;
         end;
     end;
@@ -4171,7 +4171,7 @@ begin
         PatternColor := clMenuText
       else
         PatternColor := GetTextColor(ItemInfo.State);
-      SpDrawGlyphPattern(ACanvas, ARect, ImgIndex, PatternColor);
+      SpDrawGlyphPattern(ACanvas, ARect, TSpTBXGlyphPattern(ImgIndex), PatternColor);
     end
     else
       if (ImgIndex >= 0) and (ImgIndex < ImgList.Count) then
@@ -7351,7 +7351,7 @@ begin
                 if PatternColor = clNone then
                   PatternColor := CurrentSkin.GetTextColor(skncToolbarItem, SkinState);
                 CurrentSkin.PaintBackground(ACanvas, CloseR, skncToolbarItem, SkinState, True, True);
-                SpDrawGlyphPattern(ACanvas, CloseR, 0, PatternColor);
+                SpDrawGlyphPattern(ACanvas, CloseR, gptClose, PatternColor);
               end;
           end;
         end;
@@ -7765,9 +7765,9 @@ begin
     else
       PatternColor := CurrentSkin.GetThemedSystemColor(clBtnText);
     if not ItemInfo.IsVertical then
-      SpDrawGlyphPattern(Canvas, R2, 5, PatternColor)
+      SpDrawGlyphPattern(Canvas, R2, gptChevron, PatternColor)
     else
-      SpDrawGlyphPattern(Canvas, R2, 6, PatternColor);
+      SpDrawGlyphPattern(Canvas, R2, gptVerticalChevron, PatternColor);
   end
   else begin
     if SkinManager.GetSkinType = sknSkin then
@@ -7776,9 +7776,9 @@ begin
       PatternColor := CurrentSkin.GetThemedSystemColor(clBtnHighlight);
     OffsetRect(R2, SpDPIScale(1), SpDPIScale(1));
     if not ItemInfo.IsVertical then
-      SpDrawGlyphPattern(Canvas, R2, 5, PatternColor)
+      SpDrawGlyphPattern(Canvas, R2, gptChevron, PatternColor)
     else
-      SpDrawGlyphPattern(Canvas, R2, 6, PatternColor);
+      SpDrawGlyphPattern(Canvas, R2, gptVerticalChevron, PatternColor);
 
     if SkinManager.GetSkinType = sknSkin then
       PatternColor := GetTextColor(ItemInfo.State)
@@ -7786,9 +7786,9 @@ begin
       PatternColor := CurrentSkin.GetThemedSystemColor(clBtnShadow);
     OffsetRect(R2, -SpDPIScale(1), -SpDPIScale(1));
     if not ItemInfo.IsVertical then
-      SpDrawGlyphPattern(Canvas, R2, 5, PatternColor)
+      SpDrawGlyphPattern(Canvas, R2, gptChevron, PatternColor)
     else
-      SpDrawGlyphPattern(Canvas, R2, 6, PatternColor);
+      SpDrawGlyphPattern(Canvas, R2, gptVerticalChevron, PatternColor);
   end;
 end;
 
@@ -9533,6 +9533,7 @@ begin
   // When Styles are used WM_NCHITTEST and WM_NCCALCSIZE are handled by
   // TFormStyleHook. We need to override the handling by re-registering
   // the hook by using an empty style hook (TStyleHook)
+  TCustomStyleEngine.UnRegisterStyleHook(TSpTBXFloatingWindowParent, TStyleHook); // Re-register
   TCustomStyleEngine.RegisterStyleHook(TSpTBXFloatingWindowParent, TStyleHook);
   {$IFEND}
 end;
