@@ -133,7 +133,7 @@ type
     procedure SpTBXTabControl2Resize(Sender: TObject);
     procedure rgSkinTypeClick(Sender: TObject);
     procedure hintLabelDrawHint(Sender: TObject;
-      AHintBitmap: TBitmap; var AHint: WideString;
+      AHintBitmap: TBitmap; var AHint: string;
       var PaintDefault: Boolean);
     procedure progressDecClick(Sender: TObject);
     procedure progressIncClick(Sender: TObject);
@@ -396,7 +396,6 @@ end;
 procedure TForm1.skinButtonClick(Sender: TObject);
 var
   S: string;
-  I: Integer;
 begin
   S := AppPath + 'Skins';
   if DirectoryExists(S) then
@@ -406,10 +405,10 @@ begin
   if OpenDialog1.Execute then
     if FileExists(OpenDialog1.FileName) then begin
       // Load the skin file and add it to the SkinList
-      I := SkinManager.SkinsList.AddSkinFromFile(OpenDialog1.FileName);
-      if I > -1 then begin
+      S := SkinManager.AddSkinFromFile(OpenDialog1.FileName);
+      if S <> '' then begin
         // Set the new skin
-        FLastSkin := SkinManager.SkinsList[I];
+        FLastSkin := S;
         SkinManager.SetSkin(FLastSkin);
         // Recreate the SkinGroupItem
         SpTBXSkinGroupItem1.Recreate;
@@ -441,7 +440,7 @@ end;
 { StatusBar }
 
 procedure TForm1.hintLabelDrawHint(Sender: TObject;
-  AHintBitmap: TBitmap; var AHint: WideString; var PaintDefault: Boolean);
+  AHintBitmap: TBitmap; var AHint: string; var PaintDefault: Boolean);
 var
   R, GR, TR: TRect;
   WS: WideString;

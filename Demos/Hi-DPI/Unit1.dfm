@@ -12,7 +12,6 @@ object Form1: TForm1
   Font.Name = 'MS Shell Dlg 2'
   Font.Style = []
   OldCreateOrder = False
-  StyleElements = [seFont, seClient]
   OnCreate = FormCreate
   OnDestroy = FormDestroy
   OnShow = FormShow
@@ -23,7 +22,6 @@ object Form1: TForm1
     Top = 78
     Height = 509
     Cursor = crSizeWE
-    Color = clNone
     ParentColor = False
   end
   object SpTBXSplitter2: TSpTBXSplitter
@@ -32,7 +30,6 @@ object Form1: TForm1
     Height = 509
     Cursor = crSizeWE
     Align = alRight
-    Color = clNone
     ParentColor = False
   end
   object SpTBXMultiDock1: TSpTBXMultiDock
@@ -76,73 +73,6 @@ object Form1: TForm1
         object SpTBXTabItem3: TSpTBXTabItem
           Caption = 'Misc'
         end
-        object SpTBXTabSheet3: TSpTBXTabSheet
-          Left = 0
-          Top = 25
-          Width = 269
-          Height = 261
-          Caption = 'Misc'
-          ImageIndex = -1
-          DesignSize = (
-            269
-            261)
-          TabItem = 'SpTBXTabItem3'
-          object SpTBXGroupBox5: TSpTBXGroupBox
-            Left = 8
-            Top = 8
-            Width = 252
-            Height = 177
-            Caption = 'Links'
-            Anchors = [akLeft, akTop, akRight]
-            TabOrder = 0
-            object SpTBXLabel2: TSpTBXLabel
-              Left = 8
-              Top = 24
-              Width = 151
-              Height = 19
-              Caption = 'Go to Silverpoint Development'
-              LinkText = 'http://www.silverpointdevelopment.com'
-            end
-            object SpTBXLabel3: TSpTBXLabel
-              Left = 8
-              Top = 48
-              Width = 156
-              Height = 19
-              Caption = 'Go to Toolbar2000 newsgroups'
-              LinkText = 'news://news.jrsoftware.org'
-            end
-            object SpTBXLabel4: TSpTBXLabel
-              Left = 8
-              Top = 72
-              Width = 128
-              Height = 19
-              Caption = 'Open the Windows folder'
-            end
-            object SpTBXLabel7: TSpTBXLabel
-              Left = 8
-              Top = 144
-              Width = 105
-              Height = 19
-              Cursor = crHandPoint
-              Caption = 'View the sourcecode'
-              LinkText = 'notepad.exe'
-            end
-            object SpTBXLabel5: TSpTBXLabel
-              Left = 8
-              Top = 96
-              Width = 106
-              Height = 19
-              Caption = 'Open it with the tree'
-            end
-            object SpTBXLabel6: TSpTBXLabel
-              Left = 8
-              Top = 120
-              Width = 74
-              Height = 19
-              Caption = 'Open WinAmp'
-            end
-          end
-        end
         object SpTBXTabSheet6: TSpTBXTabSheet
           Left = 0
           Top = 25
@@ -158,7 +88,7 @@ object Form1: TForm1
             Left = 8
             Top = 112
             Width = 252
-            Height = 33
+            Height = 118
             Anchors = [akLeft, akTop, akRight, akBottom]
             TabOrder = 4
             HotTrack = True
@@ -166,7 +96,7 @@ object Form1: TForm1
               Left = 2
               Top = 22
               Width = 248
-              Height = 9
+              Height = 94
               Align = alClient
               BorderStyle = bsNone
               Lines.Strings = (
@@ -458,8 +388,75 @@ object Form1: TForm1
             ItemHeight = 23
             ItemIndex = 3
             TabOrder = 6
-            Text = 'Algerian'
+            Text = 'Arial'
             SelectedFont = 'Arial'
+          end
+        end
+        object SpTBXTabSheet3: TSpTBXTabSheet
+          Left = 0
+          Top = 25
+          Width = 269
+          Height = 261
+          Caption = 'Misc'
+          ImageIndex = -1
+          DesignSize = (
+            269
+            261)
+          TabItem = 'SpTBXTabItem3'
+          object SpTBXGroupBox5: TSpTBXGroupBox
+            Left = 8
+            Top = 8
+            Width = 252
+            Height = 177
+            Caption = 'Links'
+            Anchors = [akLeft, akTop, akRight]
+            TabOrder = 0
+            object SpTBXLabel2: TSpTBXLabel
+              Left = 8
+              Top = 24
+              Width = 151
+              Height = 19
+              Caption = 'Go to Silverpoint Development'
+              LinkText = 'http://www.silverpointdevelopment.com'
+            end
+            object SpTBXLabel3: TSpTBXLabel
+              Left = 8
+              Top = 48
+              Width = 156
+              Height = 19
+              Caption = 'Go to Toolbar2000 newsgroups'
+              LinkText = 'news://news.jrsoftware.org'
+            end
+            object SpTBXLabel4: TSpTBXLabel
+              Left = 8
+              Top = 72
+              Width = 128
+              Height = 19
+              Caption = 'Open the Windows folder'
+            end
+            object SpTBXLabel7: TSpTBXLabel
+              Left = 8
+              Top = 144
+              Width = 105
+              Height = 19
+              Cursor = crHandPoint
+              Caption = 'View the sourcecode'
+              LinkText = 'notepad.exe'
+            end
+            object SpTBXLabel5: TSpTBXLabel
+              Left = 8
+              Top = 96
+              Width = 106
+              Height = 19
+              Caption = 'Open it with the tree'
+            end
+            object SpTBXLabel6: TSpTBXLabel
+              Left = 8
+              Top = 120
+              Width = 74
+              Height = 19
+              Caption = 'Open WinAmp'
+            end
           end
         end
         object SpTBXTabSheet1: TSpTBXTabSheet
@@ -550,8 +547,8 @@ object Form1: TForm1
           object progressFiles: TSpTBXCheckBox
             Left = 160
             Top = 102
-            Width = 87
-            Height = 23
+            Width = 85
+            Height = 21
             Caption = 'File progress'
             TabOrder = 5
             OnClick = progressFilesClick
@@ -666,6 +663,7 @@ object Form1: TForm1
     object SpTBXToolbar1: TSpTBXToolbar
       Left = 0
       Top = 0
+      DockPos = 0
       Stretch = True
       TabOrder = 0
       Caption = 'SpTBXToolbar1'
@@ -1661,7 +1659,6 @@ object Form1: TForm1
     Height = 27
     ParentShowHint = False
     ShowHint = True
-    ExplicitTop = 589
     object TBControlItem2: TTBControlItem
       Control = SpTBXProgressBar2
     end
@@ -1740,7 +1737,7 @@ object Form1: TForm1
     Left = 408
     Top = 352
     Bitmap = {
-      494C01010A000D000C0010001000FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
+      494C01010A000D002C0010001000FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
       0000000000003600000028000000400000003000000001002000000000000030
       0000000000000000000000000000000000000000000000000000000000000000
       0000000000000000000000000000000000000000000000000000000000000000

@@ -1,7 +1,7 @@
 unit SpTBXMDIMRU;
 
 {==============================================================================
-Version 2.5.3
+Version 2.5.4
 
 The contents of this file are subject to the SpTBXLib License; you may
 not use or distribute this file except in compliance with the
@@ -48,7 +48,7 @@ uses
 type
   TSpTBXMDIButtonsItem = class;
 
-  TSpTBXMRUListClickEvent = procedure(Sender: TObject; const Filename: WideString) of object;
+  TSpTBXMRUListClickEvent = procedure(Sender: TObject; const Filename: string) of object;
 
   { TSpTBXMDIHandler }
 
@@ -121,10 +121,10 @@ type
   public
     constructor Create(AOwner: TComponent); override;
     procedure GetMRUFilenames(MRUFilenames: TStrings);
-    function IndexOfMRU(Filename: WideString): Integer;
-    function MRUAdd(Filename: WideString): Integer;
-    function MRUClick(Filename: WideString): Boolean;
-    procedure MRURemove(Filename: WideString);
+    function IndexOfMRU(Filename: string): Integer;
+    function MRUAdd(Filename: string): Integer;
+    function MRUClick(Filename: string): Boolean;
+    procedure MRURemove(Filename: string);
     procedure MRUUpdateCaptions;
     procedure LoadFromIni(Ini: TCustomIniFile; const Section: string);
     procedure SaveToIni(Ini: TCustomIniFile; const Section: string);
@@ -138,9 +138,9 @@ type
 
   TSpTBXMRUItem = class(TSpTBXCustomItem)
   private
-    FMRUString: WideString;
+    FMRUString: string;
   public
-    property MRUString: WideString read FMRUString write FMRUString;
+    property MRUString: string read FMRUString write FMRUString;
   end;
 
 implementation
@@ -581,7 +581,7 @@ begin
       MRUFilenames.Add(TSpTBXMRUItem(Items[I]).MRUString);
 end;
 
-function TSpTBXMRUListItem.IndexOfMRU(Filename: WideString): Integer;
+function TSpTBXMRUListItem.IndexOfMRU(Filename: string): Integer;
 var
   I: Integer;
 begin
@@ -594,7 +594,7 @@ begin
       end;
 end;
 
-function TSpTBXMRUListItem.MRUAdd(Filename: WideString): Integer;
+function TSpTBXMRUListItem.MRUAdd(Filename: string): Integer;
 var
   A: TSpTBXMRUItem;
   I: Integer;
@@ -620,7 +620,7 @@ begin
   end;
 end;
 
-function TSpTBXMRUListItem.MRUClick(Filename: WideString): Boolean;
+function TSpTBXMRUListItem.MRUClick(Filename: string): Boolean;
 var
   I: Integer;
 begin
@@ -632,7 +632,7 @@ begin
   end;
 end;
 
-procedure TSpTBXMRUListItem.MRURemove(Filename: WideString);
+procedure TSpTBXMRUListItem.MRURemove(Filename: string);
 var
   I: Integer;
 begin
@@ -647,7 +647,7 @@ procedure TSpTBXMRUListItem.MRUUpdateCaptions;
 var
   I: Integer;
   A: TSpTBXMRUItem;
-  S: WideString;
+  S: string;
 begin
   for I := 0 to Count - 1 do
     if Items[I] is TSpTBXMRUItem then begin
@@ -663,7 +663,7 @@ end;
 procedure TSpTBXMRUListItem.LoadFromIni(Ini: TCustomIniFile; const Section: string);
 var
   I: Integer;
-  S: WideString;
+  S: string;
 begin
   Clear;
   for I := FMaxItems downto 1 do begin

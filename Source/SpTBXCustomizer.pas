@@ -1,7 +1,7 @@
 unit SpTBXCustomizer;
 
 {==============================================================================
-Version 2.5.3
+Version 2.5.4
 
 The contents of this file are subject to the SpTBXLib License; you may
 not use or distribute this file except in compliance with the
@@ -213,7 +213,7 @@ function SpCreateUniqueSeparator(Blank: Boolean): TSpTBXSeparatorItem;
 implementation
 
 uses
-  TypInfo, Registry, Menus, ActnList, TB2ExtItems,
+  TypInfo, Registry, Menus, ActnList, Themes, TB2ExtItems,
   SpTBXTabs, SpTBXDkPanels, SpTBXCustomizerForm;
 
 type
@@ -233,6 +233,7 @@ const
   rvItemsList = 'Items';
   rvCount = 'Count';
   rvSkin = 'Skin';
+  rvVCLStyle = 'VCLStyle';
   rvMainFormWindowState = 'MainForm.WindowState';
   rvMainFormBounds = 'MainForm.Bounds';
   rvMainFormRestoreBounds = 'MainForm.RestoreBounds';
@@ -949,7 +950,16 @@ begin
     DoLoad(ExtraL);
     if FSaveFormState then
       SpLoadFormState(Application.MainForm, ExtraL);
+    {$IF CompilerVersion >= 23} //for Delphi XE2 and up
+    if SkinManager.IsValidDelphiStyle(ExtraL.Values[rvVCLStyle]) then begin
+      TStyleManager.TrySetStyle(ExtraL.Values[rvVCLStyle]);
+      SkinManager.BroadcastSkinNotification;
+    end
+    else
     SkinManager.SetSkin(ExtraL.Values[rvSkin]);
+    {$ELSE}
+    SkinManager.SetSkin(ExtraL.Values[rvSkin]);
+    {$IFEND}
 
     // Load Layouts
     SpLoadLayoutList(IniFile, FLayouts);
@@ -1011,6 +1021,11 @@ begin
   try
     // Fill Extra Options, SpSaveItems will save it
     ExtraL.Values[rvSkin] := SkinManager.CurrentSkinName;
+    {$IF CompilerVersion >= 23} // for Delphi XE2 and up
+    if TStyleManager.IsCustomStyleActive then
+      ExtraL.Values[rvVCLStyle] := TStyleManager.ActiveStyle.Name;
+    {$IFEND}
+
     if FSaveFormState then
       SpSaveFormState(Application.MainForm, ExtraL);
     DoSave(ExtraL);
@@ -1425,7 +1440,7 @@ var
   W: TWinControl;
   TB: TSpTBXToolbar;
   Item: TTBCustomItem;
-  WS: WideString;
+  WS: string;
   UseBlankSeparators: Boolean;
 begin
   // Get the main form

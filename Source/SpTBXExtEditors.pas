@@ -1,7 +1,7 @@
 unit SpTBXExtEditors;
 
 {==============================================================================
-Version 2.5.3
+Version 2.5.4
 
 The contents of this file are subject to the SpTBXLib License; you may
 not use or distribute this file except in compliance with the
@@ -445,16 +445,13 @@ end;
 
 procedure TSpTBXColorEdit.UpdateValueFromText(RevertWhenInvalid: Boolean = True);
 var
-  WS: WideString;
   PrevValue, NewValue, C: TColor;
 begin
   PrevValue := SelectedColor;
   NewValue := SelectedColor;
-  WS := Text;
 
   // Try to parse the text to get the value
-  WS := Trim(WS);
-  if SpStringToColor(WS, C) then
+  if SpStringToColor(Trim(Text), C) then
     NewValue := C;
 
   if RevertWhenInvalid or (NewValue <> PrevValue) then begin
@@ -521,7 +518,7 @@ begin
   FMRUCount := 0;
   AutoItemHeight := False;
   AutoDropDownWidth := True;
-  ItemHeight := SpDPIScale(23);
+  ItemHeight := 23;
 end;
 
 destructor TSpTBXFontComboBox.Destroy;
@@ -548,20 +545,20 @@ var
   W: Integer;
   P: TPoint;
   Sz: TSize;
-  WS: WideString;
+  S: string;
 begin
   inherited;
 
   if FFontPreview then begin
-    WS := 'AaBbYyZz';
+    S := 'AaBbYyZz';
     FPreviewWindow := TSpTBXFontComboBoxPreview.Create(Self);
     FPreviewWindow.ParentWindow := Application.Handle;
     FPreviewWindow.PreviewPanel.Font.Size := 14;
 
-    if Assigned(FOnFontPreview) then FOnFontPreview(Self, WS);
+    if Assigned(FOnFontPreview) then FOnFontPreview(Self, S);
 
-    FPreviewWindow.PreviewPanel.Caption := WS;
-    Sz := SpGetControlTextSize(FPreviewWindow.PreviewPanel, FPreviewWindow.PreviewPanel.Font, WS);
+    FPreviewWindow.PreviewPanel.Caption := S;
+    Sz := SpGetControlTextSize(FPreviewWindow.PreviewPanel, FPreviewWindow.PreviewPanel.Font, S);
     Inc(Sz.cx, SpDPIScale(100));
     Inc(Sz.cy, SpDPIScale(20));
 
@@ -713,6 +710,7 @@ begin
   I := ItemIndex;
   if I > -1 then begin
     FSelectedFont := Items[I];
+    if [csDesigning, csLoading] * ComponentState = [] then
     if AddMRU then
       MRUAdd(FSelectedFont);
   end

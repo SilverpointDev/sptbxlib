@@ -226,7 +226,7 @@ end;
 constructor TSpTBXColorEditPopupMenu.Create(AOwner: TComponent);
 begin
   inherited;
-//  BorderStyle := pbsSizeableRightBottom;
+  BorderStyle := pbsSizeableRightBottom;
 end;
 
 procedure TSpTBXColorEditPopupMenu.DoGetPopupFormClass(var AFormClass: TCustomFormClass);
@@ -241,12 +241,9 @@ end;
 procedure TSpTBXColorPickerForm.FormCreate(Sender: TObject);
 begin
   btnColorPicker.Caption := SSpTBXClickAndDrag;
-  SpTBXTabControl1.DoubleBuffered := True;
   imgPalette.Cursor := crSpTBXEyeDropper;
-  SpScaleImageList(ImageList1, Screen.PixelsPerInch, 96);
-  SpTBXColorListBox1.ItemHeight := SpDPIScale(SpTBXColorListBox1.ItemHeight);
-  btnColorPicker.Width := SpDPIScale(btnColorPicker.Width);
-  btnColorPicker.Height := SpDPIScale(btnColorPicker.Height);
+
+  SpDPIScaleImageList(ImageList1);
 end;
 
 procedure TSpTBXColorPickerForm.FormDestroy(Sender: TObject);
@@ -262,14 +259,11 @@ end;
 procedure TSpTBXColorPickerForm.FormShow(Sender: TObject);
 Var
   Bitmap : TBitmap;
-  NewHeight, NewWidth : Integer;
 begin
   Bitmap := TBitmap.Create;
   try
     Bitmap.Assign(imgPalette.Picture.Bitmap);
-    NewHeight := MulDiv(ImgPalette.Parent.ClientHeight, 90, 100);
-    NewWidth := MulDiv(Bitmap.Width, NewHeight, Bitmap.Height);
-    SpResizeBitmap(Bitmap, NewWidth, NewHeight);
+    SpDPIResizeBitmap(Bitmap, SpDPIScale(ImgPalette.Width), SpDPIScale(ImgPalette.Height));
     imgPalette.Picture.Assign(Bitmap);
   finally
     Bitmap.Free;
@@ -287,8 +281,6 @@ begin
          imgPalette.Top := (imgPalette.Parent.Height - imgPalette.Height) div 2;
        end;
     2: begin
-         btnColorPicker.Left := (btnColorPicker.Parent.Width - btnColorPicker.Width) div 2;
-         btnColorPicker.Top := (btnColorPicker.Parent.Height - btnColorPicker.Height) div 2;
          imgColorPicker.Picture := nil;
        end;
   end;
@@ -438,6 +430,7 @@ end;
 procedure TSpTBXColorPickerForm.SpTBXTabControl1ActiveTabChange(Sender: TObject;
   TabIndex: Integer);
 begin
+  SpTBXTabControl1.InvalidateBackground;
   CenterImages;
 end;
 

@@ -1,7 +1,7 @@
 unit SpTBXControls;
 
 {==============================================================================
-Version 2.5.3
+Version 2.5.4
 
 The contents of this file are subject to the SpTBXLib License; you may
 not use or distribute this file except in compliance with the
@@ -295,8 +295,8 @@ type
     FImages: TCustomImageList;
     FImageChangeLink: TChangeLink;
     FImageIndex: TImageIndex;
-    FLinkText: WideString;
-    FLinkTextParams: WideString;
+    FLinkText: string;
+    FLinkTextParams: string;
     FMouseInControl: Boolean;
     FPushed: Boolean;
     FSpaceAsClick: Boolean;
@@ -335,7 +335,7 @@ type
     // Painting
     procedure AdjustFont(AFont: TFont); virtual;
     procedure AdjustBounds;
-    procedure DoDrawHint(AHintBitmap: TBitmap; var AHint: Widestring; var PaintDefault: Boolean); virtual;
+    procedure DoDrawHint(AHintBitmap: TBitmap; var AHint: string; var PaintDefault: Boolean); virtual;
     function DoDrawItem(ACanvas: TCanvas; ARect: TRect; const PaintStage: TSpTBXPaintStage): Boolean; virtual;
     function DoDrawText(ACanvas: TCanvas; var ARect: TRect; Flags: Longint): Integer; virtual;
     procedure DoGetImageIndex(var AImageList: TCustomImageList; var AImageIndex: Integer); virtual;
@@ -382,8 +382,8 @@ type
     property GlyphLayout: TSpGlyphLayout read FGlyphLayout write SetGlyphLayout default ghlGlyphLeft;
     property Images: TCustomImageList read FImages write SetImages;
     property ImageIndex: TImageIndex read FImageIndex write SetImageIndex default -1;
-    property LinkText: WideString read FLinkText write FLinkText;
-    property LinkTextParams: WideString read FLinkTextParams write FLinkTextParams;
+    property LinkText: string read FLinkText write FLinkText;
+    property LinkTextParams: string read FLinkTextParams write FLinkTextParams;
     property ShowAccelChar: Boolean read FShowAccelChar write SetShowAccelChar default True;
     property SpaceAsClick: Boolean read FSpaceAsClick write FSpaceAsClick default False;
     property Wrapping: TTextWrapping read FWrapping write SetWrapping default twNone;
@@ -1091,7 +1091,7 @@ type
 { Painting helpers }
 procedure SpDrawXPPanel(ACanvas: TCanvas; ARect: TRect; Enabled, TBXStyleBackground: Boolean; Border: TSpTBXPanelBorder);
 procedure SpDrawXPPanelBorder(ACanvas: TCanvas; ARect: TRect; Border: TSpTBXPanelBorder);
-procedure SpDrawXPGroupBox(ACanvas: TCanvas; ARect: TRect; ACaption: WideString; TextFlags: Cardinal; Enabled, TBXStyleBackground: Boolean);
+procedure SpDrawXPGroupBox(ACanvas: TCanvas; ARect: TRect; ACaption: string; TextFlags: Cardinal; Enabled, TBXStyleBackground: Boolean);
 procedure SpDrawXPProgressBar(ACanvas: TCanvas; ARect: TRect; Min, Max, Position: Integer; Back, Fore: TBitmap); overload;
 function SpDrawXPProgressBar(ACanvas: TCanvas; ARect: TRect; Vertical, Smooth, DrawProgress: Boolean; Min, Max, Position: Integer): Integer; overload;
 procedure SpDrawXPTrackBar(ACanvas: TCanvas; ARect: TRect; Part: Cardinal; Vertical, Pushed, ChannelSelection: Boolean; TickMark: TSpTBXTickMark; Min, Max, SelStart, SelEnd: Integer);
@@ -1115,7 +1115,8 @@ begin
     sknNone:
       SpDrawXPPanelBorder(ACanvas, ARect, Border);
     sknWindows, sknDelphiStyle:
-      CurrentSkin.PaintThemedElementBackground(ACanvas, ARect, skncPanel, Enabled, False, False, False, False, False, False);
+      CurrentSkin.PaintThemedElementBackground(ACanvas, ARect, skncPanel,
+        Enabled, False, False, False, False, False, False);
     sknSkin:
       CurrentSkin.PaintBackground(ACanvas, ARect, skncPanel, sknsNormal, TBXStyleBackground, True);
   end;
@@ -1134,7 +1135,7 @@ begin
     DrawEdge(ACanvas.Handle, ARect, Edge[Border], BF_RECT);
 end;
 
-procedure SpDrawXPGroupBox(ACanvas: TCanvas; ARect: TRect; ACaption: WideString;
+procedure SpDrawXPGroupBox(ACanvas: TCanvas; ARect: TRect; ACaption: string;
   TextFlags: Cardinal; Enabled, TBXStyleBackground: Boolean);
 var
   Width, SaveIndex: Integer;
@@ -1145,11 +1146,10 @@ var
 begin
   Width := ARect.Right - ARect.Left;
 
+  // Calc CaptionRect
   if ACaption <> '' then begin
     CaptionRect := Rect(0, 0, 1, 1);
-
     SpDrawXPText(ACanvas, ACaption, CaptionRect, TextFlags or DT_CALCRECT);
-
     if (TextFlags and DT_RTLREADING) = 0 then
       OffsetRect(CaptionRect, 8, 0)
     else
@@ -1158,6 +1158,7 @@ begin
   else
     CaptionRect := Rect(0, 0, 0, 0);
 
+  // Draw background and borders
   R := ARect;
   R.Top := (CaptionRect.Bottom - CaptionRect.Top) div 2;
   SaveIndex := SaveDC(ACanvas.Handle);
@@ -1169,6 +1170,7 @@ begin
     RestoreDC(ACanvas.Handle, SaveIndex);
   end;
 
+  // Draw caption
   if ACaption <> '' then begin
     case SkinManager.GetSkinType of
       sknNone:
@@ -1273,7 +1275,7 @@ begin
         begin
           if Vertical then Details := SpTBXThemeServices.GetElementDetails(tpBarVert)
           else Details := SpTBXThemeServices.GetElementDetails(tpBar);
-          SpTBXThemeServices.DrawElement(ACanvas.Handle, Details, ARect, nil);
+          CurrentSkin.PaintThemedElementBackground(ACanvas, ARect, Details);
           if DrawProgress and not IsRectEmpty(DeltaR) then begin
             if SpIsWinVistaOrUp then begin
               Details.Element := teProgress;
@@ -1551,7 +1553,7 @@ procedure TSpTBXCustomPanel.AdjustClientRect(var Rect: TRect);
 begin
   inherited AdjustClientRect(Rect);
   if Borders then
-    InflateRect(Rect, -2, -2);
+    InflateRect(Rect, -SpDPIScale(2), -SpDPIScale(2));
 end;
 
 procedure TSpTBXCustomPanel.InvalidateBackground(InvalidateChildren: Boolean);
@@ -1681,7 +1683,7 @@ begin
         if PaintDefault then begin
           if not FBorders then begin
             R2 := R;
-            InflateRect(R2, 3, 3);
+            InflateRect(R2, SpDPIScale(3), SpDPIScale(3));
             DrawBackground(FBackground.Canvas, R2);
           end
           else
@@ -2023,7 +2025,7 @@ begin
 end;
 
 procedure TSpTBXTextObject.DoDrawHint(AHintBitmap: TBitmap;
-  var AHint: Widestring; var PaintDefault: Boolean);
+  var AHint: string; var PaintDefault: Boolean);
 begin
   if Assigned(FOnDrawHint) then FOnDrawHint(Self, AHintBitmap, AHint, PaintDefault);
 end;
@@ -2042,7 +2044,7 @@ var
   GlyphSize, DummyRightGlyphSize: TSize;
   DummyRightGlyphRect: TRect;
   R, R1, R2: TRect;
-  WS: WideString;
+  WS: string;
   TextFlags: Cardinal;
   State: TSpTBXSkinStatesType;
 begin
@@ -2063,10 +2065,7 @@ begin
       DummyRightGlyphSize.cx := 0;
       DummyRightGlyphSize.cy := 0;
       DummyRightGlyphRect := Rect(0, 0, 0, 0);
-      SpCalcXPText(ACanvas, ARect, WS, GetRealAlignment(Self), TextFlags,
-        GlyphSize, DummyRightGlyphSize, FGlyphLayout,
-        DrawPushedCaption and Pushed, R1, R2,
-        DummyRightGlyphRect, FCaptionRoatationAngle);
+      SpCalcXPText(ACanvas, ARect, WS, GetRealAlignment(Self), TextFlags, GlyphSize, DummyRightGlyphSize, FGlyphLayout, DrawPushedCaption and Pushed, R1, R2, DummyRightGlyphRect, FCaptionRoatationAngle);
 
       // Paint the text
       if IsGlassPainting then
@@ -2482,7 +2481,7 @@ procedure TSpTBXTextObject.CMHintShow(var Message: TCMHintShow);
 // a custom THintWindow.
 var
   HintInfo: PHintInfo;
-  WideHint, PrevWideHint: Widestring;
+  WideHint, PrevWideHint: string;
   R, TextR: TRect;
   PaintDefault: Boolean;
   I: Integer;
@@ -2823,8 +2822,8 @@ function TSpTBXCustomCheckButton.GetGlyphSize: TSize;
 begin
   Result := inherited GetGlyphSize;
   if (Result.cx = 0) or (Result.cy = 0) then begin
-    Result.cx := SpDPIScale(15);
-    Result.cy := SpDPIScale(15);
+    Result.cx := SpDPIScale(13);
+    Result.cy := SpDPIScale(13);
   end;
 end;
 
@@ -3278,7 +3277,7 @@ begin
     inherited
   else
     if (AFont.Color = clWindowText) or (AFont.Color = clNone) then begin
-      State := CurrentSkin.GetState(Enabled, Pushed, MouseInControl, Checked);
+      State := CurrentSkin.GetState(Enabled, Pushed, MouseInControl or GetFocused, Checked);
       AFont.Color := CurrentSkin.GetTextColor(skncButton, State);
     end;
 end;
@@ -3474,7 +3473,7 @@ const
 begin
   Result := Rect(SpDPIScale(8), SpDPIScale(2), SpDPIScale(8), SpDPIScale(2));
   if FDropDownArrow and Assigned(FDropdownMenu) then
-    Inc(Result.Right, SpDPIScale(ArrowWidth) + SpDPIScale(4));
+    Inc(Result.Right, SpDPIScale(ArrowWidth+4));
 end;
 
 function TSpTBXCustomButton.IsDroppedDown: Boolean;

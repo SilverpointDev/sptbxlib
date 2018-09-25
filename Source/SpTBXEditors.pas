@@ -1,7 +1,7 @@
 unit SpTBXEditors;
 
 {==============================================================================
-Version 2.5.3
+Version 2.5.4
 
 The contents of this file are subject to the SpTBXLib License; you may
 not use or distribute this file except in compliance with the
@@ -72,9 +72,9 @@ type
   TSpTBXEditItemViewer = class;
   TSpTBXSpinEditViewer = class;
 
-  TSpTBXEditChangeEvent = procedure(Sender: TObject; const AText: WideString) of object;
-  TSpTBXEditAcceptTextEvent = procedure(Sender: TObject; var NewText: WideString; var Accept: Boolean) of object;
-  TSpTBXEditGetTextEvent = procedure(Sender: TObject; var AText: WideString) of object;
+  TSpTBXEditChangeEvent = procedure(Sender: TObject; const AText: string) of object;
+  TSpTBXEditAcceptTextEvent = procedure(Sender: TObject; var NewText: string; var Accept: Boolean) of object;
+  TSpTBXEditGetTextEvent = procedure(Sender: TObject; var AText: string) of object;
   TSpTBXBeginEditEvent = procedure(Sender: TObject; Viewer: TSpTBXEditItemViewer; EditControl: TCustomEdit) of object;
   TSpTBXEditMessageEvent = procedure(Sender: TObject; Viewer: TSpTBXEditItemViewer; var Message: TMessage; var Handled: Boolean) of object;
   TSpTBXDrawListItemEvent = procedure(Sender: TObject; ACanvas: TCanvas; var ARect: TRect; Index: Integer; const State: TOwnerDrawState;
@@ -187,11 +187,12 @@ type
     FIncrement: Extended;
     FMinValue: Extended;
     FMaxValue: Extended;
+    FMouseWheel: Boolean;
     FValue: Extended;
     FValueSnap: Boolean;
     FValueType: TSpTBXSpinType;
-    FPrefix: WideString;
-    FPostfix: WideString;
+    FPrefix: string;
+    FPostfix: string;
     FOnGetText: TSpTBXEditAcceptTextEvent;
     FOnSetText: TSpTBXEditChangeEvent;
     FOnValueChanged: TNotifyEvent;
@@ -204,8 +205,8 @@ type
     procedure SetMinValue(const NewValue: Extended);
     procedure SetValue(const NewValue: Extended);
     procedure SetValueType(NewType: TSpTBXSpinType);
-    procedure SetPostfix(const ValueString: WideString);
-    procedure SetPrefix(const ValueString: WideString);
+    procedure SetPostfix(const ValueString: string);
+    procedure SetPrefix(const ValueString: string);
     function GetValueAsInteger: Int64;
     procedure SetValueAsInteger(const NewValue: Int64);
   protected
@@ -225,8 +226,9 @@ type
     property Increment: Extended read FIncrement write FIncrement stored IsIncrementStored;
     property MaxValue: Extended read FMaxValue write SetMaxValue stored IsMaxValueStored;
     property MinValue: Extended read FMinValue write SetMinValue stored IsMinValueStored;
-    property Postfix: WideString read FPostfix write SetPostfix;
-    property Prefix: WideString read FPrefix write SetPrefix;
+    property MouseWheel: Boolean read FMouseWheel write FMouseWheel default True;
+    property Postfix: string read FPostfix write SetPostfix;
+    property Prefix: string read FPrefix write SetPrefix;
     property Value: Extended read FValue write SetValue stored IsValueStored;
     property ValueSnap: Boolean read FValueSnap write FValueSnap default True;
     property ValueType: TSpTBXSpinType read FValueType write SetValueType default spnInteger;
@@ -237,8 +239,8 @@ type
     FExtendedAccept: Boolean;
     FSpinButton: TSpTBXSpinButton;
     FSpinOptions: TSpTBXSpinEditOptions;
-    procedure SpinOptionsGetText(Sender: TObject; var NewText: WideString; var Accept: Boolean);
-    procedure SpinOptionsSetText(Sender: TObject; const AText: WideString);
+    procedure SpinOptionsGetText(Sender: TObject; var NewText: string; var Accept: Boolean);
+    procedure SpinOptionsSetText(Sender: TObject; const AText: string);
     function GetValue: Extended;
     function GetValueChanged: TNotifyEvent;
     procedure SetValue(const Value: Extended);
@@ -251,9 +253,13 @@ type
     procedure Notification(AComponent: TComponent; Operation: TOperation); override;
     procedure UpClick(Sender: TObject); virtual;
     procedure DownClick(Sender: TObject); virtual;
+    function DoMouseWheelDown(Shift: TShiftState; MousePos: TPoint): Boolean; override;
+    function DoMouseWheelUp(Shift: TShiftState; MousePos: TPoint): Boolean; override;
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
+    property OnMouseWheelDown;
+    property OnMouseWheelUp;
   published
     property Alignment default taRightJustify;
     property ExtendedAccept: Boolean read FExtendedAccept write FExtendedAccept default False;
@@ -386,7 +392,7 @@ type
     procedure DoDrawItemBackground(ACanvas: TCanvas; var ARect: TRect; Index: Integer; const State: TOwnerDrawState;
       const PaintStage: TSpTBXPaintStage; var PaintDefault: Boolean); virtual;
     procedure DrawItem(Index: Integer; Rect: TRect; State: TOwnerDrawState); override;
-    procedure DrawItemBackground(Index: Integer; Rect: TRect; State: TOwnerDrawState); virtual;
+    procedure DrawItemBackground(Index: Integer; ARect: TRect; State: TOwnerDrawState); virtual;
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
@@ -403,16 +409,16 @@ type
 
   TSpTBXEditItem = class(TSpTBXCustomItem)
   private
-    FEditCaption: WideString;
+    FEditCaption: string;
     FEditImageIndex: TImageIndex;
-    FText: WideString;
+    FText: string;
     FAllowVerticalEditor: Boolean;
     FCharCase: TEditCharCase;
     FEditorFontSettings: TSpTBXFontSettings;
     FExtendedAccept: Boolean;
     FFontSettings: TSpTBXFontSettings;
     FMaxLength: Integer;
-    FPasswordChar: WideChar;
+    FPasswordChar: Char;
     FReadOnly: Boolean;
     FShowImage: Boolean;
     FOnAcceptText: TSpTBXEditAcceptTextEvent;
@@ -422,21 +428,21 @@ type
     procedure FontSettingsChanged(Sender: TObject);
     procedure SetAllowVerticalEditor(const Value: Boolean);
     procedure SetCharCase(Value: TEditCharCase);
-    procedure SetEditCaption(const Value: WideString);
+    procedure SetEditCaption(const Value: string);
     procedure SetEditorFontSettings(const Value: TSpTBXFontSettings);
     procedure SetMaxLength(Value: Integer);
-    procedure SetPasswordChar(Value: WideChar);
+    procedure SetPasswordChar(Value: Char);
     procedure SetShowImage(const Value: Boolean);
-    procedure SetText(Value: WideString);
+    procedure SetText(Value: string);
   protected
-    function DoAcceptText(var NewText: WideString): Boolean; virtual;
-    function DoAutoComplete(var AText: WideString): Boolean; virtual;
+    function DoAcceptText(var NewText: string): Boolean; virtual;
+    function DoAutoComplete(var AText: string): Boolean; virtual;
     procedure DoBeginEdit(Viewer: TSpTBXEditItemViewer); virtual;
-    procedure DoChange(const AText: WideString); virtual;
-    procedure DoTextChanging(const OldText: WideString; var NewText: WideString; Reason: Integer); virtual;
+    procedure DoChange(const AText: string); virtual;
+    procedure DoTextChanging(const OldText: string; var NewText: string; Reason: Integer); virtual;
     function GetItemViewerClass(AView: TTBView): TTBItemViewerClass; override;
     function NeedToRecreateViewer(AViewer: TTBItemViewer): Boolean; override;
-    procedure SetTextEx(Value: WideString; Reason: Integer); virtual;
+    procedure SetTextEx(Value: string; Reason: Integer); virtual;
   public
     function StartEditing(AView: TTBView): Boolean;
     constructor Create(AOwner: TComponent); override;
@@ -465,19 +471,18 @@ type
     property OnDrawItem;
     property OnSelect;
 
-    // Don't let the streaming system store the WideStrings, use DefineProperties instead
-    property EditCaption: WideString read FEditCaption write SetEditCaption; // Hides the inherited EditCaption
+    property EditCaption: string read FEditCaption write SetEditCaption;
     property EditImageIndex: TImageIndex read FEditImageIndex write FEditImageIndex default -1;
-    property Text: WideString read FText write SetText; // Hides the inherited Text
+    property Text: string read FText write SetText;
     property AllowVerticalEditor: Boolean read FAllowVerticalEditor write SetAllowVerticalEditor default False;
     property CharCase: TEditCharCase read FCharCase write SetCharCase default ecNormal;
     property EditorFontSettings: TSpTBXFontSettings read FEditorFontSettings write SetEditorFontSettings;
     property ExtendedAccept: Boolean read FExtendedAccept write FExtendedAccept default False;
     property MaxLength: Integer read FMaxLength write SetMaxLength default 0;
-    property PasswordChar: WideChar read FPasswordChar write SetPasswordChar default #0;
+    property PasswordChar: Char read FPasswordChar write SetPasswordChar default #0;
     property ReadOnly: Boolean read FReadOnly write FReadOnly default False;
     property ShowImage: Boolean read FShowImage write SetShowImage default False;
-    property OnAcceptText: TSpTBXEditAcceptTextEvent read FOnAcceptText write FOnAcceptText; // Hides the inherited OnAcceptText
+    property OnAcceptText: TSpTBXEditAcceptTextEvent read FOnAcceptText write FOnAcceptText;
     property OnBeginEdit: TSpTBXBeginEditEvent read FOnBeginEdit write FOnBeginEdit;
     property OnChange: TSpTBXEditChangeEvent read FOnChange write FOnChange;
     property OnEditMessage: TSpTBXEditMessageEvent read FOnEditMessage write FOnEditMessage;
@@ -489,7 +494,7 @@ type
   private
     function EditLoop(const CapHandle: HWND): Boolean;
     procedure EditWndProc(var Message: TMessage);
-    function GetEditControlText: WideString;
+    function GetEditControlText: string;
     procedure GetEditHeight(const DC: HDC; out EditHeight, ExternalLeading: Integer);
     function GetItem: TSpTBXEditItem;
     procedure MouseBeginEdit;
@@ -521,7 +526,7 @@ type
     function ShowImage: Boolean; virtual;
     function UsesSameWidth: Boolean; override;
   public
-    function GetCaptionText: WideString; override;
+    function GetCaptionText: string; override;
     property EditControl: TCustomEdit read FEditControl;
     property Item: TSpTBXEditItem read GetItem; // Hides the inherited TB2K Item property
   end;
@@ -531,8 +536,8 @@ type
   TSpTBXSpinEditItem = class(TSpTBXEditItem)
   private
     FSpinOptions: TSpTBXSpinEditOptions;
-    procedure SpinOptionsGetText(Sender: TObject; var NewText: WideString; var Accept: Boolean);
-    procedure SpinOptionsSetText(Sender: TObject; const AText: WideString);
+    procedure SpinOptionsGetText(Sender: TObject; var NewText: string; var Accept: Boolean);
+    procedure SpinOptionsSetText(Sender: TObject; const AText: string);
     function GetValue: Extended;
     function GetValueChanged: TNotifyEvent;
     procedure SetValue(const Value: Extended);
@@ -577,7 +582,6 @@ type
 { Helpers }
 procedure SpCalcMaxDropDownWidth(Combo: TSpTBXComboBox; RightMargin: Integer = 8);
 function SpFocusEditItem(Item: TTBCustomItem; View: TTBView): Boolean;
-function SpStartsTextW(const ASubText, AText: WideString): Boolean;
 
 { Painting helpers }
 function SpCanEditFrameBeHotTracked(BorderStyle: TBorderStyle): Boolean;
@@ -588,16 +592,20 @@ procedure SpDrawXPSpinButton(ACanvas: TCanvas; ARect: TRect; Enabled, FrameHotTr
 implementation
 
 uses
-  Themes, UxTheme,
-  Math, TB2Common;
-
-Var
-  DefaultSpinButtonSize: integer = 14;
+  Themes, UxTheme, Math, TB2Common;
 
 type
   TTBViewAccess = class(TTBView);
   TSpTBXFontSettingsAccess = class(TSpTBXFontSettings);
   TCustomEditAccess = class(TCustomEdit);
+
+//WMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWM
+{ Constants }
+
+function CDefaultSpinButtonSize: Integer;
+begin
+  Result := SpDPIScale(14);
+end;
 
 //WMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWM
 { Helpers }
@@ -640,17 +648,6 @@ begin
   end;
 end;
 
-function SpStartsTextW(const ASubText, AText: WideString): Boolean;
-var
-  L, L2: Integer;
-begin
-  L := Length(ASubText);
-  L2 := Length(AText);
-  if L > L2 then Result := False
-  else Result := CompareStringW(LOCALE_USER_DEFAULT, NORM_IGNORECASE,
-    PWideChar(AText), L, PWideChar(ASubText), L) = 2;
-end;
-
 //WMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWM
 { Painting helpers }
 
@@ -688,10 +685,10 @@ end;
 procedure SpDrawXPComboButton(ACanvas: TCanvas; ARect: TRect; Enabled, FrameHotTrack,
   HotTrack, DroppedDown, RightAligned: Boolean);
 var
-  Flags: Integer;
   State: TSpTBXSkinStatesType;
   C: TColor;
-  X, Y, Part: Integer;
+  X, Y: Integer;
+  Details: TThemedElementDetails;
 begin
   case SkinManager.GetSkinType of
     sknNone:
@@ -706,19 +703,36 @@ begin
         C := CurrentSkin.GetTextColor(skncEditButton, State);
         X := (ARect.Left + ARect.Right) div 2;
         Y := (ARect.Top + ARect.Bottom) div 2 - 1;
-        SpDrawArrow(ACanvas, X, Y, C, True, False, 2);
+        SpDrawArrow(ACanvas, X, Y, C, True, False, SpDPIScale(3));
       end;
     sknWindows, sknDelphiStyle:
       begin
-        if SpIsWinVistaOrUp then
-          Part := 6 // (CP_DROPDOWNBUTTONRIGHT) Use the new API on Windows Vista
-        else
-          Part := CP_DROPDOWNBUTTON;
-        if not Enabled then Flags := CBXS_DISABLED
-        else if DroppedDown then Flags := CBXS_PRESSED
-        else if HotTrack then Flags := CBXS_HOT
-        else Flags := CBXS_NORMAL;
-        DrawThemeBackground(SpTBXThemeServices.Theme[teComboBox], ACanvas.Handle, Part, Flags, ARect, nil);
+        // tcDropDownButtonRightNormal is defined on XE2 and up
+        // We need to call GetElementDetails because the Style hook uses VCL.Styles.TCustomStyle.GetElementDetails
+        // which returns a Details.Part that is different than tcDropDownButtonRightNormal when using Delphi styles
+        // Try not to use UxTheme.DrawThemeBackground API directly, instead use SpTBXThemeServices.GetElementDetails/CurrentSkin.PaintThemedElementBackground
+        // [Old-Themes]
+        {$IF CompilerVersion >= 23} // for Delphi XE2 and up
+        if SpIsWinVistaOrUp then begin
+          if not Enabled then Details := SpTBXThemeServices.GetElementDetails(tcDropDownButtonRightDisabled)
+          else if DroppedDown then Details := SpTBXThemeServices.GetElementDetails(tcDropDownButtonRightPressed)
+          else if HotTrack then Details := SpTBXThemeServices.GetElementDetails(tcDropDownButtonRightHot)
+          else Details := SpTBXThemeServices.GetElementDetails(tcDropDownButtonRightNormal);
+        end
+        else begin
+          if not Enabled then Details := SpTBXThemeServices.GetElementDetails(tcDropDownButtonDisabled)
+          else if DroppedDown then Details := SpTBXThemeServices.GetElementDetails(tcDropDownButtonPressed)
+          else if HotTrack then Details := SpTBXThemeServices.GetElementDetails(tcDropDownButtonHot)
+          else Details := SpTBXThemeServices.GetElementDetails(tcDropDownButtonNormal);
+        end;
+        {$ELSE}
+        if not Enabled then Details := SpTBXThemeServices.GetElementDetails(tcDropDownButtonDisabled)
+        else if DroppedDown then Details := SpTBXThemeServices.GetElementDetails(tcDropDownButtonPressed)
+        else if HotTrack then Details := SpTBXThemeServices.GetElementDetails(tcDropDownButtonHot)
+        else Details := SpTBXThemeServices.GetElementDetails(tcDropDownButtonNormal);
+        {$IFEND}
+
+        CurrentSkin.PaintThemedElementBackground(ACanvas, ARect, Details);
       end;
     sknSkin:
       begin
@@ -728,7 +742,7 @@ begin
         C := CurrentSkin.GetTextColor(skncEditButton, State);
         X := (ARect.Left + ARect.Right) div 2;
         Y := (ARect.Top + ARect.Bottom) div 2 - 1;
-        SpDrawArrow(ACanvas, X, Y, C, True, False, 2);
+        SpDrawArrow(ACanvas, X, Y, C, True, False, SpDPIScale(3));
       end;
   end;
 end;
@@ -814,7 +828,7 @@ begin
           BR.Bottom := BR.Bottom - 1;
         SpDrawXPEditButton(ACanvas, BR, Enabled, FrameHotTrack, UpHotTrack, UpPushed, RightAligned);
         C := CurrentSkin.GetTextColor(skncEditButton, State);
-        SpDrawArrow(ACanvas, X, Y, C, True, True, 2);
+        SpDrawArrow(ACanvas, X, Y, C, True, True, SpDPIScale(2));
         if FrameHotTrack then
           BR.Bottom := BR.Bottom + 1;
         // Down button
@@ -826,7 +840,7 @@ begin
           BR.Top := BR.Top + 1;
         SpDrawXPEditButton(ACanvas, BR, Enabled, FrameHotTrack, DownHotTrack, DownPushed, RightAligned);
         C := CurrentSkin.GetTextColor(skncEditButton, State);
-        SpDrawArrow(ACanvas, X, Y, C, True, False, 2);
+        SpDrawArrow(ACanvas, X, Y, C, True, False, SpDPIScale(2));
       end;
   end;
 end;
@@ -1268,6 +1282,7 @@ begin
   FIncrement := 1;
   FValueSnap := True;
   FValueType := spnInteger;
+  FMouseWheel := True;
 end;
 
 procedure TSpTBXSpinEditOptions.DoValueChanged;
@@ -1326,7 +1341,7 @@ begin
   end;
 end;
 
-procedure TSpTBXSpinEditOptions.SetPostfix(const ValueString: WideString);
+procedure TSpTBXSpinEditOptions.SetPostfix(const ValueString: string);
 begin
   if FPostfix <> ValueString then begin
     FPostfix := ValueString;
@@ -1334,7 +1349,7 @@ begin
   end;
 end;
 
-procedure TSpTBXSpinEditOptions.SetPrefix(const ValueString: WideString);
+procedure TSpTBXSpinEditOptions.SetPrefix(const ValueString: string);
 begin
   if FPrefix <> ValueString then begin
     FPrefix := ValueString;
@@ -1370,7 +1385,7 @@ end;
 
 procedure TSpTBXSpinEditOptions.UpdateTextFromValue;
 var
-  WS: WideString;
+  WS: string;
 begin
   WS := '';
   case FValueType of
@@ -1383,7 +1398,7 @@ end;
 
 procedure TSpTBXSpinEditOptions.UpdateValueFromText(RevertWhenInvalid: Boolean = True);
 var
-  WS: WideString;
+  WS: string;
   PrevValue, NewValue: Extended;
   I: Integer;
   Dummy: Boolean;
@@ -1458,7 +1473,7 @@ begin
   FSpinButton.OnUpClick := UpClick;
   FSpinButton.OnDownClick := DownClick;
   FSpinButton.Align := alRight;
-  FSpinButton.Width := DefaultSpinButtonSize;
+  FSpinButton.Width := CDefaultSpinButtonSize;
   UpdateEditRect;
 
   Text := '0';
@@ -1507,6 +1522,22 @@ begin
   SpinOptions.ValueDec;
 end;
 
+function TSpTBXSpinEdit.DoMouseWheelDown(Shift: TShiftState;
+  MousePos: TPoint): Boolean;
+begin
+  Result := inherited DoMouseWheelDown(Shift, MousePos);
+  if not Result and SpinOptions.MouseWheel then
+    SpinOptions.ValueDec;
+end;
+
+function TSpTBXSpinEdit.DoMouseWheelUp(Shift: TShiftState;
+  MousePos: TPoint): Boolean;
+begin
+  Result := inherited DoMouseWheelUp(Shift, MousePos);
+  if not Result and SpinOptions.MouseWheel then
+    SpinOptions.ValueInc;
+end;
+
 procedure TSpTBXSpinEdit.Change;
 begin
   if FExtendedAccept then
@@ -1535,14 +1566,14 @@ begin
 end;
 
 procedure TSpTBXSpinEdit.SpinOptionsGetText(Sender: TObject;
-  var NewText: WideString; var Accept: Boolean);
+  var NewText: string; var Accept: Boolean);
 begin
   // Event used by SpinOptions to get the text from the edit control
   NewText := Text;
 end;
 
 procedure TSpTBXSpinEdit.SpinOptionsSetText(Sender: TObject;
-  const AText: WideString);
+  const AText: string);
 var
   L, L2: Integer;
 begin
@@ -2283,9 +2314,9 @@ begin
     // Add a margin to the rect
     R := Rect;
     if not UseRightToLeftAlignment then
-      Inc(R.Left, 3)
+      Inc(R.Left, SpDPIScale(3))
     else
-      Dec(R.Right, 3);
+      Dec(R.Right, SpDPIScale(3));
     SpDrawXPText(Canvas, Items[Index], R, Flags);
   end;
 
@@ -2293,7 +2324,7 @@ begin
   DoDrawItem(Canvas, Rect, Index, State, pstPostPaint, PaintDefault);
 end;
 
-procedure TSpTBXCheckListBox.DrawItemBackground(Index: Integer; Rect: TRect;
+procedure TSpTBXCheckListBox.DrawItemBackground(Index: Integer; ARect: TRect;
   State: TOwnerDrawState);
 var
   ACheckWidth: Integer;
@@ -2302,40 +2333,40 @@ var
 begin
   // Draw the checkbox, background and focus
   PaintDefault := True;
-  DoDrawItemBackground(Canvas, Rect, Index, State, pstPrePaint, PaintDefault);
+  DoDrawItemBackground(Canvas, ARect, Index, State, pstPrePaint, PaintDefault);
   if PaintDefault then begin
     if not Header[Index] then begin
       // Draw the checkbox
       ACheckWidth := GetCheckWidth;
       if not UseRightToLeftAlignment then begin
-        R.Right := Rect.Left;
+        R.Right := ARect.Left;
         R.Left := R.Right - ACheckWidth;
       end
       else begin
-        R.Left := Rect.Right;
+        R.Left := ARect.Right;
         R.Right := R.Left + ACheckWidth;
       end;
-      R.Top := Rect.Top + (Rect.Bottom - Rect.Top - ACheckWidth) div 2;
+      R.Top := ARect.Top + (ARect.Bottom - ARect.Top - ACheckWidth) div 2;
       R.Bottom := R.Top + ACheckWidth;
-      InflateRect(R, -1, -1);
 
+      if SkinManager.GetSkinType = sknSkin then
       Canvas.FillRect(R);
       SpDrawXPCheckBoxGlyph(Canvas, R, ItemEnabled[Index], Self.State[Index], False, False);
 
       // Draw the background and focus
-      SpDrawXPListItemBackground(Canvas, Rect, odSelected in State, False, odFocused in State);
+      SpDrawXPListItemBackground(Canvas, ARect, odSelected in State, False, odFocused in State);
     end
     else begin
       Canvas.Font.Color := HeaderColor;
       Canvas.Brush.Color := HeaderBackgroundColor;
-      Canvas.FillRect(Rect);
+      Canvas.FillRect(ARect);
       if odFocused in State then
-        SpDrawFocusRect(Canvas, Rect);
+        SpDrawFocusRect(Canvas, ARect);
     end;
   end;
 
   PaintDefault := True;
-  DoDrawItemBackground(Canvas, Rect, Index, State, pstPostPaint, PaintDefault);
+  DoDrawItemBackground(Canvas, ARect, Index, State, pstPostPaint, PaintDefault);
 end;
 
 procedure TSpTBXCheckListBox.CNDrawItem(var Message: TWMDrawItem);
@@ -2401,13 +2432,13 @@ begin
   inherited;
 end;
 
-function TSpTBXEditItem.DoAcceptText(var NewText: WideString): Boolean;
+function TSpTBXEditItem.DoAcceptText(var NewText: string): Boolean;
 begin
   Result := True;
   if Assigned(FOnAcceptText) then FOnAcceptText(Self, NewText, Result);
 end;
 
-function TSpTBXEditItem.DoAutoComplete(var AText: WideString): Boolean;
+function TSpTBXEditItem.DoAutoComplete(var AText: string): Boolean;
 begin
   Result := False;
 end;
@@ -2417,17 +2448,17 @@ begin
   if Assigned(FOnBeginEdit) then FOnBeginEdit(Self, Viewer, Viewer.EditControl);
 end;
 
-procedure TSpTBXEditItem.DoChange(const AText: WideString);
+procedure TSpTBXEditItem.DoChange(const AText: string);
 begin
   if Assigned(FOnChange) then FOnChange(Self, AText);
 end;
 
-procedure TSpTBXEditItem.DoTextChanging(const OldText: WideString;
-  var NewText: WideString; Reason: Integer);
+procedure TSpTBXEditItem.DoTextChanging(const OldText: string;
+  var NewText: string; Reason: Integer);
 begin
   case CharCase of
-    ecUpperCase: NewText := WideUpperCase(NewText);
-    ecLowerCase: NewText := WideLowerCase(NewText);
+    ecUpperCase: NewText := UpperCase(NewText);
+    ecLowerCase: NewText := LowerCase(NewText);
   end;
 end;
 
@@ -2449,7 +2480,7 @@ begin
   Result := GetItemViewerClass(AViewer.View) <> AViewer.ClassType;
 end;
 
-procedure TSpTBXEditItem.SetPasswordChar(Value: WideChar);
+procedure TSpTBXEditItem.SetPasswordChar(Value: Char);
 begin
   if Value <> FPasswordChar then begin
     FPasswordChar := Value;
@@ -2467,7 +2498,7 @@ end;
 
 function TSpTBXEditItem.StartEditing(AView: TTBView): Boolean;
 var
-  SaveText: WideString;
+  SaveText: string;
 begin
   SaveText := Text;
   SpFocusEditItem(Self, AView);
@@ -2491,7 +2522,7 @@ begin
   end;
 end;
 
-procedure TSpTBXEditItem.SetEditCaption(const Value: WideString);
+procedure TSpTBXEditItem.SetEditCaption(const Value: string);
 begin
   if FEditCaption <> Value then begin
     FEditCaption := Value;
@@ -2512,12 +2543,12 @@ begin
   end;
 end;
 
-procedure TSpTBXEditItem.SetText(Value: WideString);
+procedure TSpTBXEditItem.SetText(Value: string);
 begin
   SetTextEx(Value, tcrSetProperty);
 end;
 
-procedure TSpTBXEditItem.SetTextEx(Value: WideString; Reason: Integer);
+procedure TSpTBXEditItem.SetTextEx(Value: string; Reason: Integer);
 begin
   DoTextChanging(FText, Value, Reason);
   // Case Sensitive, fire the event when the text is changed
@@ -2535,7 +2566,7 @@ procedure TSpTBXEditItemViewer.EditWndProc(var Message: TMessage);
 
   procedure AcceptText;
   var
-    S: WideString;
+    S: string;
   begin
     S := GetEditControlText;
     if Item.DoAcceptText(S) then Item.SetTextEx(S, tcrEditControl);
@@ -2577,7 +2608,7 @@ begin
   Result := TSpTBXUnicodeEdit;
 end;
 
-function TSpTBXEditItemViewer.GetEditControlText: WideString;
+function TSpTBXEditItemViewer.GetEditControlText: string;
 begin
   Result := '';
   if Assigned(FEditControl) then begin
@@ -2702,7 +2733,7 @@ begin
   Result := not IsToolbarStyle and inherited CaptionShown;
 end;
 
-function TSpTBXEditItemViewer.GetCaptionText: WideString;
+function TSpTBXEditItemViewer.GetCaptionText: string;
 begin
   Result := TSpTBXEditItem(Item).EditCaption;
 end;
@@ -2714,7 +2745,7 @@ begin
     SpFillRect(ACanvas, ARect, clWindow, clBtnFace)
   else begin
     SpDrawXPEditFrame(ACanvas, ARect, ItemInfo.Enabled, ItemInfo.HotTrack);
-    InflateRect(ARect, -SpDpiScale(2), -SpDpiScale(2));
+    InflateRect(ARect, -2, -2);  // Do not use SpDPIScale, border size is always 2
     SpFillRect(ACanvas, ARect, CurrentSkin.GetThemedSystemColor(clWindow));
   end;
 end;
@@ -2736,7 +2767,7 @@ const
   Alignments: array [TAlignment] of Integer = (DT_LEFT, DT_RIGHT, DT_CENTER);
 var
   DC: HDC;
-  S: WideString;
+  S: string;
   R, ImageRect: TRect;
   ImgList: TCustomImageList;
   TextSize: TSize;
@@ -2960,7 +2991,7 @@ function TSpTBXEditItemViewer.EditLoop(const CapHandle: HWND): Boolean;
 var
   R: TRect;
   ActiveWnd, FocusWnd: HWND;
-  S: WideString;
+  S: string;
 begin
   GetEditRect(R);
   if IsRectEmpty(R) then begin
@@ -3172,14 +3203,14 @@ begin
 end;
 
 procedure TSpTBXSpinEditItem.SpinOptionsGetText(Sender: TObject;
-  var NewText: WideString; var Accept: Boolean);
+  var NewText: string; var Accept: Boolean);
 begin
   // Event used by SpinOptions to get the text from the edit control
   NewText := Text;
 end;
 
 procedure TSpTBXSpinEditItem.SpinOptionsSetText(Sender: TObject;
-  const AText: WideString);
+  const AText: string);
 begin
   // Event used by SpinOptions to set the edit control text
   Text := AText;
@@ -3204,7 +3235,7 @@ end;
 function TSpTBXSpinEditViewer.GetIndentAfter: Integer;
 begin
   if IsToolbarStyle then
-    Result := DefaultSpinButtonSize + SpDPIScale(1)
+    Result := CDefaultSpinButtonSize + SpDPIScale(1)
   else
     Result := GetSystemMetrics(SM_CXMENUCHECK) + SpDPIScale(1);
 end;
@@ -3216,7 +3247,8 @@ end;
 
 function TSpTBXSpinEditViewer.HandleEditMessage(var Message: TMessage): Boolean;
 begin
-  if Message.Msg = WM_CHAR then
+  case Message.Msg of
+    WM_CHAR:
     case TWMChar(Message).CharCode of
       VK_TAB, VK_RETURN:
         begin
@@ -3224,9 +3256,8 @@ begin
           Item.SpinOptions.UpdateValueFromText;
           EditControl.Text := Item.Text;
         end;
-    end
-  else
-    if Message.Msg = WM_KEYDOWN then
+      end;
+    WM_KEYDOWN:
       case TWMKeyDown(Message).CharCode of
         VK_UP:
           begin
@@ -3245,6 +3276,15 @@ begin
             Exit;
           end;
       end;
+    WM_MOUSEWHEEL:
+      if Item.SpinOptions.MouseWheel then begin
+        if Smallint(Message.wParam shr 16) > 0 then
+          Item.SpinOptions.ValueInc
+        else
+          Item.SpinOptions.ValueDec;
+        EditControl.Text := Item.Text;
+      end;
+  end;
 
   Result := inherited HandleEditMessage(Message);
 end;
@@ -3369,6 +3409,4 @@ begin
     else FreeAndNil(FTimer);
 end;
 
-initialization
-  DefaultSpinButtonSize:= SpDPIScale(14);
 end.

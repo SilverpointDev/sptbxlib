@@ -9,7 +9,7 @@ uses
   TB2Item, TB2Toolbar, TB2Dock, TB2ExtItems,
   // SpTBXLib
   SpTBXSkins, SpTBXItem, SpTBXDkPanels, SpTBXTabs, SpTBXEditors, SpTBXControls,
-  SpTBXExtEditors, System.ImageList;
+  SpTBXExtEditors, System.ImageList, Vcl.Samples.Spin;
 
 type
   TForm1 = class(TForm)
@@ -141,7 +141,7 @@ type
     procedure SpTBXTabControl2Resize(Sender: TObject);
     procedure rgSkinTypeClick(Sender: TObject);
     procedure hintLabelDrawHint(Sender: TObject;
-      AHintBitmap: TBitmap; var AHint: WideString;
+      AHintBitmap: TBitmap; var AHint: string;
       var PaintDefault: Boolean);
     procedure progressDecClick(Sender: TObject);
     procedure progressIncClick(Sender: TObject);
@@ -269,7 +269,7 @@ begin
   SpTBXSpinEditItem1.CustomWidth := SpDPIScale(SpTBXSpinEditItem1.CustomWidth);
   SpTBXEditItem1.CustomWidth := SpDPIScale(SpTBXEditItem1.CustomWidth);
   SpTBXDockablePanel2.DockPos := SpDPIScale(SpTBXDockablePanel2.DockPos);
-  SpScaleImageList(ImageList1, Screen.PixelsPerInch, 96);
+  SpDPIScaleImageList(ImageList1);
 end;
 
 procedure TForm1.FormDestroy(Sender: TObject);
@@ -412,7 +412,6 @@ end;
 procedure TForm1.skinButtonClick(Sender: TObject);
 var
   S: string;
-  I: Integer;
 begin
   S := AppPath + 'Skins';
   if DirectoryExists(S) then
@@ -422,10 +421,10 @@ begin
   if OpenDialog1.Execute then
     if FileExists(OpenDialog1.FileName) then begin
       // Load the skin file and add it to the SkinList
-      I := SkinManager.SkinsList.AddSkinFromFile(OpenDialog1.FileName);
-      if I > -1 then begin
-        // Set the new skin
-        FLastSkin := SkinManager.SkinsList[I];
+      S := SkinManager.AddSkinFromFile(OpenDialog1.FileName);
+      if S <> '' then begin
+         // Set the new skin
+        FLastSkin := S;
         SkinManager.SetSkin(FLastSkin);
         // Recreate the SkinGroupItem
         SpTBXSkinGroupItem1.Recreate;
@@ -457,7 +456,7 @@ end;
 { StatusBar }
 
 procedure TForm1.hintLabelDrawHint(Sender: TObject;
-  AHintBitmap: TBitmap; var AHint: WideString; var PaintDefault: Boolean);
+  AHintBitmap: TBitmap; var AHint: string; var PaintDefault: Boolean);
 var
   R, GR, TR: TRect;
   WS: WideString;

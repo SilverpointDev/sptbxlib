@@ -208,7 +208,7 @@ begin
 
   if BitMapList.Count = 1 then begin
     Bitmap := TObject(BitmapList[0]) as TBitmap;
-    SpResizeBitmap(Bitmap, MulDiv(Bitmap.Width, DPI, 96), Muldiv(Bitmap.Height, DPI, 96));
+    SpDPIResizeBitmap(Bitmap, MulDiv(Bitmap.Width, DPI, 96), Muldiv(Bitmap.Height, DPI, 96));
 
     StyleObjectList := TRttiContext.Create.GetType(SeStyleSource.ClassType).GetField('FObjects').GetValue(SeStyleSource).AsObject as TList;
     for i := 0 to StyleObjectList.Count -1 do begin

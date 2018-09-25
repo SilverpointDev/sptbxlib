@@ -1,3 +1,6 @@
+// JCL_DEBUG_EXPERT_GENERATEJDBG OFF
+// JCL_DEBUG_EXPERT_INSERTJDBG OFF
+// JCL_DEBUG_EXPERT_DELETEMAPFILE OFF
 program Overview;
 
 uses
@@ -12,6 +15,7 @@ uses
 begin
   TStyleManager.TrySetStyle('Windows10 Dark');
   Application.Initialize;
+  Application.MainFormOnTaskBar := True;
   TStyleManager.TrySetStyle('Windows10 Blue');
   Application.CreateForm(TForm1, Form1);
   Application.Run;

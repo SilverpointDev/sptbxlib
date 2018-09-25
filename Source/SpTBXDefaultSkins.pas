@@ -1,7 +1,7 @@
 unit SpTBXDefaultSkins;
 
 {==============================================================================
-Version 2.5.3
+Version 2.5.4
 
 The contents of this file are subject to the SpTBXLib License; you may
 not use or distribute this file except in compliance with the
@@ -2098,18 +2098,18 @@ begin
 end;
 
 initialization
-  SkinManager.SkinsList.AddSkin('Aluminum', TSpTBXAluminumSkin);
-  SkinManager.SkinsList.AddSkin('Athen', TSpTBXAthenSkin);
-  SkinManager.SkinsList.AddSkin('Dream', TSpTBXDreamSkin);
-  SkinManager.SkinsList.AddSkin('Eos', TSpTBXEosSkin);
-  SkinManager.SkinsList.AddSkin('Human', TSpTBXHumanSkin);
-  SkinManager.SkinsList.AddSkin('Leopard', TSpTBXLeopardSkin);
-  SkinManager.SkinsList.AddSkin('Xito', TSpTBXXitoSkin);
-  { Office }
-  SkinManager.SkinsList.AddSkin('Office XP', TSpTBXOfficeXPSkin);
-  SkinManager.SkinsList.AddSkin('Office 2003', TSpTBXOffice2003Skin);
-  SkinManager.SkinsList.AddSkin('Office 2007 Blue', TSpTBXOffice2007BlueSkin);
-  SkinManager.SkinsList.AddSkin('Office 2007 Black', TSpTBXOffice2007BlackSkin);
-  SkinManager.SkinsList.AddSkin('Office 2007 Silver', TSpTBXOffice2007SilverSkin);
+  SkinManager.AddSkin('Aluminum', TSpTBXAluminumSkin);
+  SkinManager.AddSkin('Athen', TSpTBXAthenSkin);
+  SkinManager.AddSkin('Dream', TSpTBXDreamSkin);
+  SkinManager.AddSkin('Eos', TSpTBXEosSkin);
+  SkinManager.AddSkin('Human', TSpTBXHumanSkin);
+  SkinManager.AddSkin('Leopard', TSpTBXLeopardSkin);
+  SkinManager.AddSkin('Xito', TSpTBXXitoSkin);
+  // Office
+  SkinManager.AddSkin('Office XP', TSpTBXOfficeXPSkin);
+  SkinManager.AddSkin('Office 2003', TSpTBXOffice2003Skin);
+  SkinManager.AddSkin('Office 2007 Blue', TSpTBXOffice2007BlueSkin);
+  SkinManager.AddSkin('Office 2007 Black', TSpTBXOffice2007BlackSkin);
+  SkinManager.AddSkin('Office 2007 Silver', TSpTBXOffice2007SilverSkin);
 
 end.

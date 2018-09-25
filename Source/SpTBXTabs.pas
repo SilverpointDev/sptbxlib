@@ -1,7 +1,7 @@
 unit SpTBXTabs;
 
 {==============================================================================
-Version 2.5.3
+Version 2.5.4
 
 The contents of this file are subject to the SpTBXLib License; you may
 not use or distribute this file except in compliance with the
@@ -167,7 +167,7 @@ type
     procedure DoDrawButton(ACanvas: TCanvas; ARect: TRect; ItemInfo: TSpTBXMenuItemInfo;
       const PaintStage: TSpTBXPaintStage; var PaintDefault: Boolean); override;
     procedure DoDrawCaption(ACanvas: TCanvas; ClientAreaRect: TRect; State: TSpTBXSkinStatesType;
-      var ACaption: WideString; var CaptionRect: TRect; var CaptionFormat: Cardinal;
+      var ACaption: string; var CaptionRect: TRect; var CaptionFormat: Cardinal;
       IsTextRotated: Boolean; const PaintStage: TSpTBXPaintStage; var PaintDefault: Boolean); override;
     procedure DoDrawImage(ACanvas: TCanvas; State: TSpTBXSkinStatesType;
       const PaintStage: TSpTBXPaintStage; var AImageList: TCustomImageList;
@@ -279,9 +279,9 @@ type
     FPrevFocused: TWincontrol;
     procedure ReadItemName(Reader: TReader);
     procedure WriteItemName(Writer: TWriter);
-    function GetCaption: WideString;
+    function GetCaption: string;
     function GetTabVisible: Boolean;
-    procedure SetCaption(const Value: WideString);
+    procedure SetCaption(const Value: string);
     procedure SetTabVisible(const Value: Boolean);
     function GetImageIndex: Integer;
     procedure SetImageIndex(const Value: Integer);
@@ -307,7 +307,7 @@ type
     property OnAlignInsertBefore;
     property OnAlignPosition;
     property PopupMenu;
-    property Caption: WideString read GetCaption write SetCaption;
+    property Caption: string read GetCaption write SetCaption;
     property ImageIndex: Integer read GetImageIndex write SetImageIndex;
     property TabVisible: Boolean read GetTabVisible write SetTabVisible default True;
   end;
@@ -403,8 +403,8 @@ type
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
-    function Add(ACaption: WideString): TSpTBXTabItem;
-    function Insert(NewIndex: Integer; ACaption: WideString): TSpTBXTabItem;
+    function Add(ACaption: string): TSpTBXTabItem;
+    function Insert(NewIndex: Integer; ACaption: string): TSpTBXTabItem;
     function DrawBackground(DC: HDC; ARect: TRect): Boolean;
     function GetTabSetHeight: Integer;
     procedure InvalidateBackground(InvalidateChildren: Boolean = True); override;
@@ -988,8 +988,8 @@ begin
 
     // Match the bottom of the Tab with the bottom of the TabSet
     case Position of
-      ttpTop:    ARect.Bottom := ARect.Bottom + SpDpiScale(1);
-      ttpBottom: ARect.Top := ARect.Top - SpDpiScale(1);
+      ttpTop:    ARect.Bottom := ARect.Bottom + SpDPIScale(1);
+      ttpBottom: ARect.Top := ARect.Top - SpDPIScale(1);
     end;
     R := ARect;
 
@@ -1000,8 +1000,8 @@ begin
           not CurrentSkin.Options(skncTab, sknsNormal).Borders.IsEmpty then
         begin
           case Position of
-            ttpTop:    Inc(R.Bottom, SpDpiScale(5));
-            ttpBottom: Dec(R.Top, SpDpiScale(5));
+            ttpTop:    Inc(R.Bottom, SpDPIScale(5));
+            ttpBottom: Dec(R.Top, SpDPIScale(5));
           end;
           DrawTab(ACanvas, R, Item.Enabled, Item.Checked, IsHoverItem, Position);
         end
@@ -1027,16 +1027,16 @@ begin
             // The left border of the Tab will be painted by the Left tab if
             // its the first tab
             if Assigned(LeftT) or (Item.IsFirstVisible) then
-              R.Left := R.Left - SpDpiScale(2);
+              R.Left := R.Left - SpDPIScale(2);
             // The right border of the Tab will be painted by the Right tab
             if Assigned(RightT) then
-              R.Right := R.Right + SpDpiScale(2);
+              R.Right := R.Right + SpDPIScale(2);
           end
           else begin
             // Non checked tabs should be smaller
             case Position of
-              ttpTop:    Inc(R.Top, SpDpiScale(2));
-              ttpBottom: Dec(R.Bottom, SpDpiScale(2));
+              ttpTop:    Inc(R.Top, SpDPIScale(2));
+              ttpBottom: Dec(R.Bottom, SpDPIScale(2));
             end;
           end;
 
@@ -1048,15 +1048,15 @@ begin
             R := ARect;
             // Draw the left border
             if Assigned(LeftT) and LeftT.Item.Checked then begin
-              R.Right := R.Left + SpDpiScale(2);
-              R.Left := R.Right - SpDpiScale(10);
+              R.Right := R.Left + SpDPIScale(2);
+              R.Left := R.Right - SpDPIScale(10);
               DrawTab(ACanvas, R, LeftT.Item.Enabled, True, IsHoverItem, Position);
             end
             else
               // Draw the right border
               if Assigned(RightT) and RightT.Item.Checked then begin
-                R.Left := R.Right - SpDpiScale(2);
-                R.Right := R.Left + SpDpiScale(10);
+                R.Left := R.Right - SpDPIScale(2);
+                R.Right := R.Left + SpDPIScale(10);
                 DrawTab(ACanvas, R, RightT.Item.Enabled, True, IsHoverItem, Position);
               end;
           end;
@@ -1066,7 +1066,7 @@ begin
 end;
 
 procedure TSpTBXTabItemViewer.DoDrawCaption(ACanvas: TCanvas; ClientAreaRect: TRect;
-  State: TSpTBXSkinStatesType; var ACaption: WideString; var CaptionRect: TRect;
+  State: TSpTBXSkinStatesType; var ACaption: string; var CaptionRect: TRect;
   var CaptionFormat: Cardinal; IsTextRotated: Boolean;
   const PaintStage: TSpTBXPaintStage; var PaintDefault: Boolean);
 begin
@@ -1096,7 +1096,6 @@ procedure TSpTBXTabItemViewer.DrawBottomBorder(ACanvas: TCanvas; ARect: TRect);
 var
   CR, R: TRect;
   Edge: TSpTBXTabEdge;
-  LeftT, RightT: Boolean;
   Position: TSpTBXTabPosition;
   B: TBitmap;
 begin
@@ -1108,40 +1107,25 @@ begin
 
   case Position of
     ttpTop:
-      Inc(CR.Bottom, SpDpiScale(2));
+      Inc(CR.Bottom, SpDPIScale(2));
     ttpBottom:
-      begin
-        // When sknNone the bottom border size is 2
-        if SkinManager.GetSkinType = sknNone then
-          Dec(CR.Top, SpDpiScale(2))
-        else
-          Dec(CR.Top, SpDpiScale(2));
-      end;
+      Dec(CR.Top, SpDPIScale(2));
   end;
 
   if SkinManager.GetSkinType in [sknWindows, sknDelphiStyle] then begin
-    LeftT := Assigned(SpGetNextTabItemViewer(View, Self, False, sivtInmediateSkipNonVisible));
-    RightT := Assigned(SpGetNextTabItemViewer(View, Self, True, sivtInmediateSkipNonVisible));
-
     if Item.IsFirstVisible then  // Is first IV?
       Edge := tedLeft;
-
-    if Edge = tedLeft then begin
-      CR.Left := CR.Left - SpDpiScale(2);
-      if RightT then
-        CR.Right := CR.Right + SpDpiScale(2);
-    end
-    else begin
-      if LeftT then
-        CR.Left := CR.Left - SpDpiScale(2);
-      if RightT then
-        CR.Right := CR.Right + SpDpiScale(2);
-    end;
+    // Grow the left border if it's the first visible or there is a left tab
+    if Item.IsFirstVisible or Assigned(SpGetNextTabItemViewer(View, Self, False, sivtInmediateSkipNonVisible)) then
+      CR.Left := CR.Left - CDefaultToolbarBorderSize;
+    // Grow the right border if there is a right tab
+    if Assigned(SpGetNextTabItemViewer(View, Self, True, sivtInmediateSkipNonVisible)) then
+      CR.Right := CR.Right + CDefaultToolbarBorderSize;
   end;
 
   B := TBitmap.Create;
   try
-    B.SetSize(CR.Right - CR.Left, CR.Bottom - CR.Top + SpDpiScale(4)); // Larger than CR
+    B.SetSize(CR.Right - CR.Left, CR.Bottom - CR.Top + SpDPIScale(4)); // Larger than CR
     R := Rect(0, 0, B.Width, B.Height);
     DrawTab(B.Canvas, R, True, True, False, Position, False, Edge);
 
@@ -1149,7 +1133,7 @@ begin
       ttpTop:
         R  := Bounds(0, 0, CR.Right - CR.Left, CR.Bottom - CR.Top); // Copy from Y = 0
       ttpBottom:
-        R  := Bounds(0, SpDpiScale(2), CR.Right - CR.Left, CR.Bottom - CR.Top + SpDpiScale(2)); // Copy from Y = 2
+        R  := Bounds(0, SpDPIScale(2), CR.Right - CR.Left, CR.Bottom - CR.Top + SpDPIScale(2)); // Copy from Y = 2
     end;
 
     ACanvas.CopyRect(CR, B.Canvas, R);
@@ -1192,7 +1176,7 @@ begin
     PaintDefault := True;
     if ImgList = MDIButtonsImgList then begin
       PatternColor := GetTextColor(ItemInfo.State);
-      SpDrawGlyphPattern(ACanvas, ARect, ImgIndex, PatternColor, SpDPIScale(8), SpDPIScale(8));
+      SpDrawGlyphPattern(ACanvas, ARect, TSpTBXGlyphPattern(ImgIndex), PatternColor);
     end
     else
       DoDrawTabCloseButton(ACanvas, ItemInfo.State, pstPostPaint, ImgList, ImgIndex, ARect, PaintDefault);
@@ -1206,7 +1190,7 @@ procedure TSpTBXTabItemViewer.DrawTab(ACanvas: TCanvas; ARect: TRect; AEnabled,
   ASeparator: Boolean; AEdge: TSpTBXTabEdge);
 begin
   if ASeparator then begin
-    ARect.Left := ARect.Right - SpDpiScale(2);
+    ARect.Left := ARect.Right - SpDPIScale(2);
     SpDrawXPMenuSeparator(ACanvas, ARect, False, True)
   end
   else begin
@@ -1227,7 +1211,7 @@ var
 begin
   RightGlyphSize := GetRightImageSize;
   R := BoundsRect;
-  InflateRect(R, -SpDpiScale(4), -SpDpiScale(4));  // Apply borders
+  InflateRect(R, -SpDPIScale(4), -SpDPIScale(4));  // Apply borders
 
   Result.Left := R.Right - RightGlyphSize.cx;
   Result.Right := Result.Left + RightGlyphSize.cx;
@@ -1473,13 +1457,15 @@ var
   IV: TTBItemViewer;
   PrevDelta, NextDelta: Integer;
 begin
+  // Draw on NC area of the toolbar
+  // Left border of the first tab if it's active
+  // Bottom border of the tabset
   if PaintOnNCArea and Assigned(FOwnerTabControl) then begin
     B := TBitmap.Create;
     B.Canvas.Lock;
     try
       R := ARect;
       B.SetSize(R.Right - R.Left, R.Bottom - R.Top);
-
       SpDrawXPToolbar(Self, B.Canvas, R, PaintOnNCArea, FTabBackgroundBorders and (SkinManager.GetSkinType <> sknNone), skncTabToolbar);
 
       // Draw the bottom border of the active tab
@@ -1489,28 +1475,27 @@ begin
         if Assigned(IV) then begin
           FActiveTabRect := IV.BoundsRect;
           DestR := IV.BoundsRect;
-          OffsetRect(DestR, SpDpiScale(2), SpDpiScale(2));  // Add the toolbar margins
+          // Add the toolbar margins to DestR
+          OffsetRect(DestR, CDefaultToolbarBorderSize, CDefaultToolbarBorderSize);
+          // Draw the bottom border (and the left border if it's the first active tab)
           TSpTBXTabItemViewer(IV).DrawBottomBorder(B.Canvas, DestR);
         end;
+
+        // Exclude clip rect of the bottom borders
+        PrevDelta := 1;
+        NextDelta := 1;
         if SkinManager.GetSkinType in [sknWindows, sknDelphiStyle] then begin
-          if Tab.IsFirstVisible or Assigned(Tab.GetNextTab(False, sivtInmediateSkipNonVisible)) then
-            PrevDelta := SpDpiScale(1)
-          else
-            PrevDelta := -SpDpiScale(1);
-          if Assigned(Tab.GetNextTab(True, sivtInmediateSkipNonVisible)) then
-            NextDelta := SpDpiScale(1)
-          else
-            NextDelta := -SpDpiScale(1);
+          // Grow the size of the clip rect when using Windows theme
+          PrevDelta := -SpDPIScale(PrevDelta); // -PrevDelta;
+          NextDelta := -SpDPIScale(NextDelta); // -NextDelta;
+          // Special case: the right side of the last tab is not bigger
+          if not Assigned(Tab.GetNextTab(True, sivtInmediateSkipNonVisible)) then
+            NextDelta := 1;
+        end;
           if FTabPosition = ttpTop then
-            ExcludeClipRect(B.Canvas.Handle, DestR.Left - PrevDelta, R.Bottom - 2, DestR.Right + NextDelta, R.Bottom + SpDpiScale(4))
-          else
-            ExcludeClipRect(B.Canvas.Handle, DestR.Left - PrevDelta, R.Top + 2, DestR.Right + NextDelta, R.Top - SpDpiScale(4));
-        end
+          ExcludeClipRect(B.Canvas.Handle, DestR.Left + PrevDelta, R.Bottom - SpDPIScale(2), DestR.Right - NextDelta, R.Bottom + SpDPIScale(4))
         else
-          if FTabPosition = ttpTop then
-            ExcludeClipRect(B.Canvas.Handle, DestR.Left + SpDpiScale(1), R.Bottom - SpDpiScale(2), DestR.Right - SpDpiScale(1), R.Bottom + SpDpiScale(4))
-          else
-            ExcludeClipRect(B.Canvas.Handle, DestR.Left + SpDpiScale(1), R.Top + SpDpiScale(2), DestR.Right -SpDpiScale(1) , R.Top - SpDpiScale(4));
+          ExcludeClipRect(B.Canvas.Handle, DestR.Left + PrevDelta, R.Top + SpDPIScale(2), DestR.Right - NextDelta, R.Top - SpDPIScale(4));
       end;
 
       // Draw the bottom border of the tabs pane
@@ -1518,17 +1503,19 @@ begin
       case FTabPosition of
         ttpTop:
           begin
-            DestR := Rect(R.Left, R.Bottom - SpDpiScale(2), R.Right, R.Bottom);
-            BitmapR.Bottom := BitmapR.Top + SpDpiScale(2);
+            // Use the toolbar margins
+            DestR := Rect(R.Left, R.Bottom - CDefaultToolbarBorderSize, R.Right, R.Bottom);
+            BitmapR.Bottom := BitmapR.Top + CDefaultToolbarBorderSize;
           end;
         ttpBottom:
           begin
-            DestR := Rect(R.Left, R.Top, R.Right, R.Top + SpDpiScale(2));
-            BitmapR.Top := BitmapR.Bottom - SpDpiScale(2);
+            // Use the toolbar margins
+            DestR := Rect(R.Left, R.Top, R.Right, R.Top + CDefaultToolbarBorderSize);
+            BitmapR.Top := BitmapR.Bottom - CDefaultToolbarBorderSize;
           end;
       end;
-
       B.Canvas.CopyRect(DestR, FOwnerTabControl.FBackground.Canvas, BitmapR);
+
       ACanvas.Draw(0, 0, B);
     finally
       B.Canvas.UnLock;
@@ -1629,7 +1616,7 @@ begin
           Inc(TabsCount)
         else
           if IV.Item is TSpTBXRightAlignSpacerItem then
-            Inc(RightAlignWidth, SpDpiScale(20))
+            Inc(RightAlignWidth, SpDPIScale(20))
           else begin
             R := SpGetBoundsRect(IV, Items);
             Inc(NonTabsArea, R.Right - R.Left);
@@ -1639,7 +1626,7 @@ begin
 
     // Get TabsArea
     if TabsCount > 0 then begin
-      TabsArea := CurrentDock.ClientWidth - SpDpiScale(4) - NonTabsArea - RightAlignWidth;
+      TabsArea := CurrentDock.ClientWidth - SpDPIScale(4) - NonTabsArea - RightAlignWidth;
       TabsWidth := TabsArea div TabsCount;
       if TabsWidth > FTabAutofitMaxSize then
         TabsWidth := FTabAutofitMaxSize;
@@ -1695,20 +1682,20 @@ begin
     Spacer := SpGetRightAlignedItems(View, RightAlignedList, IsRotated, VisibleWidth, RightAlignedWidth);
     if Assigned(Spacer) then begin
       SpacerW := Spacer.BoundsRect.Right - Spacer.BoundsRect.Left;
-      RightAlignedBorder := CurrentDock.Width - SpDpiScale(2) - RightAlignedWidth + SpacerW;
+      RightAlignedBorder := CurrentDock.Width - SpDPIScale(2) - RightAlignedWidth + SpacerW;
       VisibleWidth := VisibleWidth - SpacerW;
-      SpacerW := CurrentDock.Width - VisibleWidth - SpDpiScale(4);
+      SpacerW := CurrentDock.Width - VisibleWidth - SpDPIScale(4);
     end
     else begin
       SpacerW := 0;
-      RightAlignedBorder := CurrentDock.Width - SpDpiScale(2);
+      RightAlignedBorder := CurrentDock.Width - SpDPIScale(2);
     end;
 
     // Show items
     VisibleTabsCount := GetTabsCount(True);
     IsFirstPartiallyVisible := False;
     if VisibleTabsCount = 1 then begin
-      if VisibleWidth > CurrentDock.Width - SpDpiScale(2) then
+      if VisibleWidth > CurrentDock.Width - SpDPIScale(2) then
         IsFirstPartiallyVisible := True;
     end;
 
@@ -1733,7 +1720,7 @@ begin
             H := 0;
             TTBItemViewerAccess(IV).CalcSize(Canvas, W, H);
             VisibleWidth := VisibleWidth + W;
-            if (VisibleTabsCount = 0) or (VisibleWidth < CurrentDock.Width - SpDpiScale(2)) then begin
+            if (VisibleTabsCount = 0) or (VisibleWidth < CurrentDock.Width - SpDPIScale(2)) then begin
               SpacerW := SpacerW - W;
               FHiddenTabs.Delete(J);
               IV.Item.Visible := True;
@@ -1755,7 +1742,7 @@ begin
             H := 0;
             TTBItemViewerAccess(IV).CalcSize(Canvas, W, H);
             VisibleWidth := VisibleWidth + W;
-            if (VisibleTabsCount = 0) or (VisibleWidth < CurrentDock.Width - SpDpiScale(2)) then begin
+            if (VisibleTabsCount = 0) or (VisibleWidth < CurrentDock.Width - SpDPIScale(2)) then begin
               SpacerW := SpacerW - W;
               FHiddenTabs.Delete(J);
               IV.Item.Visible := True;
@@ -1859,7 +1846,7 @@ var
         H := 0;
         TTBItemViewerAccess(IV).CalcSize(Canvas, W, H);
         if ToRight then begin
-          while Assigned(FirstIV) and (VisibleWidth + W >= CurrentDock.ClientWidth - SpDpiScale(2)) do begin
+          while Assigned(FirstIV) and (VisibleWidth + W >= CurrentDock.ClientWidth - SpDPIScale(2)) do begin
             VisibleWidth := VisibleWidth - (FirstIV.BoundsRect.Right - FirstIV.BoundsRect.Left);
             FHiddenTabs.Add(FirstIV.Item);
             FirstIV.Item.Visible := False;
@@ -1868,7 +1855,7 @@ var
           end;
         end
         else begin
-          while Assigned(LastIV) and (VisibleWidth + W >= CurrentDock.ClientWidth - SpDpiScale(2)) do begin
+          while Assigned(LastIV) and (VisibleWidth + W >= CurrentDock.ClientWidth - SpDPIScale(2)) do begin
             VisibleWidth := VisibleWidth - (LastIV.BoundsRect.Right - LastIV.BoundsRect.Left);
             FHiddenTabs.Add(LastIV.Item);
             LastIV.Item.Visible := False;
@@ -1879,7 +1866,7 @@ var
 
         // Try to show all the necessary clipped tabs
         IVIndex := IV.Index;
-        while Assigned(IV) and (ClippedIndex > -1) and ((VisibleTabsCount = 0) or (VisibleWidth + W <= CurrentDock.ClientWidth - SpDpiScale(2))) do begin
+        while Assigned(IV) and (ClippedIndex > -1) and ((VisibleTabsCount = 0) or (VisibleWidth + W <= CurrentDock.ClientWidth - SpDPIScale(2))) do begin
           VisibleWidth := VisibleWidth + W;
           IV.Item.Visible := True;
           FHiddenTabs.Delete(ClippedIndex);
@@ -2161,7 +2148,7 @@ begin
         if FTabDragReorder and not IsCustomizing and IV.Item.Checked then begin
           Result := True; // Bypass the inherited mouse down
           FBeginDragIV := IV;
-          BeginDrag(False, SpDpiScale(2));
+          BeginDrag(False, SpDPIScale(2));
         end;
       end;
     end
@@ -2203,7 +2190,7 @@ begin
       if Assigned(RightAlignIV) then
         RightAlignPos := Items.IndexOf(RightAlignIV.Item)
       else
-        RightAlignPos := -SpDpiScale(1);
+        RightAlignPos := -SpDPIScale(1);
       if (OrigPos <> DestPos) and (DestPos > -1) and (DestPos < Items.Count) and (OrigItem <> DestIV.Item) and
         not ((RightAlignPos > -1) and (DestPos >= RightAlignPos)) then
       begin
@@ -2358,7 +2345,7 @@ begin
   inherited;
 end;
 
-function TSpTBXTabSheet.GetCaption: WideString;
+function TSpTBXTabSheet.GetCaption: string;
 begin
   if Assigned(FItem) then Result := FItem.Caption
   else Result := '';
@@ -2376,7 +2363,7 @@ begin
   else Result := False;
 end;
 
-procedure TSpTBXTabSheet.SetCaption(const Value: WideString);
+procedure TSpTBXTabSheet.SetCaption(const Value: string);
 begin
   if Assigned(FItem) then FItem.Caption := Value;
 end;
@@ -2444,8 +2431,8 @@ begin
       R := ClientRect;
       if FTabControl.TabVisible then begin
         case FTabControl.TabPosition of
-          ttpTop:    dec(R.Top, SpDpiScale(4));
-          ttpBottom: inc(R.Bottom, SpDpiScale(4));
+          ttpTop:    dec(R.Top, SpDPIScale(4));
+          ttpBottom: inc(R.Bottom, SpDPIScale(4));
         end;
       end;
       FTabControl.DrawBackground(TWMEraseBkgnd(Message).DC, R);
@@ -2471,7 +2458,7 @@ begin
   FBackground := TBitmap.Create;
 
   Width := 289;
-  Height := FDock.Height + SpDpiScale(2);
+  Height := FDock.Height + SpDPIScale(2);
   ParentColor := False;
   Color := clBtnFace;
 
@@ -2547,7 +2534,7 @@ begin
   Result := True;
 end;
 
-function TSpTBXCustomTabSet.Add(ACaption: WideString): TSpTBXTabItem;
+function TSpTBXCustomTabSet.Add(ACaption: string): TSpTBXTabItem;
 var
   I: Integer;
   SpacerIV: TSpTBXItemViewer;
@@ -2570,7 +2557,7 @@ begin
   end;
 end;
 
-function TSpTBXCustomTabSet.Insert(NewIndex: Integer; ACaption: WideString): TSpTBXTabItem;
+function TSpTBXCustomTabSet.Insert(NewIndex: Integer; ACaption: string): TSpTBXTabItem;
 begin
   Result := TSpTBXTabItem.Create(Self);
   try
