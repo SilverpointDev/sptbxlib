@@ -38,7 +38,7 @@ Development notes:
   - DT_END_ELLIPSIS and DT_PATH_ELLIPSIS doesn't work with rotated text
     http://support.microsoft.com/kb/249678
   - Vista theme elements are defined on the Themes unit on Delphi XE2 and up.
-    Delphi Styles are supported on Delphi XE2 and up.
+    VCL Styles are supported on Delphi XE2 and up.
     For older versions of Delphi we should fill the element details manually.
     When XE2 Styles are used menus and toolbar elements (teMenu and teToolbar)
     are painted by TCustomStyleMenuElements.DrawElement.
@@ -3308,7 +3308,7 @@ begin
         // [Old-Themes]
         {$IF CompilerVersion >= 23}
         // tcpBackground is defined only on XE2 and up
-        // Only used with Delphi Styles
+        // Only used with VCL Styles
         Details := SpTBXThemeServices.GetElementDetails(tcpBackground);
         Result := True;
         {$IFEND}
@@ -3318,7 +3318,7 @@ begin
         // [Old-Themes]
         {$IF CompilerVersion >= 23}
         // tcpThemedHeader is defined only on XE2 and up
-        // Only used with Delphi Styles
+        // Only used with VCL Styles
         Details := SpTBXThemeServices.GetElementDetails(tcpThemedHeader);
         Result := True;
         {$IFEND}
@@ -3696,7 +3696,7 @@ var
   SkinType: TSpTBXSkinType;
 begin
   SkinType := SkinManager.GetSkinType;
-  // Vcl Styles does not DPI scale menu checkmarks, Windows does
+  // VCL Styles does not DPI scale menu checkmarks, Windows does
   if ((SkinType = sknWindows) and SpIsWinVistaOrUp) or
     ((SkinType = sknDelphiStyle) and (Screen.PixelsPerInch = 96)) then
   begin
@@ -3891,7 +3891,7 @@ end;
 procedure TSpTBXSkinManager.ResetToSystemStyle;
 begin
   {$IF CompilerVersion >= 23} // for Delphi XE2 and up
-  // Reset the Delphi Style to System Style
+  // Reset the VCL Style to System Style
   if TStyleManager.IsCustomStyleActive then
       TStyleManager.SetStyle(TStyleManager.SystemStyle);
   {$IFEND}
