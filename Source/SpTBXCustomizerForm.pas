@@ -181,8 +181,8 @@ begin
 
   // Setup the listboxes
   if Assigned(Customizer.Images) then begin
-    lbCommands.ItemHeight := SpDPIScale(Customizer.Images.Height + 4);
-    lbShortcuts.ItemHeight := SpDPIScale(Customizer.Images.Height + 4);
+    lbCommands.ItemHeight := Customizer.Images.Height + SpDPIScale(4);
+    lbShortcuts.ItemHeight := lbCommands.ItemHeight;
   end;
   // Hide the Icon Options combobox if necessary
   if not Assigned(Customizer.OnIconOptionsChange) then begin

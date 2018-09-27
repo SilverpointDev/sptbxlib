@@ -1061,6 +1061,10 @@ type
     FOnDrawChannelTicks: TSpTBXDrawPosEvent;
     FOnDrawThumb: TSpTBXDrawEvent;
     FCanDrawChannelSelection: Boolean;
+    {$IF CompilerVersion >= 23} // for Delphi XE2 and up
+    class constructor Create;
+    class destructor Destroy;
+    {$IFEND}
     procedure SetTickMarks(const Value: TSpTBXTickMark);
     procedure CMSpTBXControlsInvalidate(var Message: TMessage); message CM_SPTBXCONTROLSINVALIDATE;
     procedure CNNotify(var Message: TWMNotify); message CN_NOTIFY;
@@ -1076,7 +1080,7 @@ type
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
     function ChannelRect: TRect;
-    function MouseInThumb: Boolean;
+    function GetThumbState: TSpTBXSkinStatesType;
     procedure InvalidateBackground;
   published
     property OnMouseDown;
@@ -1094,7 +1098,7 @@ procedure SpDrawXPPanelBorder(ACanvas: TCanvas; ARect: TRect; Border: TSpTBXPane
 procedure SpDrawXPGroupBox(ACanvas: TCanvas; ARect: TRect; ACaption: string; TextFlags: Cardinal; Enabled, TBXStyleBackground: Boolean);
 procedure SpDrawXPProgressBar(ACanvas: TCanvas; ARect: TRect; Min, Max, Position: Integer; Back, Fore: TBitmap); overload;
 function SpDrawXPProgressBar(ACanvas: TCanvas; ARect: TRect; Vertical, Smooth, DrawProgress: Boolean; Min, Max, Position: Integer): Integer; overload;
-procedure SpDrawXPTrackBar(ACanvas: TCanvas; ARect: TRect; Part: Cardinal; Vertical, Pushed, ChannelSelection: Boolean; TickMark: TSpTBXTickMark; Min, Max, SelStart, SelEnd: Integer);
+procedure SpDrawXPTrackBar(ACanvas: TCanvas; ARect: TRect; Part: Cardinal; Vertical, ChannelSelection: Boolean; ThumbState: TSpTBXSkinStatesType; TickMark: TSpTBXTickMark; Min, Max, SelStart, SelEnd: Integer);
 procedure SpInvalidateSpTBXControl(AControl: TWinControl; InvalidateChildren, OnlySpTBXControls: Boolean);
 
 implementation
@@ -1380,8 +1384,8 @@ begin
 end;
 
 procedure SpDrawXPTrackBar(ACanvas: TCanvas; ARect: TRect; Part: Cardinal;
-  Vertical, Pushed, ChannelSelection: Boolean; TickMark: TSpTBXTickMark;
-  Min, Max, SelStart, SelEnd: Integer);
+  Vertical, ChannelSelection: Boolean; ThumbState: TSpTBXSkinStatesType;
+  TickMark: TSpTBXTickMark; Min, Max, SelStart, SelEnd: Integer);
 
   procedure DrawChannelSelection(ChannelR: TRect);
   var
@@ -1410,6 +1414,7 @@ procedure SpDrawXPTrackBar(ACanvas: TCanvas; ARect: TRect; Part: Cardinal;
 
 var
   Details: TThemedElementDetails;
+  T: TThemedTrackBar;
 begin
   case SkinManager.GetSkinType of
     sknNone:
@@ -1427,37 +1432,55 @@ begin
       end;
     sknWindows, sknDelphiStyle:
       if Part = TBCD_THUMB then begin
-        Details.Element := teTrackBar;
-        if Pushed then Details.State := TUS_HOT
-        else Details.State := TUS_NORMAL;
-        Case TickMark of
+        T := ttbThumbRightNormal;
+        case TickMark of
           tmxBottomRight:
-            if Vertical then Details.Part := TKP_THUMBRIGHT
-            else Details.Part := TKP_THUMBBOTTOM;
+            if Vertical then begin
+              if ThumbState = sknsPushed then T := ttbThumbRightPressed
+              else if ThumbState = sknsHotTrack then T := ttbThumbRightHot
+              else T := ttbThumbRightNormal;
+            end
+            else begin
+              if ThumbState = sknsPushed then T := ttbThumbBottomPressed
+              else if ThumbState = sknsHotTrack then T := ttbThumbBottomHot
+              else T := ttbThumbBottomNormal;
+            end;
           tmxTopLeft:
-            if Vertical then Details.Part := TKP_THUMBLEFT
-            else Details.Part := TKP_THUMBTOP;
+            if Vertical then begin
+              if ThumbState = sknsPushed then T := ttbThumbLeftPressed
+              else if ThumbState = sknsHotTrack then T := ttbThumbLeftHot
+              else T := ttbThumbLeftNormal;
+            end
+            else begin
+              if ThumbState = sknsPushed then T := ttbThumbTopPressed
+              else if ThumbState = sknsHotTrack then T := ttbThumbTopHot
+              else T := ttbThumbTopNormal;
+            end;
           tmxBoth, tmxCenter:
-            if Vertical then Details.Part := TKP_THUMBVERT
-            else Details.Part := TKP_THUMB;
+            if Vertical then begin
+              if ThumbState = sknsPushed then T := ttbThumbVertPressed
+              else if ThumbState = sknsHotTrack then T := ttbThumbVertHot
+              else T := ttbThumbVertNormal;
+            end
+            else begin
+              if ThumbState = sknsPushed then T := ttbThumbPressed
+              else if ThumbState = sknsHotTrack then T := ttbThumbHot
+              else T := ttbThumbNormal;
+            end;
         end;
+        Details := SpTBXThemeServices.GetElementDetails(T);
         CurrentSkin.PaintThemedElementBackground(ACanvas, ARect, Details);
       end
       else if Part = TBCD_CHANNEL then begin
-        Details.Element := teTrackBar;
-        Details.State := TKS_NORMAL;
-        if Vertical then Details.Part := TKP_TRACKVERT
-        else Details.Part := TKP_TRACK;
+        if Vertical then T := ttbTrackVert
+        else T := ttbTrack;
+        Details := SpTBXThemeServices.GetElementDetails(T);
         CurrentSkin.PaintThemedElementBackground(ACanvas, ARect, Details);
         DrawChannelSelection(ARect);
       end;
     sknSkin:
-      if Part = TBCD_THUMB then begin
-        if Pushed then
-          CurrentSkin.PaintBackground(ACanvas, ARect, skncTrackBarButton, sknsPushed, True, True)
-        else
-          CurrentSkin.PaintBackground(ACanvas, ARect, skncTrackBarButton, sknsNormal, True, True);
-      end
+      if Part = TBCD_THUMB then
+        CurrentSkin.PaintBackground(ACanvas, ARect, skncTrackBarButton, ThumbState, True, True)
       else if Part = TBCD_CHANNEL then begin
         CurrentSkin.PaintBackground(ACanvas, ARect, skncTrackBar, sknsNormal, True, True);
         DrawChannelSelection(ARect);
@@ -3805,6 +3828,23 @@ end;
 //WMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWM
 { TSpTBXTrackBar }
 
+{$IF CompilerVersion >= 23} // for Delphi XE2 and up
+class constructor TSpTBXTrackBar.Create;
+begin
+  // When using VCL Styles the trackbar is custom painted by
+  // Vcl.ComCtrls.TTrackBarStyleHook.Paint, overriding CNNotify.
+  // We need to cancel VCL Styles painting by re-registering
+  // the default style hook, otherwise the background is not correctly
+  // painted when the control is placed inside another SpTBXLib control
+  TCustomStyleEngine.RegisterStyleHook(TSpTBXTrackBar, TStyleHook);
+end;
+
+class destructor TSpTBXTrackBar.Destroy;
+begin
+  TCustomStyleEngine.UnRegisterStyleHook(TSpTBXTrackBar, TStyleHook);
+end;
+{$IFEND}
+
 constructor TSpTBXTrackBar.Create(AOwner: TComponent);
 begin
   inherited;
@@ -3905,8 +3945,8 @@ begin
 
   SendMessage(Self.Handle, TBM_GETTHUMBRECT, 0, LPARAM(@ThumbR));
   ChannelR := ChannelRect;
-  FirstTickSize := 4;
-  TickSize := 3;
+  FirstTickSize := SpDPIScale(4);
+  TickSize := SpDPIScale(3);
   Y := 0;
 
   if Orientation = trHorizontal then begin
@@ -3916,27 +3956,27 @@ begin
     case TickMarks of
       tmxBottomRight:
         begin
-          Y := ThumbR.Bottom + 1;
-          FirstTickSize := 4;
-          TickSize := 3;
+          Y := ThumbR.Bottom + SpDPIScale(1);
+          FirstTickSize := SpDPIScale(4);
+          TickSize := SpDPIScale(3);
         end;
       tmxTopLeft:
         begin
-          Y := ThumbR.Top - 2;
-          FirstTickSize := -4;
-          TickSize := -3;
+          Y := ThumbR.Top - SpDPIScale(2);
+          FirstTickSize := -SpDPIScale(4);
+          TickSize := -SpDPIScale(3);
         end;
       tmxBoth:
         begin
-          Y := ThumbR.Top - 2;
-          FirstTickSize := -4;
-          TickSize := -3;
+          Y := ThumbR.Top - SpDPIScale(2);
+          FirstTickSize := -SpDPIScale(4);
+          TickSize := -SpDPIScale(3);
         end;
       tmxCenter:
         begin
           Y := ChannelR.Top + (ChannelR.Bottom - ChannelR.Top) div 2;
-          FirstTickSize := 1;
-          TickSize := 1;
+          FirstTickSize := SpDPIScale(2);
+          TickSize := SpDPIScale(2);
         end;
     end;
     for I := 0 to Count - 1 do
@@ -3964,27 +4004,27 @@ begin
     case TickMarks of
       tmxBottomRight:
         begin
-          Y := ThumbR.Right + 1;
-          FirstTickSize := 4;
-          TickSize := 3;
+          Y := ThumbR.Right + SpDPIScale(1);
+          FirstTickSize := SpDPIScale(4);
+          TickSize := SpDPIScale(3);
         end;
       tmxTopLeft:
         begin
-          Y := ThumbR.Left - 2;
-          FirstTickSize := -4;
-          TickSize := -3;
+          Y := ThumbR.Left - SpDPIScale(2);
+          FirstTickSize := -SpDPIScale(4);
+          TickSize := -SpDPIScale(3);
         end;
       tmxBoth:
         begin
-          Y := ThumbR.Left - 2;
-          FirstTickSize := -4;
-          TickSize := -3;
+          Y := ThumbR.Left - SpDPIScale(2);
+          FirstTickSize := -SpDPIScale(4);
+          TickSize := -SpDPIScale(3);
         end;
       tmxCenter:
         begin
           Y := ChannelR.Left + (ChannelR.Right - ChannelR.Left) div 2;
-          FirstTickSize := 1;
-          TickSize := 1;
+          FirstTickSize := SpDPIScale(2);
+          TickSize := SpDPIScale(2);
         end;
     end;
     for I := 0 to Count - 1 do
@@ -4009,25 +4049,27 @@ begin
   ACanvas.Pen.Color := LastPenColor;
 end;
 
-function TSpTBXTrackBar.MouseInThumb: Boolean;
+function TSpTBXTrackBar.GetThumbState: TSpTBXSkinStatesType;
 var
   P: TPoint;
   R: TRect;
 begin
-  if csDesigning in ComponentState then
-    Result := False
-  else begin
+  Result := sknsNormal;
+  if not (csDesigning in ComponentState) then begin
     SendMessage(Handle, TBM_GETTHUMBRECT, 0, LPARAM(@R));
     GetCursorPos(P);
     P := ScreenToClient(P);
-    Result := PtInRect(R, P)
+    if PtInRect(R, P) then
+      Result := sknsHotTrack;
   end;
 
-  if SkinManager.GetSkinType in [sknWindows, sknDelphiStyle] then begin
-    if Focused then Result := not (GetCaptureControl = Self);
-  end
-  else
-    Result := GetCaptureControl = Self;
+  if SkinManager.GetSkinType in [sknWindows] then begin
+    if Focused then
+      Result := sknsHotTrack
+  end;
+
+  if GetCaptureControl = Self then
+    Result := sknsPushed;
 end;
 
 procedure TSpTBXTrackBar.InvalidateBackground;
@@ -4096,11 +4138,22 @@ begin
               TBCD_THUMB:
                 begin
                   if SliderVisible then begin
+                    // VCL Styles doesn't stretch draw the trackbar thumb, sometimes it's
+                    // bigger than the rect we get from TBM_GETTHUMBRECT (it has a custom
+                    // size depending on the style), which causes painting issues.
+                    // We need to clip the painting region.
                     SendMessage(Handle, TBM_GETTHUMBRECT, 0, LPARAM(@R));
-                    if DoDrawThumb(ACanvas, R, pstPrePaint) then
-                      SpDrawXPTrackBar(ACanvas, R, TBCD_THUMB, Orientation = trVertical, MouseInThumb, False, FTickMarks, Min, Max, SelStart, SelEnd);
-                    DoDrawThumb(ACanvas, R, pstPostPaint);
-                    Message.Result := CDRF_SKIPDEFAULT;
+                    Rgn := CreateRectRgn(R.Left, R.Top, R.Right, R.Bottom);
+                    SelectClipRgn(ACanvas.Handle, Rgn);
+                    try
+                      if DoDrawThumb(ACanvas, R, pstPrePaint) then
+                        SpDrawXPTrackBar(ACanvas, R, TBCD_THUMB, Orientation = trVertical, False, GetThumbState, FTickMarks, Min, Max, SelStart, SelEnd);
+                      DoDrawThumb(ACanvas, R, pstPostPaint);
+                      Message.Result := CDRF_SKIPDEFAULT;
+                    finally
+                      DeleteObject(Rgn);
+                      SelectClipRgn(ACanvas.Handle, 0);
+                    end;
                   end;
                 end;
               TBCD_CHANNEL:
@@ -4108,7 +4161,7 @@ begin
                   SendMessage(Handle, TBM_GETTHUMBRECT, 0, LPARAM(@R));
                   Offset := 0;
                   if Focused then
-                    Inc(Offset);
+                    Offset := SpDPIScale(1);
                   if Orientation = trHorizontal then begin
                     R.Left := ClientRect.Left + Offset;
                     R.Right := ClientRect.Right - Offset;
@@ -4117,15 +4170,14 @@ begin
                     R.Top := ClientRect.Top + Offset;
                     R.Bottom := ClientRect.Bottom - Offset;
                   end;
-                  with R do
-                    Rgn := CreateRectRgn(Left, Top, Right, Bottom);
+
+                  Rgn := CreateRectRgn(R.Left, R.Top, R.Right, R.Bottom);
                   SelectClipRgn(ACanvas.Handle, Rgn);
                   try
                     SpDrawParentBackground(Self, ACanvas.Handle, ClientRect);
                     R := ChannelRect;
-
                     if DoDrawChannel(ACanvas, R, pstPrePaint) then
-                      SpDrawXPTrackBar(ACanvas, R, TBCD_CHANNEL, Orientation = trVertical, False, FCanDrawChannelSelection, FTickMarks, Min, Max, SelStart, SelEnd);
+                      SpDrawXPTrackBar(ACanvas, R, TBCD_CHANNEL, Orientation = trVertical, FCanDrawChannelSelection, sknsNormal, FTickMarks, Min, Max, SelStart, SelEnd);
                     DoDrawChannel(ACanvas, R, pstPostPaint);
 
                     // Draw channel tics

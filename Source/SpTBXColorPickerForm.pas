@@ -244,7 +244,6 @@ begin
   imgPalette.Cursor := crSpTBXEyeDropper;
 
   SpDPIScaleImageList(ImageList1);
-  SpTBXColorListBox1.ItemHeight := SpDPIScale(SpTBXColorListBox1.ItemHeight);
 end;
 
 procedure TSpTBXColorPickerForm.FormDestroy(Sender: TObject);

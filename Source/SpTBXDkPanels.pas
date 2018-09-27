@@ -3117,7 +3117,7 @@ begin
   inherited Create(AOwner);
   ControlStyle := ControlStyle + [csOpaque];
 
-  Width := SpDPIScale(5);
+  Width := 5;
   Height := 100;
   Align := alLeft;
   Cursor := crSizeWE;

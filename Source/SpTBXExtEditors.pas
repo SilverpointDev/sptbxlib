@@ -518,7 +518,7 @@ begin
   FMRUCount := 0;
   AutoItemHeight := False;
   AutoDropDownWidth := True;
-  ItemHeight := SpDPIScale(23);
+  ItemHeight := 23;
 end;
 
 destructor TSpTBXFontComboBox.Destroy;
