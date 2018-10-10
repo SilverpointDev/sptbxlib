@@ -669,7 +669,7 @@ begin
   end
   else
     if Parent.HandleAllocated then begin
-      if not Parent.DoubleBuffered and (Control is TWinControl) and SkinManager.IsXPThemesEnabled then
+      if {not Parent.DoubleBuffered and} (Control is TWinControl) and SkinManager.IsXPThemesEnabled then
         UxTheme.DrawThemeParentBackground(TWinControl(Control).Handle, DC, @R)
       else begin
         // Same as Controls.PerformEraseBackground

@@ -87,41 +87,26 @@ type
 
   { TSpTBXPanel }
 
-  TSpTBXCustomPanel = class(TSpTBXCustomControl)
+  TSpTBXCustomPanel = class(TSpTBXCustomContainer)
   private
     FBorders: Boolean;
     FBorderType: TSpTBXPanelBorder;
     FTBXStyleBackground: Boolean;
-    FOnDrawBackground: TSpTBXDrawEvent;
     procedure SetBorders(const Value: Boolean);
     procedure SetBorderType(const Value: TSpTBXPanelBorder);
     procedure SetTBXStyleBackground(const Value: Boolean);
-    procedure CMColorChanged(var Message: TMessage); message CM_COLORCHANGED;
-    procedure CMFontChanged(var Message: TMessage); message CM_FONTCHANGED;
-    procedure CMSpTBXControlsInvalidate(var Message: TMessage); message CM_SPTBXCONTROLSINVALIDATE;
-    procedure CMTextChanged(var Message: TMessage); message CM_TEXTCHANGED;
-    procedure WMEraseBkgnd(var Message: TMessage); message WM_ERASEBKGND;
-    procedure WMSpSkinChange(var Message: TMessage); message WM_SPSKINCHANGE;
-    procedure WMWindowPosChanged(var Message: TWMWindowPosChanged); message WM_WINDOWPOSCHANGED;
   protected
-    FBackground: TBitmap;
     procedure AdjustClientRect(var Rect: TRect); override;
-    procedure CreateParams(var Params: TCreateParams); override;
-    procedure DrawBackground(ACanvas: TCanvas; ARect: TRect); virtual;
-    procedure DoDrawBackground(ACanvas: TCanvas; ARect: TRect; const PaintStage: TSpTBXPaintStage; var PaintDefault: Boolean); virtual;
+    procedure DrawBackground(ACanvas: TCanvas; ARect: TRect); override;
     property Borders: Boolean read FBorders write SetBorders default True;
     property BorderType: TSpTBXPanelBorder read FBorderType write SetBorderType default pbrEtched;
-    property ParentColor default False;
     property TBXStyleBackground: Boolean read FTBXStyleBackground write SetTBXStyleBackground default False;
-    property OnDrawBackground: TSpTBXDrawEvent read FOnDrawBackground write FOnDrawBackground;
   public
     constructor Create(AOwner: TComponent); override;
-    destructor Destroy; override;
-    procedure InvalidateBackground(InvalidateChildren: Boolean = True); virtual;
   published
     property Caption;
     property Hint;
-    property Color default clNone;
+    property Color;
   end;
 
   TSpTBXPanel = class(TSpTBXCustomPanel)
@@ -1479,8 +1464,11 @@ begin
         DrawChannelSelection(ARect);
       end;
     sknSkin:
-      if Part = TBCD_THUMB then
+      if Part = TBCD_THUMB then begin
+        if ThumbState = sknsHotTrack then
+          ThumbState := sknsPushed;
         CurrentSkin.PaintBackground(ACanvas, ARect, skncTrackBarButton, ThumbState, True, True)
+      end
       else if Part = TBCD_CHANNEL then begin
         CurrentSkin.PaintBackground(ACanvas, ARect, skncTrackBar, sknsNormal, True, True);
         DrawChannelSelection(ARect);
@@ -1543,33 +1531,8 @@ end;
 constructor TSpTBXCustomPanel.Create(AOwner: TComponent);
 begin
   inherited;
-  ControlStyle := ControlStyle + [csAcceptsControls];
-
-  FBackground := TBitmap.Create;
-
   FBorders := True;
   FBorderType := pbrEtched;
-  Color := clNone;
-  ParentColor := False;
-  SkinManager.AddSkinNotification(Self);
-end;
-
-destructor TSpTBXCustomPanel.Destroy;
-begin
-  FreeAndNil(FBackground);
-  SkinManager.RemoveSkinNotification(Self);
-  inherited;
-end;
-
-procedure TSpTBXCustomPanel.CreateParams(var Params: TCreateParams);
-begin
-  inherited CreateParams(Params);
-  if not (csDesigning in ComponentState) then begin
-    with Params do
-      Style := Style or WS_CLIPCHILDREN;
-    with Params.WindowClass do
-      Style := Style and not (CS_HREDRAW or CS_VREDRAW);
-  end;
 end;
 
 procedure TSpTBXCustomPanel.AdjustClientRect(var Rect: TRect);
@@ -1577,14 +1540,6 @@ begin
   inherited AdjustClientRect(Rect);
   if Borders then
     InflateRect(Rect, -SpDPIScale(2), -SpDPIScale(2));
-end;
-
-procedure TSpTBXCustomPanel.InvalidateBackground(InvalidateChildren: Boolean);
-begin
-  // Force background repaint
-  if Assigned(FBackground) then
-    FBackground.Width := 1;
-  SpInvalidateSpTBXControl(Self, InvalidateChildren, True);
 end;
 
 procedure TSpTBXCustomPanel.SetBorders(const Value: Boolean);
@@ -1612,127 +1567,11 @@ begin
   end;
 end;
 
-procedure TSpTBXCustomPanel.DoDrawBackground(ACanvas: TCanvas;
-  ARect: TRect; const PaintStage: TSpTBXPaintStage;
-  var PaintDefault: Boolean);
-begin
-  if Assigned(FOnDrawBackground) then FOnDrawBackground(Self, ACanvas, ARect,
-    PaintStage, PaintDefault);
-end;
-
 procedure TSpTBXCustomPanel.DrawBackground(ACanvas: TCanvas; ARect: TRect);
 begin
+  if not Borders then
+    InflateRect(ARect, SpDPIScale(3), SpDPIScale(3));
   SpDrawXPPanel(ACanvas, ARect, True, FTBXStyleBackground, FBorderType);
-end;
-
-procedure TSpTBXCustomPanel.CMColorChanged(var Message: TMessage);
-begin
-  inherited;
-  InvalidateBackground(False);
-end;
-
-procedure TSpTBXCustomPanel.CMFontChanged(var Message: TMessage);
-begin
-  inherited;
-  InvalidateBackground(False);
-end;
-
-procedure TSpTBXCustomPanel.CMSpTBXControlsInvalidate(var Message: TMessage);
-begin
-  InvalidateBackground;
-  Message.Result := 1;
-end;
-
-procedure TSpTBXCustomPanel.CMTextChanged(var Message: TMessage);
-begin
-  inherited;
-  InvalidateBackground(False);
-  Realign;
-end;
-
-procedure TSpTBXCustomPanel.WMEraseBkgnd(var Message: TMessage);
-var
-  R, R2: TRect;
-  PaintDefault: Boolean;
-  ACanvas: TCanvas;
-begin
-  Message.Result := 1;
-
-  if (not DoubleBuffered or (Message.wParam = WPARAM(Message.lParam))) and
-    not (csDestroying in ComponentState) and Assigned(FBackground) and
-    (TWMEraseBkgnd(Message).DC <> 0) then
-  begin
-    ACanvas := TCanvas.Create;
-    try
-      ACanvas.Handle := TWMEraseBkgnd(Message).DC;
-      R := ClientRect;
-
-      if (FBackground.Width = R.Right) and (FBackground.Height = R.Bottom) and not Assigned(FOnDrawBackground) then
-        ACanvas.Draw(R.Left, R.Top, FBackground)
-      else begin
-        FBackground.SetSize(R.Right, R.Bottom);
-
-        if (Color = clNone) and Assigned(Parent) then begin
-          if SpIsGlassPainting(Self) then begin
-            // When painting on Glass fill the bitmap with the transparent color
-            FBackground.Canvas.Brush.Color := clBlack; // Transparent color
-            FBackground.Canvas.FillRect(Rect(0, 0, FBackground.Width, FBackground.Height));
-          end
-          else begin
-            // The Panel is a special component, it has the ability
-            // to paint the parent background on its children controls.
-            // For that it receives WM_ERASEBKGND messages from its children
-            // via SpDrawParentBackground.
-            SpDrawParentBackground(Self, FBackground.Canvas.Handle, R);
-            // PerformEraseBackground(Self, FBackground.Canvas.Handle);
-          end;
-        end
-        else
-          Windows.FillRect(FBackground.Canvas.Handle, ClientRect, Brush.Handle);
-
-        // Set the Font after SpDrawParentBackground, DrawThemeParentBackground,
-        // or PerformEraseBackground.
-        // The API messes the font, it seems it destroys it.
-        // For more info see:
-        // - TCustomActionControl.DrawBackground for more info.
-        // - Theme Explorer Main.pas TMainForm.ControlMessage
-        //   (http://www.soft-gems.net:8080/browse/Demos)
-        FBackground.Canvas.Font.Handle := 0;  // Reset the font, it gets destroyed
-        FBackground.Canvas.Font.Color := $010101;  // Force a change
-        FBackground.Canvas.Font.Assign(Self.Font);
-
-        PaintDefault := True;
-        DoDrawBackground(FBackground.Canvas, R, pstPrePaint, PaintDefault);
-        if PaintDefault then begin
-          if not FBorders then begin
-            R2 := R;
-            InflateRect(R2, SpDPIScale(3), SpDPIScale(3));
-            DrawBackground(FBackground.Canvas, R2);
-          end
-          else
-            DrawBackground(FBackground.Canvas, R);
-        end;
-        PaintDefault := True;
-        DoDrawBackground(FBackground.Canvas, R, pstPostPaint, PaintDefault);
-
-        ACanvas.Draw(R.Left, R.Top, FBackground);
-      end;
-    finally
-      ACanvas.Handle := 0;
-      ACanvas.Free;
-    end;
-  end;
-end;
-
-procedure TSpTBXCustomPanel.WMWindowPosChanged(var Message: TWMWindowPosChanged);
-begin
-  inherited;
-  InvalidateBackground;
-end;
-
-procedure TSpTBXCustomPanel.WMSpSkinChange(var Message: TMessage);
-begin
-  InvalidateBackground;
 end;
 
 //WMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWM
@@ -1752,6 +1591,9 @@ const
 var
   TextFlags: Longint;
 begin
+  if not Borders then
+    InflateRect(ARect, SpDPIScale(3), SpDPIScale(3));
+
   if not TBXStyleBackground and FHotTrack then begin
     if SkinManager.GetSkinType = sknNone then
       SpDrawXPPanelBorder(ACanvas, ARect, pbrDoubleSunken)
@@ -1873,6 +1715,9 @@ procedure TSpTBXCustomGroupBox.DrawBackground(ACanvas: TCanvas; ARect: TRect);
 var
   Flags: Cardinal;
 begin
+  if not Borders then
+    InflateRect(ARect, SpDPIScale(3), SpDPIScale(3));
+
   Flags := DT_SINGLELINE;
   if UseRightToLeftAlignment then
     Flags := Flags or DT_RTLREADING;
@@ -1930,8 +1775,6 @@ begin
 
   Autosize := True;
   Color := clNone;
-//  Commented because of conflict when painting on Glass
-//  DoubleBuffered := True;
   ParentColor := False;
   TabStop := True;
   Width := 100;
