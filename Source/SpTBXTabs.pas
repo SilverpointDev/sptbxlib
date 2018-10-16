@@ -1454,7 +1454,7 @@ begin
   if PaintOnNCArea and Assigned(FOwnerTabControl) then begin
     B := TBitmap.Create;
     try
-      B.SetSize(ARect.Width, ARect.Height);
+      B.SetSize(ARect.Right - ARect.Left, ARect.Bottom - ARect.Top);
       R := Rect(0, 0, B.Width, B.Height);
       SpDrawXPToolbar(Self, B.Canvas, R, PaintOnNCArea, FTabBackgroundBorders and (SkinManager.GetSkinType <> sknNone), skncTabToolbar);
 
