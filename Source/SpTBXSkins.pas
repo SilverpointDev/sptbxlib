@@ -655,10 +655,8 @@ begin
 end;
 
 procedure SpDrawParentBackground(Control: TControl; DC: HDC; R: TRect);
-// Delphi 2007 and Vista compatible
 var
   Parent: TWinControl;
-  P: TPoint;
   Brush: HBRUSH;
 begin
   Parent := Control.Parent;
@@ -671,13 +669,8 @@ begin
     if Parent.HandleAllocated then begin
       if {not Parent.DoubleBuffered and} (Control is TWinControl) and SkinManager.IsXPThemesEnabled then
         UxTheme.DrawThemeParentBackground(TWinControl(Control).Handle, DC, @R)
-      else begin
-        // Same as Controls.PerformEraseBackground
-        GetWindowOrgEx(DC, P);
-        SetWindowOrgEx(DC, P.X + Control.Left, P.Y + Control.Top, nil);
-        Parent.Perform(WM_ERASEBKGND, WPARAM(DC), LPARAM(DC));
-        SetWindowOrgEx(DC, P.X, P.Y, nil);
-      end;
+      else
+        Controls.PerformEraseBackground(Control, DC);
     end;
 end;
 

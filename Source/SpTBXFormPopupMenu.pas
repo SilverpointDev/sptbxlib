@@ -1089,10 +1089,12 @@ begin
   // When Styles are used WM_NCHITTEST and WM_NCCALCSIZE are handled by
   // TFormStyleHook. We need to override the handling by re-registering
   // the hook by using an empty style hook (TStyleHook)
+  TCustomStyleEngine.UnRegisterStyleHook(TSpTBXWrapperPopupForm, TStyleHook); // Re-register
   TCustomStyleEngine.RegisterStyleHook(TSpTBXWrapperPopupForm, TStyleHook);
   {$IFEND}
 end;
 
 initialization
   InitializeStock;
+
 end.

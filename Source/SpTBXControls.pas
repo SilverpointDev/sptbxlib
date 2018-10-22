@@ -1046,10 +1046,6 @@ type
     FOnDrawChannelTicks: TSpTBXDrawPosEvent;
     FOnDrawThumb: TSpTBXDrawEvent;
     FCanDrawChannelSelection: Boolean;
-    {$IF CompilerVersion >= 23} // for Delphi XE2 and up
-    class constructor Create;
-    class destructor Destroy;
-    {$IFEND}
     procedure SetTickMarks(const Value: TSpTBXTickMark);
     procedure CMSpTBXControlsInvalidate(var Message: TMessage); message CM_SPTBXCONTROLSINVALIDATE;
     procedure CNNotify(var Message: TWMNotify); message CN_NOTIFY;
@@ -3671,23 +3667,6 @@ end;
 //WMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWM
 { TSpTBXTrackBar }
 
-{$IF CompilerVersion >= 23} // for Delphi XE2 and up
-class constructor TSpTBXTrackBar.Create;
-begin
-  // When using VCL Styles the trackbar is custom painted by
-  // Vcl.ComCtrls.TTrackBarStyleHook.Paint, overriding CNNotify.
-  // We need to cancel VCL Styles painting by re-registering
-  // the default style hook, otherwise the background is not correctly
-  // painted when the control is placed inside another SpTBXLib control
-  TCustomStyleEngine.RegisterStyleHook(TSpTBXTrackBar, TStyleHook);
-end;
-
-class destructor TSpTBXTrackBar.Destroy;
-begin
-  TCustomStyleEngine.UnRegisterStyleHook(TSpTBXTrackBar, TStyleHook);
-end;
-{$IFEND}
-
 constructor TSpTBXTrackBar.Create(AOwner: TComponent);
 begin
   inherited;
@@ -4055,5 +4034,22 @@ procedure TSpTBXTrackBar.WMSpSkinChange(var Message: TMessage);
 begin
   InvalidateBackground;
 end;
+
+procedure InitializeStock;
+begin
+  {$IF CompilerVersion >= 23}
+  // XE2 and up
+  // When using VCL Styles the trackbar is custom painted by
+  // Vcl.ComCtrls.TTrackBarStyleHook.Paint, overriding CNNotify.
+  // We need to cancel VCL Styles painting by re-registering
+  // the default style hook, otherwise the background is not correctly
+  // painted when the control is placed inside another SpTBXLib control
+  TCustomStyleEngine.UnRegisterStyleHook(TSpTBXTrackBar, TStyleHook); // Re-register
+  TCustomStyleEngine.RegisterStyleHook(TSpTBXTrackBar, TStyleHook);
+  {$IFEND}
+end;
+
+initialization
+  InitializeStock;
 
 end.

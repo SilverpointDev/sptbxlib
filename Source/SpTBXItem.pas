@@ -7933,12 +7933,15 @@ end;
 constructor TSpTBXCustomContainer.Create(AOwner: TComponent);
 begin
   inherited;
-  ControlStyle := ControlStyle + [csAcceptsControls, csParentBackground];
+  ControlStyle := ControlStyle + [csAcceptsControls, csOpaque];
+  // When themes are enabled paint the parent background
+  if SkinManager.GetSkinType <> sknNone then
+    ControlStyle := ControlStyle + [csParentBackground] - [csOpaque];
+
   Color := clNone;
   ParentColor := False;
   SkinManager.AddSkinNotification(Self);
 
-  ControlStyle := ControlStyle + [csOpaque];
   DoubleBuffered := True;
 end;
 
@@ -8013,19 +8016,18 @@ var
 begin
   R := ClientRect;
 
-  if (Color = clNone) and Assigned(Parent) and (csParentBackground in ControlStyle) then begin
-    if SpIsGlassPainting(Self) then begin
+  if (Color = clNone) and Assigned(Parent) and SkinManager.IsXPThemesEnabled and
+    ((csDesigning in ComponentState) or (csParentBackground in ControlStyle)) then
+  begin
+    if SpIsGlassPainting(Self) then
       // When painting on Glass fill the bitmap with the transparent color
-      SpFillRect(Canvas, R, clblack); // Transparent color
-    end
-    else begin
+      SpFillRect(Canvas, R, clBlack) // Transparent color
+    else
       // The Panel is a special component, it has the ability
       // to paint the parent background on its children controls.
       // For that it receives WM_ERASEBKGND messages from its children
       // via SpDrawParentBackground.
       SpDrawParentBackground(Self, Canvas.Handle, R);
-      // PerformEraseBackground(Self, FBackground.Canvas.Handle);
-    end;
   end
   else
     SpFillRect(Canvas, R, Color);
@@ -8071,8 +8073,8 @@ end;
 constructor TSpTBXCompoundItemsControl.Create(AOwner: TComponent);
 begin
   inherited;
-
-  ControlStyle := ControlStyle - [csParentBackground];
+  // No need to paint the parent background
+  ControlStyle := ControlStyle - [csParentBackground] + [csOpaque];
 
   FDock := GetDockClass.Create(Self);
   FDock.Parent := Self;

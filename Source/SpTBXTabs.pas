@@ -2238,7 +2238,8 @@ end;
 constructor TSpTBXTabSheet.Create(AOwner: TComponent);
 begin
   inherited;
-  ControlStyle := ControlStyle + [csSetCaption];
+  // No need to paint the parent background
+  ControlStyle := ControlStyle + [csSetCaption, csOpaque] - [csParentBackground];
   Align := alClient;
   Visible := False;
 end;
@@ -2411,7 +2412,8 @@ end;
 constructor TSpTBXCustomTabSet.Create(AOwner: TComponent);
 begin
   inherited;
-  ControlStyle := ControlStyle + [csAcceptsControls, csOpaque] - [csParentBackground];
+  // No need to paint the parent background
+  ControlStyle := ControlStyle + [csOpaque] - [csParentBackground];
 
   FTabVisible := True;
 
