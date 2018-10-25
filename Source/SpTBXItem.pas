@@ -1249,10 +1249,10 @@ type
     procedure WMSpSkinChange(var Message: TMessage); message WM_SPSKINCHANGE;
     procedure WMWindowPosChanged(var Message: TWMWindowPosChanged); message WM_WINDOWPOSCHANGED;
   protected
+    FIsResizing: Boolean;
     procedure CreateParams(var Params: TCreateParams); override;
     procedure DoDrawBackground(ACanvas: TCanvas; ARect: TRect; const PaintStage: TSpTBXPaintStage; var PaintDefault: Boolean); virtual;
     procedure DrawBackground(ACanvas: TCanvas; ARect: TRect); virtual;
-    procedure Paint; override;
     property ParentColor default False;
     property OnDrawBackground: TSpTBXDrawEvent read FOnDrawBackground write FOnDrawBackground;
   public
@@ -6180,7 +6180,6 @@ end;
 constructor TSpTBXToolbar.Create(AOwner: TComponent);
 begin
   inherited;
-  ControlStyle := ControlStyle - [csOpaque];
   Color := clNone;
 
   Items.RegisterNotification(DoItemNotification);
@@ -7933,15 +7932,13 @@ end;
 constructor TSpTBXCustomContainer.Create(AOwner: TComponent);
 begin
   inherited;
-  ControlStyle := ControlStyle + [csAcceptsControls, csOpaque];
-  // When themes are enabled paint the parent background
-  if SkinManager.GetSkinType <> sknNone then
-    ControlStyle := ControlStyle + [csParentBackground] - [csOpaque];
+  ControlStyle := ControlStyle + [csAcceptsControls, csOpaque] - [csParentBackground];
 
   Color := clNone;
   ParentColor := False;
   SkinManager.AddSkinNotification(Self);
 
+  // To avoid flicker set DoubleBuffered
   DoubleBuffered := True;
 end;
 
@@ -8000,8 +7997,9 @@ procedure TSpTBXCustomContainer.InvalidateBackground(InvalidateChildren: Boolean
 begin
 //  SpInvalidateSpTBXControl(Self, InvalidateChildren, True);
 //  exit;
+  //rrr
 
-  // Force background repaint
+  // Force background repaint, calling invalidate doesn't repaint children controls
   if not (csDestroying in ComponentState) and HandleAllocated then
     if InvalidateChildren then
       RedrawWindow(Handle, nil, 0, RDW_ERASE or RDW_INVALIDATE or RDW_ALLCHILDREN)
@@ -8009,62 +8007,78 @@ begin
       RedrawWindow(Handle, nil, 0, RDW_ERASE or RDW_INVALIDATE);
 end;
 
-procedure TSpTBXCustomContainer.Paint;
+procedure TSpTBXCustomContainer.WMEraseBkgnd(var Message: TMessage);
 var
   R: TRect;
+  ACanvas: TCanvas;
   PaintDefault: Boolean;
 begin
-  R := ClientRect;
-
-  if (Color = clNone) and Assigned(Parent) and SkinManager.IsXPThemesEnabled and
-    ((csDesigning in ComponentState) or (csParentBackground in ControlStyle)) then
-  begin
-    if SpIsGlassPainting(Self) then
-      // When painting on Glass fill the bitmap with the transparent color
-      SpFillRect(Canvas, R, clBlack) // Transparent color
-    else
-      // The Panel is a special component, it has the ability
-      // to paint the parent background on its children controls.
-      // For that it receives WM_ERASEBKGND messages from its children
-      // via SpDrawParentBackground.
-      SpDrawParentBackground(Self, Canvas.Handle, R);
-  end
-  else
-    SpFillRect(Canvas, R, Color);
-
-  // Set the Font after SpDrawParentBackground, DrawThemeParentBackground,
-  // or PerformEraseBackground.
-  // The API messes the font, it seems it destroys it.
-  // For more info see:
-  // - TCustomActionControl.DrawBackground for more info.
-  // - Theme Explorer Main.pas TMainForm.ControlMessage
-  //   (http://www.soft-gems.net:8080/browse/Demos)
-  Canvas.Font.Handle := 0;  // Reset the font, it gets destroyed
-  Canvas.Font.Color := $010101;  // Force a change
-  Canvas.Font.Assign(Self.Font);
-
-  PaintDefault := True;
-  DoDrawBackground(Canvas, R, pstPrePaint, PaintDefault);
-  if PaintDefault then
-    DrawBackground(Canvas, R);
-  PaintDefault := True;
-  DoDrawBackground(Canvas, R, pstPostPaint, PaintDefault);
-end;
-
-procedure TSpTBXCustomContainer.WMEraseBkgnd(var Message: TMessage);
-begin
   Message.Result := 1;
+
+  ACanvas := TCanvas.Create;
+  try
+    ACanvas.Handle := TWMEraseBkgnd(Message).DC;
+    R := ClientRect;
+
+    if (Color = clNone) and Assigned(Parent) and SkinManager.IsXPThemesEnabled and
+      ((csDesigning in ComponentState) or (csParentBackground in ControlStyle)) then
+    begin
+      if SpIsGlassPainting(Self) then
+        // When painting on Glass fill the bitmap with the transparent color
+        SpFillRect(ACanvas, R, clBlack) // Transparent color
+      else begin
+        // The Panel is a special component, it has the ability
+        // to paint the parent background on its children controls.
+        // For that it receives WM_ERASEBKGND messages from its children
+        // via SpDrawParentBackground.
+        SpDrawParentBackground(Self, ACanvas.Handle, R);
+      end;
+    end
+    else
+      // Only erase background if we're not doublebuffering or painting to memory
+      if not DoubleBuffered or (TMessage(Message).wParam = WPARAM(TMessage(Message).lParam)) then
+        if Color = clNone then
+          SpFillRect(ACanvas, R, CurrentSkin.GetThemedSystemColor(clBtnFace))
+        else
+          SpFillRect(ACanvas, R, Color);
+
+    // Set the Font after SpDrawParentBackground, DrawThemeParentBackground,
+    // or PerformEraseBackground.
+    // The API messes the font, it seems it destroys it.
+    // For more info see:
+    // - TCustomActionControl.DrawBackground for more info.
+    // - Theme Explorer Main.pas TMainForm.ControlMessage
+    //   (http://www.soft-gems.net:8080/browse/Demos)
+    ACanvas.Font.Handle := 0;  // Reset the font, it gets destroyed
+    ACanvas.Font.Color := $010101;  // Force a change
+    ACanvas.Font.Assign(Self.Font);
+
+    PaintDefault := True;
+    DoDrawBackground(ACanvas, R, pstPrePaint, PaintDefault);
+    if PaintDefault then
+      DrawBackground(ACanvas, R);
+    PaintDefault := True;
+    DoDrawBackground(ACanvas, R, pstPostPaint, PaintDefault);
+  finally
+    ACanvas.Handle := 0;
+    ACanvas.Free;
+  end;
 end;
 
 procedure TSpTBXCustomContainer.WMSpSkinChange(var Message: TMessage);
 begin
-  InvalidateBackground;
+  InvalidateBackground(True);
 end;
 
 procedure TSpTBXCustomContainer.WMWindowPosChanged(var Message: TWMWindowPosChanged);
 begin
   inherited;
-  InvalidateBackground(True);
+  FIsResizing := True;
+  try
+    InvalidateBackground(True);
+  finally
+    FIsResizing := False;
+  end;
 end;
 
 //WMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWM
@@ -8073,8 +8087,7 @@ end;
 constructor TSpTBXCompoundItemsControl.Create(AOwner: TComponent);
 begin
   inherited;
-  // No need to paint the parent background
-  ControlStyle := ControlStyle - [csParentBackground] + [csOpaque];
+  Color := clBtnFace;
 
   FDock := GetDockClass.Create(Self);
   FDock.Parent := Self;
@@ -8092,8 +8105,6 @@ begin
   FToolbar.Stretch := True;
   FToolbar.ShrinkMode := tbsmNone;
   FToolbar.ShowCaption := False;
-
-  Color := clBtnFace;
 end;
 
 destructor TSpTBXCompoundItemsControl.Destroy;

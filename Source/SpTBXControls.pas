@@ -1167,7 +1167,7 @@ begin
           Details := SpTBXThemeServices.GetElementDetails(DrawState);
           ACanvas.Brush.Style := bsClear;
           {$IF CompilerVersion >= 23} // for Delphi XE2 and up
-          SpTBXThemeServices.DrawText(ACanvas.Handle, Details, ACaption, CaptionRect, TTextFormat(TextFlags));
+          SpTBXThemeServices.DrawText(ACanvas.Handle, Details, ACaption, CaptionRect, TTextFormatFlags(TextFlags));
           {$ELSE}
           SpTBXThemeServices.DrawText(ACanvas.Handle, Details, ACaption, CaptionRect, TextFlags, 0);
           {$IFEND}
@@ -1527,6 +1527,16 @@ end;
 constructor TSpTBXCustomPanel.Create(AOwner: TComponent);
 begin
   inherited;
+
+  // The Panel is a special component, it has the ability
+  // to paint the parent background on its children controls.
+  // For that it receives WM_ERASEBKGND messages from its children
+  // via SpDrawParentBackground.
+  // When themes are enabled paint the parent background which is handled by
+  // TSpTBXCustomContainer.WMEraseBkgnd
+  if SkinManager.GetSkinType <> sknNone then
+    ControlStyle := ControlStyle + [csParentBackground] - [csOpaque];
+
   FBorders := True;
   FBorderType := pbrEtched;
 end;
@@ -1586,6 +1596,7 @@ const
   VerticalAlignments: array[TVerticalAlignment] of Longint = (DT_TOP, DT_BOTTOM, DT_VCENTER);
 var
   TextFlags: Longint;
+  Details: TThemedElementDetails;
 begin
   if not Borders then
     InflateRect(ARect, SpDPIScale(3), SpDPIScale(3));
@@ -1605,7 +1616,20 @@ begin
     ACanvas.Font := Self.Font;
     TextFlags := DT_EXPANDTABS or DT_SINGLELINE or VerticalAlignments[FVerticalAlignment] or Alignments[FAlignment];
     TextFlags := DrawTextBiDiModeFlags(TextFlags);
-    SpDrawXPText(ACanvas, Caption, ARect, TextFlags);
+
+    case SkinManager.GetSkinType of
+      sknNone, sknSkin:
+        SpDrawXPText(ACanvas, Caption, ARect, TextFlags);
+      sknWindows, sknDelphiStyle:
+        begin
+          Details := SpTBXThemeServices.GetElementDetails(tpPanelBackground);
+          {$IF CompilerVersion >= 23} // for Delphi XE2 and up
+          SpTBXThemeServices.DrawText(ACanvas.Handle, Details, Caption, ARect, TTextFormatFlags(TextFlags));
+          {$ELSE}
+          SpTBXThemeServices.DrawText(ACanvas.Handle, Details, Caption, ARect, TextFlags, 0);
+          {$IFEND}
+        end;
+    end;
   end;
 end;
 
