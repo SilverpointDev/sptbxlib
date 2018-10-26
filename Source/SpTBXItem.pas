@@ -883,7 +883,7 @@ type
     procedure CMMouseleave(var Message: TMessage); message CM_MOUSELEAVE;
     procedure CMHintShow(var Message: TCMHintShow); message CM_HINTSHOW;
     procedure CMTextChanged(var Message: TMessage); message CM_TEXTCHANGED;
-    procedure WMEraseBkgnd(var Message: TWMEraseBkgnd); message WM_ERASEBKGND;
+    procedure WMEraseBkgnd(var Message: TMessage); message WM_ERASEBKGND;
     procedure WMSize(var Message: TWMSize); message WM_SIZE;
     procedure WMSpSkinChange(var Message: TMessage); message WM_SPSKINCHANGE;
     procedure SetCustomizable(const Value: Boolean);
@@ -1027,7 +1027,7 @@ type
     function GetClientAreaHeight: Integer;
     procedure SetClientAreaHeight(Value: Integer);
     procedure CMTextChanged(var Message: TMessage); message CM_TEXTCHANGED;
-    procedure WMEraseBkgnd(var Message: TWMEraseBkgnd); message WM_ERASEBKGND;
+    procedure WMEraseBkgnd(var Message: TMessage); message WM_ERASEBKGND;
     procedure WMSpSkinChange(var Message: TMessage); message WM_SPSKINCHANGE;
     procedure WMWindowPosChanged(var Message: TWMWindowPosChanged); message WM_WINDOWPOSCHANGED;
   protected
@@ -6633,9 +6633,34 @@ begin
     RedrawWindow(Handle, nil, 0, RDW_ERASE or RDW_INVALIDATE or RDW_ALLCHILDREN or RDW_FRAME);
 end;
 
-procedure TSpTBXToolbar.WMEraseBkgnd(var Message: TWMEraseBkgnd);
+procedure TSpTBXToolbar.WMEraseBkgnd(var Message: TMessage);
+// Same as TSpTBXCustomToolWindow.WMEraseBkgnd
+var
+  ACanvas: TCanvas;
+  R: TRect;
 begin
   Message.Result := 1;
+  if (csDestroying in ComponentState) then Exit;
+
+  if not DoubleBuffered or (Message.wParam = WPARAM(Message.lParam)) then begin
+    ACanvas := TCanvas.Create;
+    ACanvas.Handle := TWMEraseBkgnd(Message).DC;
+    try
+      R := ClientRect;
+      if Docked then begin
+        InflateRect(R, CDefaultToolbarBorderSize, CDefaultToolbarBorderSize);
+        if IsVertical then
+          Dec(R.Top, SpGetDragHandleSize(Self))
+        else
+          Dec(R.Left, SpGetDragHandleSize(Self));
+      end;
+
+      InternalDrawBackground(ACanvas, R, False);
+    finally
+      ACanvas.Handle := 0;
+      ACanvas.Free;
+    end;
+  end;
 end;
 
 procedure TSpTBXToolbar.WMSize(var Message: TWMSize);
@@ -7052,16 +7077,6 @@ begin
     Canvas.Rectangle(R.Left, R.Top, R.Right, R.Bottom);
     Canvas.Pen.Style := psSolid;
   end;
-
-  R := ClientRect;
-  if Docked then begin
-    InflateRect(R, CDefaultToolbarBorderSize, CDefaultToolbarBorderSize);
-    if IsVertical then
-      Dec(R.Top, SpGetDragHandleSize(Self))
-    else
-      Dec(R.Left, SpGetDragHandleSize(Self));
-  end;
-  InternalDrawBackground(Canvas, R, False);
 end;
 
 procedure TSpTBXCustomToolWindow.InternalDrawBackground(ACanvas: TCanvas;
@@ -7213,9 +7228,34 @@ begin
     TSpTBXFloatingWindowParent(Parent).RedrawCloseButton;
 end;
 
-procedure TSpTBXCustomToolWindow.WMEraseBkgnd(var Message: TWMEraseBkgnd);
+procedure TSpTBXCustomToolWindow.WMEraseBkgnd(var Message: TMessage);
+// Same as TSpTBXToolbar.WMEraseBkgnd
+var
+  ACanvas: TCanvas;
+  R: TRect;
 begin
   Message.Result := 1;
+  if (csDestroying in ComponentState) then Exit;
+
+  if not DoubleBuffered or (Message.wParam = WPARAM(Message.lParam)) then begin
+    ACanvas := TCanvas.Create;
+    ACanvas.Handle := TWMEraseBkgnd(Message).DC;
+    try
+      R := ClientRect;
+      if Docked then begin
+        InflateRect(R, CDefaultToolbarBorderSize, CDefaultToolbarBorderSize);
+        if IsVertical then
+          Dec(R.Top, SpGetDragHandleSize(Self))
+        else
+          Dec(R.Left, SpGetDragHandleSize(Self));
+      end;
+
+      InternalDrawBackground(ACanvas, R, False);
+    finally
+      ACanvas.Handle := 0;
+      ACanvas.Free;
+    end;
+  end;
 end;
 
 procedure TSpTBXCustomToolWindow.WMSpSkinChange(var Message: TMessage);
@@ -7323,7 +7363,6 @@ begin
               ACanvas.Font.Color := CurrentSkin.GetTextColor(skncWindowTitleBar, sknsNormal)
             else
               ACanvas.Font.Color := CurrentSkin.GetTextColor(skncWindowTitleBar, sknsDisabled);
-
             if DockableWindow is TSpTBXToolbar then
               S := TSpTBXToolbar(DockWindow).Caption
             else

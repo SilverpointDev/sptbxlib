@@ -3269,13 +3269,18 @@ begin
         if (SkinType = sknWindows) or (SkinType = sknDelphiStyle) then
           Result := GetTextColor(skncTab, State);
     skncWindowTitleBar:
-      if SkinType = sknSkin then
-        Result := GetTextColor(skncToolbarItem, State)  // Use skncToolbarItem to get the default text color
-      else
-        if (SkinType = sknWindows) or (SkinType = sknDelphiStyle) then begin
+      case SkinType of
+        sknNone:
+          if State = sknsDisabled then
+            Result := clInactiveCaptionText
+          else
+            Result := clCaptionText;
+        sknWindows, sknDelphiStyle:
           if GetThemedElementDetails(Component, State, Details) then
             GetThemedElementTextColor(Details, Result);
-        end;
+        sknSkin:
+          Result := GetTextColor(skncToolbarItem, State);  // Use skncToolbarItem to get the default text color
+      end;
   end;
 end;
 
