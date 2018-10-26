@@ -1622,11 +1622,13 @@ begin
         SpDrawXPText(ACanvas, Caption, ARect, TextFlags);
       sknWindows, sknDelphiStyle:
         begin
-          Details := SpTBXThemeServices.GetElementDetails(tpPanelBackground);
+          // [Theme-Change]
           {$IF CompilerVersion >= 23} // for Delphi XE2 and up
+          // tpPanelBackground is defined on XE2 and up
+          Details := SpTBXThemeServices.GetElementDetails(tpPanelBackground);
           SpTBXThemeServices.DrawText(ACanvas.Handle, Details, Caption, ARect, TTextFormatFlags(TextFlags));
           {$ELSE}
-          SpTBXThemeServices.DrawText(ACanvas.Handle, Details, Caption, ARect, TextFlags, 0);
+          SpDrawXPText(ACanvas, Caption, ARect, TextFlags);
           {$IFEND}
         end;
     end;
