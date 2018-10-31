@@ -1493,7 +1493,12 @@ begin
               if ChildW is TSpTBXTextObject then
                 RedrawWindow(ChildW.Handle, nil, 0, RDW_ERASE or RDW_INVALIDATE)
               else
-                PostMessage(ChildW.Handle, CM_SPTBXCONTROLSINVALIDATE, ChildW.Width, ChildW.Height);
+                if ChildW is TSpTBXCustomPanel then
+                  RedrawWindow(ChildW.Handle, nil, 0, RDW_ERASE or RDW_INVALIDATE or RDW_ALLCHILDREN)
+                else
+                  if not (ChildW is TSpTBXDock) and not (ChildW is TSpTBXToolbar) then
+                    RedrawWindow(ChildW.Handle, nil, 0, RDW_ERASE or RDW_INVALIDATE);
+//                    PostMessage(ChildW.Handle, CM_SPTBXCONTROLSINVALIDATE, ChildW.Width, ChildW.Height);
             end;
           end;
       end

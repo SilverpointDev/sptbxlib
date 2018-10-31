@@ -488,7 +488,6 @@ type
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
     function GetPage(Item: TSpTBXTabItem): TSpTBXTabSheet;
-    procedure InvalidateBackground(InvalidateChildren: Boolean = True); override;
     property ActivePage: TSpTBXTabSheet read GetActivePage write SetActivePage;
     property Pages[Index: Integer]: TSpTBXTabSheet read GetPages;
     property PagesCount: Integer read GetPagesCount;
@@ -2407,9 +2406,6 @@ end;
 constructor TSpTBXCustomTabSet.Create(AOwner: TComponent);
 begin
   inherited;
-  Color := clBtnFace;
-  ParentColor := False;
-
   FTabVisible := True;
 
   Width := 289;
@@ -2940,10 +2936,8 @@ end;
 procedure TSpTBXCustomTabSet.CMColorchanged(var Message: TMessage);
 begin
   inherited;
-  if Assigned(FToolbar) then begin
+  if Assigned(FToolbar) then
     Toolbar.TabColor := Color;
-    InvalidateBackground;
-  end;
 end;
 
 procedure TSpTBXCustomTabSet.CMSpTBXControlsInvalidate(var Message: TMessage);
@@ -3061,22 +3055,6 @@ end;
 function TSpTBXCustomTabControl.GetPagesCount: Integer;
 begin
   Result := FPages.Count;
-end;
-
-procedure TSpTBXCustomTabControl.InvalidateBackground(InvalidateChildren: Boolean);
-var
-  NeedsRepaint: Boolean;
-begin
-  NeedsRepaint := True;
-  if FIsResizing then
-    if not (csDestroying in ComponentState) then
-      NeedsRepaint := not Assigned(FPages) or (FPages.Count = 0) or not Assigned(FToolbar) or
-        not Assigned(Toolbar.ActiveTab) or not Toolbar.ActiveTab.Checked
-    else
-      NeedsRepaint := False;
-
-  if NeedsRepaint then
-    inherited InvalidateBackground(InvalidateChildren);
 end;
 
 procedure TSpTBXCustomTabControl.TabInserted(Item: TSpTBXTabItem);
