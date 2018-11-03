@@ -64,7 +64,8 @@ Development notes:
 
 interface
 
-{$BOOLEVAL OFF} // Unit depends on short-circuit boolean evaluation
+{$BOOLEVAL OFF}   // Unit depends on short-circuit boolean evaluation
+{$LEGACYIFEND ON} // XE4 and up requires $IF to be terminated with $ENDIF instead of $IFEND
 
 uses
   Windows, Messages, Classes, SysUtils, Forms, Controls, Graphics, ImgList,
@@ -1274,6 +1275,8 @@ type
     function GetToolbarClass: TSpTBXToolbarClass; virtual;
     function GetItems: TTBCustomItem; virtual;  // For ITBItems interface
     procedure Loaded; override;
+    property Color default clBtnFace;
+    property ParentColor default False;
     procedure SetName(const Value: TComponentName); override;
     property Images: TCustomImageList read GetImages write SetImages;
   public
@@ -1404,6 +1407,7 @@ type
     function GetSizeGrip: Boolean;
     procedure SetSizeGrip(const Value: Boolean);
     function GetStatusToolbar: TSpTBXStatusToolbar;
+    procedure WMEraseBkgnd(var Message: TWMEraseBkgnd); message WM_ERASEBKGND;
   protected
     FPrevState: TWindowState;
     function CanResize(var NewWidth: Integer; var NewHeight: Integer): Boolean; override;
@@ -8074,6 +8078,7 @@ begin
   inherited;
   Color := clBtnFace;
   ParentColor := False;
+
   FDock := GetDockClass.Create(Self);
   FDock.Parent := Self;
   FDock.OnRequestDock := DockRequestDock;
@@ -8766,6 +8771,14 @@ begin
   Toolbar.SizeGrip := Value;
 end;
 
+procedure TSpTBXCustomStatusBar.WMEraseBkgnd(var Message: TWMEraseBkgnd);
+begin
+  // Prevent background painting, not needed, it is painted by the Dock/Toolbar
+  // Since csAcceptsControls is not setted the control is clipped on resize causing
+  // incorrect background painting
+  Message.Result := 1;
+end;
+
 //WMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWM
 { TSpTBXTitleToolbar }
 
@@ -9298,34 +9311,25 @@ var
   DockAreaR: TRect;
   FloatingBorderSize: TPoint;
   Maximized: Boolean;
-  B: TBitmap;
 begin
-  B := TBitmap.Create;
-  try
-    B.SetSize(ARect.Right, ARect.Bottom);
-    B.Canvas.Brush.Color := Color; // SpDrawXPTitleBarBody needs it to paint the background
-    B.Canvas.FillRect(ARect);
-    Maximized := (WindowState = wsMaximized) and FMouseActive;
-    if Maximized then
-      InflateRect(ARect, SpDpiScale(4), SpDpiScale(4));
-    if Active then begin
-      FloatingBorderSize := GetFloatingBorderSize;
-      SpDrawXPTitleBarBody(B.Canvas, ARect, True, FloatingBorderSize);
+  ACanvas.Brush.Color := Color; // SpDrawXPTitleBarBody needs it to paint the background
+  ACanvas.FillRect(ARect);
 
-      // [Theme-Change]
-      // On WindowsXP make sure we paint the titlebar on the NC area
-      // TSpTBXCustomTitleBar.WMEraseBkgnd and TSpTBXCustomTitleBar.DoDrawDockBackground handles this issue
-      if Assigned(FDock) and not Maximized and (SkinManager.GetSkinType in [sknWindows, sknDelphiStyle]) then begin
-        DockAreaR := ARect;
-        DockAreaR.Bottom := FDock.Height + FloatingBorderSize.Y; // don't multiply by 2
-        SpDrawXPTitleBar(B.Canvas, DockAreaR, True);
-      end;
+  Maximized := (WindowState = wsMaximized) and FMouseActive;
+  if Maximized then
+    InflateRect(ARect, SpDpiScale(4), SpDpiScale(4));
+  if Active then begin
+    FloatingBorderSize := GetFloatingBorderSize;
+    SpDrawXPTitleBarBody(ACanvas, ARect, True, FloatingBorderSize);
+
+    // [Theme-Change]
+    // On WindowsXP make sure we paint the titlebar on the NC area
+    // TSpTBXCustomTitleBar.WMEraseBkgnd and TSpTBXCustomTitleBar.DoDrawDockBackground handles this issue
+    if Assigned(FDock) and not Maximized and (SkinManager.GetSkinType in [sknWindows, sknDelphiStyle]) then begin
+      DockAreaR := ARect;
+      DockAreaR.Bottom := FDock.Height + FloatingBorderSize.Y; // don't multiply by 2
+      SpDrawXPTitleBar(ACanvas, DockAreaR, True);
     end;
-
-
-    BitBlt(ACanvas.Handle, 0, 0, B.Width, B.Height, B.Canvas.Handle, 0, 0, SRCCOPY);
-  finally
-    B.Free;
   end;
 end;
 
@@ -9560,7 +9564,6 @@ begin
   if not FUpdateRegionCalled then
     UpdateRegion;
 
-  InvalidateBackground(False);
   if [csDesigning, csDestroying] * ComponentState = [] then begin
     if FOptions.Maximize then
       FOptions.SetupButtonIcon(FOptions.MaximizeButton);

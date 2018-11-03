@@ -45,7 +45,8 @@ TODO:
 
 interface
 
-{$BOOLEVAL OFF} // Unit depends on short-circuit boolean evaluation
+{$BOOLEVAL OFF}   // Unit depends on short-circuit boolean evaluation
+{$LEGACYIFEND ON} // XE4 and up requires $IF to be terminated with $ENDIF instead of $IFEND
 
 uses
   Windows, Messages, Classes, SysUtils, Controls, Graphics, ImgList, Forms,
@@ -478,6 +479,7 @@ type
     function GetPagesCount: Integer;
     procedure SetActivePage(const Value: TSpTBXTabSheet);
     procedure CMSpTBXControlsInvalidate(var Message: TMessage); message CM_SPTBXCONTROLSINVALIDATE;
+    procedure WMEraseBkgnd(var Message: TMessage); message WM_ERASEBKGND;
     procedure WMSpSkinChange(var Message: TMessage); message WM_SPSKINCHANGE;
   protected
     FPages: TList;
@@ -2406,6 +2408,9 @@ end;
 constructor TSpTBXCustomTabSet.Create(AOwner: TComponent);
 begin
   inherited;
+  Color := clBtnFace;
+  ParentColor := False;
+
   FTabVisible := True;
 
   Width := 289;
@@ -3136,6 +3141,19 @@ begin
       SpInvalidateSpTBXControl(Pages[I], True, True);
   end;
   Message.Result := 1;
+end;
+
+procedure TSpTBXCustomTabControl.WMEraseBkgnd(var Message: TMessage);
+var
+  NeedsRepaint: Boolean;
+begin
+  NeedsRepaint := False;
+  if HandleAllocated and not (csDestroying in ComponentState) then
+    NeedsRepaint := not Assigned(FPages) or (FPages.Count = 0) or
+      not Assigned(FToolbar) or not Assigned(Toolbar.ActiveTab) or not Toolbar.ActiveTab.Checked;
+
+  if NeedsRepaint then
+    inherited;
 end;
 
 procedure TSpTBXCustomTabControl.WMSpSkinChange(var Message: TMessage);

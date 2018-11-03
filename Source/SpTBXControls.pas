@@ -39,7 +39,8 @@ Development notes:
 
 interface
 
-{$BOOLEVAL OFF} // Unit depends on short-circuit boolean evaluation
+{$BOOLEVAL OFF}   // Unit depends on short-circuit boolean evaluation
+{$LEGACYIFEND ON} // XE4 and up requires $IF to be terminated with $ENDIF instead of $IFEND
 
 uses
   Windows, Messages, Classes, SysUtils, Forms, Controls, Graphics, ImgList,
@@ -1601,7 +1602,9 @@ const
   VerticalAlignments: array[TVerticalAlignment] of Longint = (DT_TOP, DT_BOTTOM, DT_VCENTER);
 var
   TextFlags: Longint;
+  {$IF CompilerVersion >= 23} // for Delphi XE2 and up
   Details: TThemedElementDetails;
+  {$IFEND}
 begin
   if not Borders then
     InflateRect(ARect, SpDPIScale(3), SpDPIScale(3));

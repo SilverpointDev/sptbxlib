@@ -1,4 +1,4 @@
-# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+﻿# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
 #
 msgid ""
 msgstr ""
