@@ -101,6 +101,7 @@ type
   protected
     procedure AdjustClientRect(var Rect: TRect); override;
     procedure DrawBackground(ACanvas: TCanvas; ARect: TRect); override;
+    function GetBackgroundClipRect: TRect; override;
     property Borders: Boolean read FBorders write SetBorders default True;
     property BorderType: TSpTBXPanelBorder read FBorderType write SetBorderType default pbrEtched;
     property TBXStyleBackground: Boolean read FTBXStyleBackground write SetTBXStyleBackground default False;
@@ -1083,7 +1084,6 @@ procedure SpDrawXPGroupBox(ACanvas: TCanvas; ARect: TRect; ACaption: string; Tex
 procedure SpDrawXPProgressBar(ACanvas: TCanvas; ARect: TRect; Min, Max, Position: Integer; Back, Fore: TBitmap); overload;
 function SpDrawXPProgressBar(ACanvas: TCanvas; ARect: TRect; Vertical, Smooth, DrawProgress: Boolean; Min, Max, Position: Integer): Integer; overload;
 procedure SpDrawXPTrackBar(ACanvas: TCanvas; ARect: TRect; Part: Cardinal; Vertical, ChannelSelection: Boolean; ThumbState: TSpTBXSkinStatesType; TickMark: TSpTBXTickMark; Min, Max, SelStart, SelEnd: Integer);
-procedure SpInvalidateSpTBXControl(AControl: TWinControl; InvalidateChildren, OnlySpTBXControls: Boolean);
 
 implementation
 
@@ -1475,44 +1475,6 @@ begin
   end;
 end;
 
-procedure SpInvalidateSpTBXControl(AControl: TWinControl; InvalidateChildren, OnlySpTBXControls: Boolean);
-var
-  I: Integer;
-  ChildW: TWinControl;
-begin
-  // Invalidate will not fire WM_ERASEBKGND, because csOpaque is setted
-  if Assigned(AControl) and not (csDestroying in AControl.ComponentState) and AControl.HandleAllocated then
-  begin
-    if InvalidateChildren then begin
-      if OnlySpTBXControls then begin
-        RedrawWindow(AControl.Handle, nil, 0, RDW_ERASE or RDW_INVALIDATE);
-        // Only invalidate SpTBXControls
-        for I := 0 to AControl.ControlCount - 1 do
-          if AControl.Controls[I] is TWinControl then begin
-            ChildW := TWinControl(AControl.Controls[I]);
-            if not (csDestroying in ChildW.ComponentState) and
-              not (csFreeNotification in ChildW.ComponentState) and ChildW.HandleAllocated then
-            begin
-              if ChildW is TSpTBXTextObject then
-                RedrawWindow(ChildW.Handle, nil, 0, RDW_ERASE or RDW_INVALIDATE)
-              else
-                if ChildW is TSpTBXCustomPanel then
-                  RedrawWindow(ChildW.Handle, nil, 0, RDW_ERASE or RDW_INVALIDATE or RDW_ALLCHILDREN)
-                else
-                  if not (ChildW is TSpTBXDock) and not (ChildW is TSpTBXToolbar) then
-                    RedrawWindow(ChildW.Handle, nil, 0, RDW_ERASE or RDW_INVALIDATE);
-//                    PostMessage(ChildW.Handle, CM_SPTBXCONTROLSINVALIDATE, ChildW.Width, ChildW.Height);
-            end;
-          end;
-      end
-      else
-        RedrawWindow(AControl.Handle, nil, 0, RDW_ERASE or RDW_INVALIDATE or RDW_ALLCHILDREN);
-    end
-    else
-      RedrawWindow(AControl.Handle, nil, 0, RDW_ERASE or RDW_INVALIDATE);
-  end;
-end;
-
 procedure ApplyMargins(var R: TRect; const Margins: TRect); overload;
 begin
   with Margins do begin
@@ -1544,7 +1506,6 @@ begin
   // TSpTBXCustomContainer.WMEraseBkgnd
   if SkinManager.GetSkinType <> sknNone then
     ControlStyle := ControlStyle + [csParentBackground] - [csOpaque];
-
   FBorders := True;
   FBorderType := pbrEtched;
 end;
@@ -1586,6 +1547,18 @@ begin
   if not Borders then
     InflateRect(ARect, SpDPIScale(3), SpDPIScale(3));
   SpDrawXPPanel(ACanvas, ARect, True, FTBXStyleBackground, FBorderType);
+end;
+
+function TSpTBXCustomPanel.GetBackgroundClipRect: TRect;
+begin
+  if FTBXStyleBackground and (SkinManager.GetSkinType = sknSkin) then begin
+    // When TBXStyleBackground there's no need to paint the background in
+    // WMEraseBkgnd, try to avoid flicker.
+    Result := ClientRect;
+    InflateRect(Result, -2, -2);
+  end
+  else
+    Result := inherited GetBackgroundClipRect;
 end;
 
 //WMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWM

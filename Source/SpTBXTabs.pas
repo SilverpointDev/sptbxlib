@@ -354,7 +354,6 @@ type
     procedure SetTabVisible(const Value: Boolean);
     function GetTabToolbar: TSpTBXTabToolbar;
     procedure CMColorchanged(var Message: TMessage); message CM_COLORCHANGED;
-    procedure CMSpTBXControlsInvalidate(var Message: TMessage); message CM_SPTBXCONTROLSINVALIDATE;
     procedure WMInvalidateTabBackground(var Message: TMessage); message WM_INVALIDATETABBACKGROUND;
   protected
     // Painting
@@ -480,7 +479,6 @@ type
     function GetPages(Index: Integer): TSpTBXTabSheet;
     function GetPagesCount: Integer;
     procedure SetActivePage(const Value: TSpTBXTabSheet);
-    procedure CMSpTBXControlsInvalidate(var Message: TMessage); message CM_SPTBXCONTROLSINVALIDATE;
     procedure WMEraseBkgnd(var Message: TMessage); message WM_ERASEBKGND;
     procedure WMSpSkinChange(var Message: TMessage); message WM_SPSKINCHANGE;
   protected
@@ -492,6 +490,7 @@ type
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
     function GetPage(Item: TSpTBXTabItem): TSpTBXTabSheet;
+    procedure InvalidateBackground(InvalidateChildren: Boolean = True); override;
     property ActivePage: TSpTBXTabSheet read GetActivePage write SetActivePage;
     property Pages[Index: Integer]: TSpTBXTabSheet read GetPages;
     property PagesCount: Integer read GetPagesCount;
@@ -1386,7 +1385,7 @@ begin
     T := TSpTBXTabToolbar(Owner);
     if Assigned(T.FOwnerTabControl) then begin
       SendMessage(T.FOwnerTabControl.Handle, WM_SETREDRAW, 1, 0);
-      SpInvalidateSpTBXControl(T.FOwnerTabControl, True, False);
+      SpInvalidateSpTBXControl(T.FOwnerTabControl, True);
     end;
   end;
 end;
@@ -2947,12 +2946,6 @@ begin
     Toolbar.TabColor := Color;
 end;
 
-procedure TSpTBXCustomTabSet.CMSpTBXControlsInvalidate(var Message: TMessage);
-begin
-  InvalidateBackground;
-  Message.Result := 1;
-end;
-
 procedure TSpTBXCustomTabSet.WMInvalidateTabBackground(var Message: TMessage);
 var
   Tab: TSpTBXTabItem;
@@ -3064,6 +3057,11 @@ begin
   Result := FPages.Count;
 end;
 
+procedure TSpTBXCustomTabControl.InvalidateBackground(InvalidateChildren: Boolean);
+begin
+  // Do nothing, Background is painted by the TabSheet
+end;
+
 procedure TSpTBXCustomTabControl.TabInserted(Item: TSpTBXTabItem);
 var
   T: TSpTBXTabSheet;
@@ -3132,30 +3130,10 @@ begin
   end;
 end;
 
-procedure TSpTBXCustomTabControl.CMSpTBXControlsInvalidate(var Message: TMessage);
-var
-  I, C: Integer;
-begin
-  // Force TabControl and TabSheets background repaint
-  if not (csDestroying in ComponentState) and Assigned(FToolbar) then begin
-    C := PagesCount;
-    for I := 0 to C - 1 do
-      SpInvalidateSpTBXControl(Pages[I], True, True);
-  end;
-  Message.Result := 1;
-end;
-
 procedure TSpTBXCustomTabControl.WMEraseBkgnd(var Message: TMessage);
-var
-  NeedsRepaint: Boolean;
 begin
-  NeedsRepaint := False;
-  if HandleAllocated and not (csDestroying in ComponentState) then
-    NeedsRepaint := not Assigned(FPages) or (FPages.Count = 0) or
-      not Assigned(FToolbar) or not Assigned(Toolbar.ActiveTab) or not Toolbar.ActiveTab.Checked;
-
-  if NeedsRepaint then
-    inherited;
+  // Do nothing, Background is painted by the TabSheet
+  Message.Result := 1;
 end;
 
 procedure TSpTBXCustomTabControl.WMSpSkinChange(var Message: TMessage);
