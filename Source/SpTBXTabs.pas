@@ -479,7 +479,6 @@ type
     function GetPages(Index: Integer): TSpTBXTabSheet;
     function GetPagesCount: Integer;
     procedure SetActivePage(const Value: TSpTBXTabSheet);
-    procedure WMEraseBkgnd(var Message: TMessage); message WM_ERASEBKGND;
     procedure WMSpSkinChange(var Message: TMessage); message WM_SPSKINCHANGE;
   protected
     FPages: TList;
@@ -490,7 +489,6 @@ type
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
     function GetPage(Item: TSpTBXTabItem): TSpTBXTabSheet;
-    procedure InvalidateBackground(InvalidateChildren: Boolean = True); override;
     property ActivePage: TSpTBXTabSheet read GetActivePage write SetActivePage;
     property Pages[Index: Integer]: TSpTBXTabSheet read GetPages;
     property PagesCount: Integer read GetPagesCount;
@@ -3057,11 +3055,6 @@ begin
   Result := FPages.Count;
 end;
 
-procedure TSpTBXCustomTabControl.InvalidateBackground(InvalidateChildren: Boolean);
-begin
-  // Do nothing, Background is painted by the TabSheet
-end;
-
 procedure TSpTBXCustomTabControl.TabInserted(Item: TSpTBXTabItem);
 var
   T: TSpTBXTabSheet;
@@ -3128,12 +3121,6 @@ begin
       Break;
     end;
   end;
-end;
-
-procedure TSpTBXCustomTabControl.WMEraseBkgnd(var Message: TMessage);
-begin
-  // Do nothing, Background is painted by the TabSheet
-  Message.Result := 1;
 end;
 
 procedure TSpTBXCustomTabControl.WMSpSkinChange(var Message: TMessage);
