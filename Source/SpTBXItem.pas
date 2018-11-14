@@ -1254,7 +1254,6 @@ type
     procedure CreateParams(var Params: TCreateParams); override;
     procedure DoDrawBackground(ACanvas: TCanvas; ARect: TRect; const PaintStage: TSpTBXPaintStage; var PaintDefault: Boolean); virtual;
     procedure DrawBackground(ACanvas: TCanvas; ARect: TRect); virtual;
-    function GetBackgroundClipRect: TRect; virtual;
     property ParentColor default False;
     property OnDrawBackground: TSpTBXDrawEvent read FOnDrawBackground write FOnDrawBackground;
   public
@@ -8068,11 +8067,6 @@ begin
   //
 end;
 
-function TSpTBXCustomContainer.GetBackgroundClipRect: TRect;
-begin
-  Result := Rect(0, 0, 0, 0);
-end;
-
 procedure TSpTBXCustomContainer.InvalidateBackground(InvalidateChildren: Boolean);
 begin
   // Force background repaint, calling invalidate doesn't repaint children controls
@@ -8089,28 +8083,25 @@ end;
 
 procedure TSpTBXCustomContainer.WMEraseBkgnd(var Message: TMessage);
 var
-  R, ClipR: TRect;
+  R: TRect;
+
   ACanvas: TCanvas;
   PaintDefault: Boolean;
   SaveIndex: Integer;
 begin
   Message.Result := 1;
-  if (TWMEraseBkgnd(Message).DC = 0) then
-    Exit;
 
-  R := ClientRect;
+  // Only erase background if we're not double buffering or painting to memory
+  if not DoubleBuffered or (TMessage(Message).wParam = WPARAM(TMessage(Message).lParam)) then
+  begin
+    R := ClientRect;
 
-  ACanvas := TCanvas.Create;
-  SaveIndex := SaveDC(TWMEraseBkgnd(Message).DC);
-  try
+    ACanvas := TCanvas.Create;
     ACanvas.Handle := TWMEraseBkgnd(Message).DC;
-    ACanvas.Lock;
-
-    ClipR := GetBackgroundClipRect;
+    SaveIndex := SaveDC(TWMEraseBkgnd(Message).DC);
     try
-      ExcludeClipRect(ACanvas.Handle, ClipR.Left, ClipR.Top, ClipR.Right, ClipR.Bottom);
+      ACanvas.Lock;
 
-      // GetFullRepaint is true for Panels that have transparency
       if (Color = clNone) and Assigned(Parent) and SkinManager.IsXPThemesEnabled and
         ((csDesigning in ComponentState) or (csParentBackground in ControlStyle)) then
       begin
@@ -8126,38 +8117,34 @@ begin
         end;
       end
       else
-        // Only erase background if we're not double buffering or painting to memory
-        if not DoubleBuffered or (TMessage(Message).wParam = WPARAM(TMessage(Message).lParam)) then
-          if Color = clNone then
-            SpFillRect(ACanvas, R, CurrentSkin.GetThemedSystemColor(clBtnFace))
-          else
-            SpFillRect(ACanvas, R, Color);
+        if Color = clNone then
+          SpFillRect(ACanvas, R, CurrentSkin.GetThemedSystemColor(clBtnFace))
+        else
+          SpFillRect(ACanvas, R, Color);
+
+      // Set the Font after SpDrawParentBackground, DrawThemeParentBackground,
+      // or PerformEraseBackground.
+      // The API messes the font, it seems it destroys it.
+      // For more info see:
+      // - TCustomActionControl.DrawBackground for more info.
+      // - Theme Explorer Main.pas TMainForm.ControlMessage
+      //   (http://www.soft-gems.net:8080/browse/Demos)
+      ACanvas.Font.Handle := 0;  // Reset the font, it gets destroyed
+      ACanvas.Font.Color := $010101;  // Force a change
+      ACanvas.Font.Assign(Self.Font);
+
+      PaintDefault := True;
+      DoDrawBackground(ACanvas, R, pstPrePaint, PaintDefault);
+      if PaintDefault then
+        DrawBackground(ACanvas, R);
+      PaintDefault := True;
+      DoDrawBackground(ACanvas, R, pstPostPaint, PaintDefault);
     finally
-      RestoreDC(ACanvas.Handle, SaveIndex);
+      ACanvas.Unlock;
+      ACanvas.Handle := 0;
+      ACanvas.Free;
+      RestoreDC(TWMEraseBkgnd(Message).DC, SaveIndex);
     end;
-
-    // Set the Font after SpDrawParentBackground, DrawThemeParentBackground,
-    // or PerformEraseBackground.
-    // The API messes the font, it seems it destroys it.
-    // For more info see:
-    // - TCustomActionControl.DrawBackground for more info.
-    // - Theme Explorer Main.pas TMainForm.ControlMessage
-    //   (http://www.soft-gems.net:8080/browse/Demos)
-    ACanvas.Font.Handle := 0;  // Reset the font, it gets destroyed
-    ACanvas.Font.Color := $010101;  // Force a change
-    ACanvas.Font.Assign(Self.Font);
-
-    PaintDefault := True;
-    DoDrawBackground(ACanvas, R, pstPrePaint, PaintDefault);
-    if PaintDefault then
-      DrawBackground(ACanvas, R);
-    PaintDefault := True;
-    DoDrawBackground(ACanvas, R, pstPostPaint, PaintDefault);
-  finally
-    ACanvas.Unlock;
-    ACanvas.Handle := 0;
-    ACanvas.Free;
-    RestoreDC(TWMEraseBkgnd(Message).DC, SaveIndex);
   end;
 end;
 

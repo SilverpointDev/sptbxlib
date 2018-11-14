@@ -101,7 +101,6 @@ type
   protected
     procedure AdjustClientRect(var Rect: TRect); override;
     procedure DrawBackground(ACanvas: TCanvas; ARect: TRect); override;
-    function GetBackgroundClipRect: TRect; override;
     property Borders: Boolean read FBorders write SetBorders default True;
     property BorderType: TSpTBXPanelBorder read FBorderType write SetBorderType default pbrEtched;
     property TBXStyleBackground: Boolean read FTBXStyleBackground write SetTBXStyleBackground default False;
@@ -1547,18 +1546,6 @@ begin
   if not Borders then
     InflateRect(ARect, SpDPIScale(3), SpDPIScale(3));
   SpDrawXPPanel(ACanvas, ARect, True, FTBXStyleBackground, FBorderType);
-end;
-
-function TSpTBXCustomPanel.GetBackgroundClipRect: TRect;
-begin
-  if FTBXStyleBackground and (SkinManager.GetSkinType = sknSkin) then begin
-    // When TBXStyleBackground there's no need to paint the background in
-    // WMEraseBkgnd, try to avoid flicker.
-    Result := ClientRect;
-    InflateRect(Result, -2, -2);
-  end
-  else
-    Result := inherited GetBackgroundClipRect;
 end;
 
 //WMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWM
