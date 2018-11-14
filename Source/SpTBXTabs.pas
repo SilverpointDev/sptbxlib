@@ -202,7 +202,6 @@ type
 
   TSpTBXTabToolbarView = class(TSpTBXToolbarView)
   public
-    procedure BeginUpdate; override;
     procedure EndUpdate; override;
   end;
 
@@ -1362,30 +1361,12 @@ end;
 //WMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWM
 { TSpTBXTabToolbarView }
 
-procedure TSpTBXTabToolbarView.BeginUpdate;
-var
-  T: TSpTBXTabToolbar;
-begin
-  if (FUpdating = 0) and (Owner is TSpTBXTabToolbar) then begin
-    T := TSpTBXTabToolbar(Owner);
-    if Assigned(T.FOwnerTabControl) then
-      SendMessage(T.FOwnerTabControl.Handle, WM_SETREDRAW, 0, 0);
-  end;
-  inherited;
-end;
-
 procedure TSpTBXTabToolbarView.EndUpdate;
-var
-  T: TSpTBXTabToolbar;
 begin
   inherited;
-  if (FUpdating = 0) and (Owner is TSpTBXTabToolbar) then begin
-    T := TSpTBXTabToolbar(Owner);
-    if Assigned(T.FOwnerTabControl) then begin
-      SendMessage(T.FOwnerTabControl.Handle, WM_SETREDRAW, 1, 0);
-      SpInvalidateSpTBXControl(T.FOwnerTabControl, True);
-    end;
-  end;
+
+  if (FUpdating = 0) and (Owner is TSpTBXTabToolbar) then
+    TSpTBXTabToolbar(Owner).InvalidateNC;
 end;
 
 //WMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWM

@@ -3254,6 +3254,11 @@ begin
           if not (csDestroying in ChildW.ComponentState) and
             {not (csFreeNotification in ChildW.ComponentState) and} ChildW.HandleAllocated then
           begin
+            if (ChildW.Anchors = [akLeft, akTop, akRight, akBottom]) or
+               (ChildW.Anchors = [akLeft, akTop, akRight]) or (ChildW.Anchors = [akLeft, akTop, akBottom]) or
+               (ChildW.Anchors = [akLeft, akRight, akBottom]) or (ChildW.Anchors = [akTop, akRight, akBottom]) then
+              Break;
+
             if (ChildW is TSpTBXCustomContainer) and (csParentBackground in ChildW.ControlStyle) then
               RedrawWindow(ChildW.Handle, nil, 0, RDW_ERASE or RDW_INVALIDATE or RDW_ALLCHILDREN)
             else
@@ -6667,7 +6672,13 @@ begin
   Message.Result := 1;
   if (csDestroying in ComponentState) then Exit;
 
-//  if not DoubleBuffered or (Message.wParam = WPARAM(Message.lParam)) then
+  // Only erase background if we're not double buffering or painting to memory
+  // TTBCustomDockableWindow doesn't support DoubleBuffered property, we need to
+  // change this line in TTBView.DrawItem:
+  //   FWindow.Perform(WM_ERASEBKGND, WPARAM(BmpDC), 0);
+  // To:
+  //   FWindow.Perform(WM_ERASEBKGND, WPARAM(BmpDC), LPARAM(BmpDC)); // Pass BmpDC on LParam to support DoubleBuffered property
+  if not DoubleBuffered or (Message.wParam = WPARAM(Message.lParam)) then
   begin
     ACanvas := TCanvas.Create;
     ACanvas.Handle := TWMEraseBkgnd(Message).DC;
@@ -7238,7 +7249,13 @@ begin
   Message.Result := 1;
   if (csDestroying in ComponentState) then Exit;
 
-//  if not DoubleBuffered or (Message.wParam = WPARAM(Message.lParam)) then
+  // Only erase background if we're not double buffering or painting to memory
+  // TTBCustomDockableWindow doesn't support DoubleBuffered property, we need to
+  // change this line in TTBView.DrawItem:
+  //   FWindow.Perform(WM_ERASEBKGND, WPARAM(BmpDC), 0);
+  // To:
+  //   FWindow.Perform(WM_ERASEBKGND, WPARAM(BmpDC), LPARAM(BmpDC)); // Pass BmpDC on LParam to support DoubleBuffered property
+  if not DoubleBuffered or (Message.wParam = WPARAM(Message.lParam)) then
   begin
     ACanvas := TCanvas.Create;
     ACanvas.Handle := TWMEraseBkgnd(Message).DC;
@@ -8109,7 +8126,7 @@ begin
         end;
       end
       else
-        // Only erase background if we're not doublebuffering or painting to memory
+        // Only erase background if we're not double buffering or painting to memory
         if not DoubleBuffered or (TMessage(Message).wParam = WPARAM(TMessage(Message).lParam)) then
           if Color = clNone then
             SpFillRect(ACanvas, R, CurrentSkin.GetThemedSystemColor(clBtnFace))
@@ -8195,7 +8212,7 @@ begin
       end;
     end
     else
-      // Only erase background if we're not doublebuffering or painting to memory
+      // Only erase background if we're not double buffering or painting to memory
       if not DoubleBuffered or (TMessage(Message).wParam = WPARAM(TMessage(Message).lParam)) then
         if Color = clNone then
           SpFillRect(ACanvas, R, CurrentSkin.GetThemedSystemColor(clBtnFace))
