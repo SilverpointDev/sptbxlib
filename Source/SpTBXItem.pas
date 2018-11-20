@@ -6667,6 +6667,7 @@ procedure TSpTBXToolbar.WMEraseBkgnd(var Message: TMessage);
 var
   ACanvas: TCanvas;
   R: TRect;
+  WindowOrg: TPoint;
 begin
   Message.Result := 1;
   if (csDestroying in ComponentState) then Exit;
@@ -6677,25 +6678,33 @@ begin
   //   FWindow.Perform(WM_ERASEBKGND, WPARAM(BmpDC), 0);
   // To:
   //   FWindow.Perform(WM_ERASEBKGND, WPARAM(BmpDC), LPARAM(BmpDC)); // Pass BmpDC on LParam to support DoubleBuffered property
-  if not DoubleBuffered or (Message.wParam = WPARAM(Message.lParam)) then
+//  if not DoubleBuffered or (Message.wParam = WPARAM(Message.lParam)) then
+  if DoubleBuffered and (TMessage(Message).wParam <> WPARAM(TMessage(Message).lParam)) then
   begin
-    ACanvas := TCanvas.Create;
-    ACanvas.Handle := TWMEraseBkgnd(Message).DC;
-    try
-      R := ClientRect;
-      if Docked then begin
-        InflateRect(R, CDefaultToolbarBorderSize, CDefaultToolbarBorderSize);
-        if IsVertical then
-          Dec(R.Top, SpGetDragHandleSize(Self))
-        else
-          Dec(R.Left, SpGetDragHandleSize(Self));
-      end;
+    // When using VCL Styles and a VCL control is inside a Toolbar, DrawControlBackground in StyleAPI.inc calls:
+    // Control.Parent.Perform(WM_ERASEBKGND, WPARAM(DC), 1);
+    // We need to check if the WindowOrg is 0 to discard
+    GetWindowOrgEx(TWMEraseBkgnd(Message).DC, WindowOrg);
+    if WindowOrg.x = 0 then
+      Exit;
+  end;
 
-      InternalDrawBackground(ACanvas, R, False);
-    finally
-      ACanvas.Handle := 0;
-      ACanvas.Free;
+  ACanvas := TCanvas.Create;
+  ACanvas.Handle := TWMEraseBkgnd(Message).DC;
+  try
+    R := ClientRect;
+    if Docked then begin
+      InflateRect(R, CDefaultToolbarBorderSize, CDefaultToolbarBorderSize);
+      if IsVertical then
+        Dec(R.Top, SpGetDragHandleSize(Self))
+      else
+        Dec(R.Left, SpGetDragHandleSize(Self));
     end;
+
+    InternalDrawBackground(ACanvas, R, False);
+  finally
+    ACanvas.Handle := 0;
+    ACanvas.Free;
   end;
 end;
 
@@ -7244,6 +7253,7 @@ procedure TSpTBXCustomToolWindow.WMEraseBkgnd(var Message: TMessage);
 var
   ACanvas: TCanvas;
   R: TRect;
+  WindowOrg: TPoint;
 begin
   Message.Result := 1;
   if (csDestroying in ComponentState) then Exit;
@@ -7254,25 +7264,33 @@ begin
   //   FWindow.Perform(WM_ERASEBKGND, WPARAM(BmpDC), 0);
   // To:
   //   FWindow.Perform(WM_ERASEBKGND, WPARAM(BmpDC), LPARAM(BmpDC)); // Pass BmpDC on LParam to support DoubleBuffered property
-  if not DoubleBuffered or (Message.wParam = WPARAM(Message.lParam)) then
+//  if not DoubleBuffered or (Message.wParam = WPARAM(Message.lParam)) then
+  if DoubleBuffered and (TMessage(Message).wParam <> WPARAM(TMessage(Message).lParam)) then
   begin
-    ACanvas := TCanvas.Create;
-    ACanvas.Handle := TWMEraseBkgnd(Message).DC;
-    try
-      R := ClientRect;
-      if Docked then begin
-        InflateRect(R, CDefaultToolbarBorderSize, CDefaultToolbarBorderSize);
-        if IsVertical then
-          Dec(R.Top, SpGetDragHandleSize(Self))
-        else
-          Dec(R.Left, SpGetDragHandleSize(Self));
-      end;
+    // When using VCL Styles and a VCL control is inside a Toolbar, DrawControlBackground in StyleAPI.inc calls:
+    // Control.Parent.Perform(WM_ERASEBKGND, WPARAM(DC), 1);
+    // We need to check if the WindowOrg is 0 to discard
+    GetWindowOrgEx(TWMEraseBkgnd(Message).DC, WindowOrg);
+    if WindowOrg.x = 0 then
+      Exit;
+  end;
 
-      InternalDrawBackground(ACanvas, R, False);
-    finally
-      ACanvas.Handle := 0;
-      ACanvas.Free;
+  ACanvas := TCanvas.Create;
+  ACanvas.Handle := TWMEraseBkgnd(Message).DC;
+  try
+    R := ClientRect;
+    if Docked then begin
+      InflateRect(R, CDefaultToolbarBorderSize, CDefaultToolbarBorderSize);
+      if IsVertical then
+        Dec(R.Top, SpGetDragHandleSize(Self))
+      else
+        Dec(R.Left, SpGetDragHandleSize(Self));
     end;
+
+    InternalDrawBackground(ACanvas, R, False);
+  finally
+    ACanvas.Handle := 0;
+    ACanvas.Free;
   end;
 end;
 
@@ -8088,63 +8106,72 @@ var
   ACanvas: TCanvas;
   PaintDefault: Boolean;
   SaveIndex: Integer;
+
+  WindowOrg: TPoint;
 begin
   Message.Result := 1;
 
   // Only erase background if we're not double buffering or painting to memory
-  if not DoubleBuffered or (TMessage(Message).wParam = WPARAM(TMessage(Message).lParam)) then
+  //  if not DoubleBuffered or (TMessage(Message).wParam = WPARAM(TMessage(Message).lParam)) then
+  if DoubleBuffered and (TMessage(Message).wParam <> WPARAM(TMessage(Message).lParam)) then
   begin
-    R := ClientRect;
+    // When using VCL Styles and a VCL control is inside a Panel, DrawControlBackground in StyleAPI.inc calls:
+    // Control.Parent.Perform(WM_ERASEBKGND, WPARAM(DC), 1);
+    // We need to check if the WindowOrg is 0 to discard
+    GetWindowOrgEx(TWMEraseBkgnd(Message).DC, WindowOrg);
+    if WindowOrg.x = 0 then
+      Exit;
+  end;
 
-    ACanvas := TCanvas.Create;
-    ACanvas.Handle := TWMEraseBkgnd(Message).DC;
-    SaveIndex := SaveDC(TWMEraseBkgnd(Message).DC);
-    try
-      ACanvas.Lock;
+  R := ClientRect;
+  ACanvas := TCanvas.Create;
+  ACanvas.Handle := TWMEraseBkgnd(Message).DC;
+  SaveIndex := SaveDC(TWMEraseBkgnd(Message).DC);
+  try
+    ACanvas.Lock;
 
-      if (Color = clNone) and Assigned(Parent) and SkinManager.IsXPThemesEnabled and
-        ((csDesigning in ComponentState) or (csParentBackground in ControlStyle)) then
-      begin
-        if SpIsGlassPainting(Self) then
-          // When painting on Glass fill the bitmap with the transparent color
-          SpFillRect(ACanvas, R, clBlack) // Transparent color
-        else begin
-          // The Panel is a special component, it has the ability
-          // to paint the parent background on its children controls.
-          // For that it receives WM_ERASEBKGND messages from its children
-          // via SpDrawParentBackground.
-          SpDrawParentBackground(Self, ACanvas.Handle, R);
-        end;
-      end
+    if (Color = clNone) and Assigned(Parent) and SkinManager.IsXPThemesEnabled and
+      ((csDesigning in ComponentState) or (csParentBackground in ControlStyle)) then
+    begin
+      if SpIsGlassPainting(Self) then
+        // When painting on Glass fill the bitmap with the transparent color
+        SpFillRect(ACanvas, R, clBlack) // Transparent color
+      else begin
+        // The Panel is a special component, it has the ability
+        // to paint the parent background on its children controls.
+        // For that it receives WM_ERASEBKGND messages from its children
+        // via SpDrawParentBackground.
+        SpDrawParentBackground(Self, ACanvas.Handle, R);
+      end;
+    end
+    else
+      if Color = clNone then
+        SpFillRect(ACanvas, R, CurrentSkin.GetThemedSystemColor(clBtnFace))
       else
-        if Color = clNone then
-          SpFillRect(ACanvas, R, CurrentSkin.GetThemedSystemColor(clBtnFace))
-        else
-          SpFillRect(ACanvas, R, Color);
+        SpFillRect(ACanvas, R, Color);
 
-      // Set the Font after SpDrawParentBackground, DrawThemeParentBackground,
-      // or PerformEraseBackground.
-      // The API messes the font, it seems it destroys it.
-      // For more info see:
-      // - TCustomActionControl.DrawBackground for more info.
-      // - Theme Explorer Main.pas TMainForm.ControlMessage
-      //   (http://www.soft-gems.net:8080/browse/Demos)
-      ACanvas.Font.Handle := 0;  // Reset the font, it gets destroyed
-      ACanvas.Font.Color := $010101;  // Force a change
-      ACanvas.Font.Assign(Self.Font);
+    // Set the Font after SpDrawParentBackground, DrawThemeParentBackground,
+    // or PerformEraseBackground.
+    // The API messes the font, it seems it destroys it.
+    // For more info see:
+    // - TCustomActionControl.DrawBackground for more info.
+    // - Theme Explorer Main.pas TMainForm.ControlMessage
+    //   (http://www.soft-gems.net:8080/browse/Demos)
+    ACanvas.Font.Handle := 0;  // Reset the font, it gets destroyed
+    ACanvas.Font.Color := $010101;  // Force a change
+    ACanvas.Font.Assign(Self.Font);
 
-      PaintDefault := True;
-      DoDrawBackground(ACanvas, R, pstPrePaint, PaintDefault);
-      if PaintDefault then
-        DrawBackground(ACanvas, R);
-      PaintDefault := True;
-      DoDrawBackground(ACanvas, R, pstPostPaint, PaintDefault);
-    finally
-      ACanvas.Unlock;
-      ACanvas.Handle := 0;
-      ACanvas.Free;
-      RestoreDC(TWMEraseBkgnd(Message).DC, SaveIndex);
-    end;
+    PaintDefault := True;
+    DoDrawBackground(ACanvas, R, pstPrePaint, PaintDefault);
+    if PaintDefault then
+      DrawBackground(ACanvas, R);
+    PaintDefault := True;
+    DoDrawBackground(ACanvas, R, pstPostPaint, PaintDefault);
+  finally
+    ACanvas.Unlock;
+    ACanvas.Handle := 0;
+    ACanvas.Free;
+    RestoreDC(TWMEraseBkgnd(Message).DC, SaveIndex);
   end;
 end;
 
