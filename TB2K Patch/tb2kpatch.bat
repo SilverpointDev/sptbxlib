@@ -1,0 +1,1 @@
+p_atch.exe -p0 --batch < tb2kdiff.txt 
