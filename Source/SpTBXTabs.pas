@@ -202,6 +202,7 @@ type
 
   TSpTBXTabToolbarView = class(TSpTBXToolbarView)
   public
+    procedure BeginUpdate; override;
     procedure EndUpdate; override;
   end;
 
@@ -1361,12 +1362,30 @@ end;
 //WMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWM
 { TSpTBXTabToolbarView }
 
+procedure TSpTBXTabToolbarView.BeginUpdate;
+var
+  T: TSpTBXTabToolbar;
+begin
+  if (FUpdating = 0) and (Owner is TSpTBXTabToolbar) then begin
+    T := TSpTBXTabToolbar(Owner);
+    if Assigned(T.FOwnerTabControl) then
+      SendMessage(T.FOwnerTabControl.Handle, WM_SETREDRAW, 0, 0);
+  end;
+  inherited;
+end;
+
 procedure TSpTBXTabToolbarView.EndUpdate;
+var
+  T: TSpTBXTabToolbar;
 begin
   inherited;
-
-  if (FUpdating = 0) and (Owner is TSpTBXTabToolbar) then
-    TSpTBXTabToolbar(Owner).InvalidateNC;
+  if (FUpdating = 0) and (Owner is TSpTBXTabToolbar) then begin
+    T := TSpTBXTabToolbar(Owner);
+    if Assigned(T.FOwnerTabControl) then begin
+      SendMessage(T.FOwnerTabControl.Handle, WM_SETREDRAW, 1, 0);
+      T.FOwnerTabControl.InvalidateBackground(True);
+    end;
+  end;
 end;
 
 //WMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWM
@@ -2388,14 +2407,9 @@ end;
 constructor TSpTBXCustomTabSet.Create(AOwner: TComponent);
 begin
   inherited;
-  Color := clBtnFace;
-  ParentColor := False;
-
   FTabVisible := True;
-
   Width := 289;
   Height := FDock.Height + SpDPIScale(2);
-
   FToolbar.Items.RegisterNotification(ItemNotification);
 end;
 

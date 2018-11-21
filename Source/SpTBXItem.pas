@@ -3256,7 +3256,7 @@ begin
             if (ChildW.Anchors = [akLeft, akTop, akRight, akBottom]) or
                (ChildW.Anchors = [akLeft, akTop, akRight]) or (ChildW.Anchors = [akLeft, akTop, akBottom]) or
                (ChildW.Anchors = [akLeft, akRight, akBottom]) or (ChildW.Anchors = [akTop, akRight, akBottom]) then
-              Break;
+              Continue;
 
             if (ChildW is TSpTBXCustomContainer) and (csParentBackground in ChildW.ControlStyle) then
               RedrawWindow(ChildW.Handle, nil, 0, RDW_ERASE or RDW_INVALIDATE or RDW_ALLCHILDREN)
@@ -6684,9 +6684,11 @@ begin
     // When using VCL Styles and a VCL control is inside a Toolbar, DrawControlBackground in StyleAPI.inc calls:
     // Control.Parent.Perform(WM_ERASEBKGND, WPARAM(DC), 1);
     // We need to check if the WindowOrg is 0 to discard
-    GetWindowOrgEx(TWMEraseBkgnd(Message).DC, WindowOrg);
-    if WindowOrg.x = 0 then
-      Exit;
+    if Message.LParam <> 1 then begin
+      GetWindowOrgEx(TWMEraseBkgnd(Message).DC, WindowOrg);
+      if WindowOrg.x = 0 then
+        Exit;
+    end;
   end;
 
   ACanvas := TCanvas.Create;
@@ -7270,9 +7272,11 @@ begin
     // When using VCL Styles and a VCL control is inside a Toolbar, DrawControlBackground in StyleAPI.inc calls:
     // Control.Parent.Perform(WM_ERASEBKGND, WPARAM(DC), 1);
     // We need to check if the WindowOrg is 0 to discard
-    GetWindowOrgEx(TWMEraseBkgnd(Message).DC, WindowOrg);
-    if WindowOrg.x = 0 then
-      Exit;
+    if Message.LParam <> 1 then begin
+      GetWindowOrgEx(TWMEraseBkgnd(Message).DC, WindowOrg);
+      if WindowOrg.x = 0 then
+        Exit;
+    end;
   end;
 
   ACanvas := TCanvas.Create;
@@ -8118,9 +8122,11 @@ begin
     // When using VCL Styles and a VCL control is inside a Panel, DrawControlBackground in StyleAPI.inc calls:
     // Control.Parent.Perform(WM_ERASEBKGND, WPARAM(DC), 1);
     // We need to check if the WindowOrg is 0 to discard
-    GetWindowOrgEx(TWMEraseBkgnd(Message).DC, WindowOrg);
-    if WindowOrg.x = 0 then
-      Exit;
+    if Message.LParam <> 1 then begin
+      GetWindowOrgEx(TWMEraseBkgnd(Message).DC, WindowOrg);
+      if WindowOrg.x = 0 then
+        Exit;
+    end;
   end;
 
   R := ClientRect;
