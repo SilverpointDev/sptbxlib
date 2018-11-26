@@ -1163,3 +1163,14 @@
  end;
  
  procedure TTBToolWindow.Paint;
+--- TB2Ver.inc	Sat Sep 13 16:06:46 2008
++++ TB2Ver.inc	Mon Nov 26 10:45:10 2018
+@@ -50,7 +50,7 @@
+     {$DEFINE JR_WIDESTR}  { defined if String type = WideString }
+   {$IFEND}
+   {$IF not Defined(CLR) and (SizeOf(Pointer) <> 4)}
+-    {$MESSAGE WARN 'This version of Toolbar2000 has not been tested on 64-bit Delphi for Win32'}
++    // Robert: {$MESSAGE WARN 'This version of Toolbar2000 has not been tested on 64-bit Delphi for Win32'}
+   {$IFEND}
+ {$ENDIF}
+ 
