@@ -136,8 +136,8 @@ type
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
-    procedure MRUAdd(AFontName: TFontName);
-    function MRUDelete(AFontName: TFontName): Boolean;
+    procedure MRUAdd(const AFontName: TFontName);
+    function MRUDelete(const AFontName: TFontName): Boolean;
     property MRUCount: Integer read FMRUCount;
   published
     property Items stored False;
@@ -175,7 +175,7 @@ type
     procedure PopulateList;
   public
     constructor Create(AOwner: TComponent); override;
-    procedure AddColor(AColor: TColor; AColorName: string);
+    procedure AddColor(AColor: TColor; const AColorName: string);
     function ColorCount: Integer;
     property Colors[Index: Integer]: TColor read GetColor;
     property ColorNames[Index: Integer]: string read GetColorName;
@@ -627,7 +627,7 @@ begin
   end;
 end;
 
-procedure TSpTBXFontComboBox.MRUAdd(AFontName: TFontName);
+procedure TSpTBXFontComboBox.MRUAdd(const AFontName: TFontName);
 var
   I, AFontNameIndex: Integer;
 begin
@@ -646,7 +646,7 @@ begin
   end;
 end;
 
-function TSpTBXFontComboBox.MRUDelete(AFontName: TFontName): Boolean;
+function TSpTBXFontComboBox.MRUDelete(const AFontName: TFontName): Boolean;
 var
   I: Integer;
 begin
@@ -748,7 +748,7 @@ begin
     PopulateList;
 end;
 
-procedure TSpTBXColorListBox.AddColor(AColor: TColor; AColorName: string);
+procedure TSpTBXColorListBox.AddColor(AColor: TColor; const AColorName: string);
 begin
   (inherited Items).AddObject(AColorName, TObject(AColor));
 end;
