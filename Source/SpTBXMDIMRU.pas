@@ -341,11 +341,13 @@ begin
       sknNone:
         begin
           PaintDefault := False;
+          ARect := SpCenterRect(ARect, SpDPIScale(16), SpDPIScale(16));
           DrawFrameControl(ACanvas.Handle, ARect, DFC_CAPTION, ButtonIndexFlags[AImageIndex] or NoneFlags[State]);
         end;
       sknWindows:
         begin
           PaintDefault := False;
+          ARect := SpCenterRect(ARect, SpDPIScale(16), SpDPIScale(16));
           DrawThemeBackground(SpTBXThemeServices.Theme[teWindow], ACanvas.Handle, XPPart[AImageIndex], XPFlags[State], ARect, nil);
         end;
     end;

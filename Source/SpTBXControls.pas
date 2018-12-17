@@ -1595,8 +1595,12 @@ begin
           // [Theme-Change]
           {$IF CompilerVersion >= 23} // for Delphi XE2 and up
           // tpPanelBackground is defined on XE2 and up
-          Details := SpTBXThemeServices.GetElementDetails(tpPanelBackground);
-          SpTBXThemeServices.DrawText(ACanvas.Handle, Details, Caption, ARect, TTextFormatFlags(TextFlags));
+          if (ACanvas.Font.Color = clWindowText) or (ACanvas.Font.Color = clNone) then begin
+            Details := SpTBXThemeServices.GetElementDetails(tpPanelBackground);
+            SpTBXThemeServices.DrawText(ACanvas.Handle, Details, Caption, ARect, TTextFormatFlags(TextFlags));
+          end
+          else
+            SpDrawXPText(ACanvas, Caption, ARect, TextFlags);
           {$ELSE}
           SpDrawXPText(ACanvas, Caption, ARect, TextFlags);
           {$IFEND}
