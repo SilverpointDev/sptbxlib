@@ -6694,6 +6694,7 @@ begin
   ACanvas := TCanvas.Create;
   ACanvas.Handle := TWMEraseBkgnd(Message).DC;
   try
+    ACanvas.Lock;
     R := ClientRect;
     if Docked then begin
       InflateRect(R, CDefaultToolbarBorderSize, CDefaultToolbarBorderSize);
@@ -6705,6 +6706,7 @@ begin
 
     InternalDrawBackground(ACanvas, R, False);
   finally
+    ACanvas.Unlock;
     ACanvas.Handle := 0;
     ACanvas.Free;
   end;

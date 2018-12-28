@@ -61,7 +61,7 @@
  initialization
    InitGradientFillFunc;
 --- TB2Dock.pas	Wed Sep 17 15:12:26 2008
-+++ TB2Dock.pas	Mon Sep 03 10:17:12 2018
++++ TB2Dock.pas	Fri Dec 28 13:19:15 2018
 @@ -562,26 +562,37 @@
  uses
    {$IFDEF CLR} Types, System.Runtime.InteropServices, {$ENDIF}
@@ -130,6 +130,15 @@
          if twrdCaption in RedrawWhat then begin
            SaveIndex := SaveDC(DC);
            ExcludeClipRect(DC, R2.Left, R2.Top, R2.Right, R2.Bottom);
+@@ -2663,7 +2674,7 @@
+       Bmp := CreateCompatibleBitmap(DC, CR.Right, CR.Bottom);
+       SelectObject(BmpDC, Bmp);
+       SendMessage(W, WM_NCPAINT, 0, 0);
+-      SendMessage(W, WM_ERASEBKGND, WPARAM(BmpDC), 0);
++      SendMessage(W, WM_ERASEBKGND, WPARAM(BmpDC), LPARAM(BmpDC)); // Robert: Pass BmpDC on LParam to support DoubleBuffered property
+       SendMessage(W, WM_PAINT, WPARAM(BmpDC), 0);
+       BitBlt(DC, 0, 0, CR.Right, CR.Bottom, BmpDC, 0, 0, SRCCOPY);
+     finally
 @@ -3353,12 +3364,12 @@
    BottomRight.X := Z;
    BottomRight.Y := Z;
