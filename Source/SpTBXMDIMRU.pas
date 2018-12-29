@@ -124,10 +124,10 @@ type
   public
     constructor Create(AOwner: TComponent); override;
     procedure GetMRUFilenames(MRUFilenames: TStrings);
-    function IndexOfMRU(Filename: string): Integer;
-    function MRUAdd(Filename: string): Integer;
-    function MRUClick(Filename: string): Boolean;
-    procedure MRURemove(Filename: string);
+    function IndexOfMRU(const Filename: string): Integer;
+    function MRUAdd(const Filename: string): Integer;
+    function MRUClick(const Filename: string): Boolean;
+    procedure MRURemove(const Filename: string);
     procedure MRUUpdateCaptions;
     procedure LoadFromIni(Ini: TCustomIniFile; const Section: string);
     procedure SaveToIni(Ini: TCustomIniFile; const Section: string);
@@ -586,7 +586,7 @@ begin
       MRUFilenames.Add(TSpTBXMRUItem(Items[I]).MRUString);
 end;
 
-function TSpTBXMRUListItem.IndexOfMRU(Filename: string): Integer;
+function TSpTBXMRUListItem.IndexOfMRU(const Filename: string): Integer;
 var
   I: Integer;
 begin
@@ -599,7 +599,7 @@ begin
       end;
 end;
 
-function TSpTBXMRUListItem.MRUAdd(Filename: string): Integer;
+function TSpTBXMRUListItem.MRUAdd(const Filename: string): Integer;
 var
   A: TSpTBXMRUItem;
   I: Integer;
@@ -625,7 +625,7 @@ begin
   end;
 end;
 
-function TSpTBXMRUListItem.MRUClick(Filename: string): Boolean;
+function TSpTBXMRUListItem.MRUClick(const Filename: string): Boolean;
 var
   I: Integer;
 begin
@@ -637,7 +637,7 @@ begin
   end;
 end;
 
-procedure TSpTBXMRUListItem.MRURemove(Filename: string);
+procedure TSpTBXMRUListItem.MRURemove(const Filename: string);
 var
   I: Integer;
 begin

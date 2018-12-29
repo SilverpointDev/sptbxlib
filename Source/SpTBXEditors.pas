@@ -50,7 +50,7 @@ interface
 
 uses
   Windows, Messages, Classes, SysUtils, Controls, Graphics, ImgList, Forms,
-  Menus, StdCtrls, ExtCtrls, ActnList, CheckLst,
+  Menus, StdCtrls, ExtCtrls, ActnList, CheckLst, Clipbrd,
   {$IF CompilerVersion >= 24} // for Delphi XE3 and up
   System.UITypes,
   {$IFEND}
@@ -82,6 +82,8 @@ type
   TSpTBXEditMessageEvent = procedure(Sender: TObject; Viewer: TSpTBXEditItemViewer; var Message: TMessage; var Handled: Boolean) of object;
   TSpTBXDrawListItemEvent = procedure(Sender: TObject; ACanvas: TCanvas; var ARect: TRect; Index: Integer; const State: TOwnerDrawState;
     const PaintStage: TSpTBXPaintStage; var PaintDefault: Boolean) of object;
+  TSpCustomTextValidateEvent = procedure(Sender: TObject; Key: Char;
+    var AText: string; const Pos: Integer; var IsValid: Boolean) of object;
 
   { TSpTBXEditButton }
 
@@ -145,6 +147,7 @@ type
     FBorderStyle: TBorderStyle;
     FHotTrack: Boolean;
     FMouseInControl: Boolean;
+    FOnCustomValidate: TSpCustomTextValidateEvent;
     procedure SetBorderStyle(const Value: TBorderStyle);
     procedure CMEnabledChanged(var Message: TMessage); message CM_ENABLEDCHANGED;
     procedure CMEnter(var Message: TCMEnter); message CM_ENTER;
@@ -153,14 +156,26 @@ type
     procedure CMMouseLeave(var Message: TMessage); message CM_MOUSELEAVE;
     procedure WMNCPaint(var Message: TWMNCPaint); message WM_NCPAINT;
     procedure WMSpSkinChange(var Message: TMessage); message WM_SPSKINCHANGE;
+    function GetAsInteger: Longint;
+    procedure SetAsInteger(const Value: Longint);
+    function GetAsHex: Longint;
+    procedure SetAsHex(const Value: Longint);
+  protected
+    procedure WMPaste(var Msg:TMessage); message WM_PASTE;
+    procedure KeyPress(var Key: Char); override;
+    function IsValidChar(var S: string; var Key: Char; Posn: Integer): Boolean; virtual;
+    function DoValidate(const Key: Char; var AText: string; const Posn: Integer): Boolean;
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
     procedure InvalidateFrame;
     property MouseInControl: Boolean read FMouseInControl;
+    property AsInteger: Longint read GetAsInteger write SetAsInteger default 0;
+    property AsHex: Longint read GetAsHex write SetAsHex default 0;
   published
     property BorderStyle: TBorderStyle read FBorderStyle write SetBorderStyle default bsSingle; // Hides the inherited BorderStyle
     property HotTrack: Boolean read FHotTrack write FHotTrack default True;
+    property OnCustomValidate: TSpCustomTextValidateEvent read FOnCustomValidate write FOnCustomValidate;
   end;
 
   { TSpTBXButtonEdit }
@@ -249,6 +264,8 @@ type
     procedure SetValue(const Value: Extended);
     procedure SetValueChanged(const ValueChangedEvent: TNotifyEvent);
     procedure WMKillFocus(var Message: TWMKillFocus); message WM_KILLFOCUS;
+    function GetAsInteger: Longint;
+    procedure SetAsInteger(const Value: Longint);
   protected
     procedure Change; override;
     procedure KeyDown(var Key: Word; Shift: TShiftState); override;
@@ -263,6 +280,7 @@ type
     destructor Destroy; override;
     property OnMouseWheelDown;
     property OnMouseWheelUp;
+    property AsInteger: Longint read GetAsInteger write SetAsInteger default 0;
   published
     property Alignment default taRightJustify;
     property ExtendedAccept: Boolean read FExtendedAccept write FExtendedAccept default False;
@@ -288,6 +306,7 @@ type
     FOnDrawBackground: TSpTBXDrawEvent;
     FOnDrawItem: TSpTBXDrawListItemEvent;
     FOnDrawItemBackground: TSpTBXDrawListItemEvent;
+    FOnCustomValidate: TSpCustomTextValidateEvent;
     procedure MouseTimerHandler(Sender: TObject);
     procedure UpdateDropDownButton;
     procedure CMEnter(var Message: TCMEnter); message CM_ENTER;
@@ -301,6 +320,10 @@ type
     procedure WMPaint(var Message: TWMPaint); message WM_PAINT;
     procedure WMSetFont(var Message: TWMSetFont); message WM_SETFONT;
     procedure WMSpSkinChange(var Message: TMessage); message WM_SPSKINCHANGE;
+    function GetAsInteger: Longint;
+    procedure SetAsInteger(const Value: Longint);
+    function GetAsHex: Longint;
+    procedure SetAsHex(const Value: Longint);
   protected
     FAutoDropDownWidthRightMargin: Integer;
     procedure CreateParams(var Params: TCreateParams); override;
@@ -320,6 +343,11 @@ type
     function IsItemHeightStored: Boolean; override;
     {$IFEND}
     procedure SetItemHeight(Value: Integer); override;
+    procedure KeyPress(var Key: Char); override;
+    function IsValidChar(var S: string; var Key: Char; Posn: Integer): Boolean; virtual;
+    function DoValidate(const Key: Char; var AText: string; const Posn: Integer): Boolean;
+    procedure ComboWndProc(var Message: TMessage; ComboWnd: HWnd;
+      ComboProc: TWindowProcPtr); override;
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
@@ -327,6 +355,8 @@ type
     function GetMouseInDropDownButton: Boolean;
     procedure InvalidateFrame;
     property MouseInControl: Boolean read FMouseInControl;
+    property AsInteger: Longint read GetAsInteger write SetAsInteger default 0;
+    property AsHex: Longint read GetAsHex write SetAsHex default 0;
   published
     property AutoDropDownWidth: Boolean read FAutoDropDownWidth write FAutoDropDownWidth default False;
     property AutoItemHeight: Boolean read FAutoItemHeight write FAutoItemHeight default True;
@@ -335,6 +365,7 @@ type
     property OnDrawItem: TSpTBXDrawListItemEvent read FOnDrawItem write FOnDrawItem; // Hides the inherited OnDrawItem
     property OnDrawItemBackground: TSpTBXDrawListItemEvent read FOnDrawItemBackground write FOnDrawItemBackground;
     property OnMouseMove;
+    property OnCustomValidate: TSpCustomTextValidateEvent read FOnCustomValidate write FOnCustomValidate;
   end;
 
   { TSpTBXListBox }
@@ -436,7 +467,7 @@ type
     procedure SetMaxLength(Value: Integer);
     procedure SetPasswordChar(Value: Char);
     procedure SetShowImage(const Value: Boolean);
-    procedure SetText(Value: string);
+    procedure SetText(const Value: string);
   protected
     function DoAcceptText(var NewText: string): Boolean; virtual;
     function DoAutoComplete(var AText: string): Boolean; virtual;
@@ -545,11 +576,14 @@ type
     function GetValueChanged: TNotifyEvent;
     procedure SetValue(const Value: Extended);
     procedure SetValueChanged(const ValueChangedEvent: TNotifyEvent);
+    function GetAsInteger: Longint;
+    procedure SetAsInteger(const Value: Longint);
   protected
     function GetItemViewerClass(AView: TTBView): TTBItemViewerClass; override;
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
+    property AsInteger: Longint read GetAsInteger write SetAsInteger default 0;
   published
     property Alignment default taRightJustify;
     property Text stored False;
@@ -1165,6 +1199,24 @@ begin
   inherited;
 end;
 
+function TSpTBXEdit.DoValidate(const Key: Char; var AText: string;
+  const Posn: Integer): Boolean;
+begin
+  Result := True;
+  if Assigned(FOnCustomValidate) then
+    FOnCustomValidate(Self, Key, AText, Posn, Result);
+end;
+
+function TSpTBXEdit.GetAsHex: Longint;
+begin
+  Result := StrToIntDef('$' + Text, 0);
+end;
+
+function TSpTBXEdit.GetAsInteger: Longint;
+begin
+  Result := StrToIntDef(Text, 0);
+end;
+
 procedure TSpTBXEdit.CMEnabledChanged(var Message: TMessage);
 begin
   inherited;
@@ -1212,6 +1264,33 @@ begin
     RedrawWindow(Handle, nil, 0, RDW_FRAME or RDW_ERASE or RDW_INVALIDATE or RDW_ALLCHILDREN);
 end;
 
+function TSpTBXEdit.IsValidChar(var S: string; var Key: Char;
+  Posn: Integer): Boolean;
+begin
+  Result := DoValidate(Key, S, Posn);
+end;
+
+procedure TSpTBXEdit.KeyPress(var Key: Char);
+var
+  s: string;
+begin
+  s:= Text;
+  if not IsValidChar(s, Key, SelStart + 1) and ((Key >= #32) or (Key = #8)) then
+    Key := #0;
+  Text := s;
+  inherited KeyPress(Key);
+end;
+
+procedure TSpTBXEdit.SetAsHex(const Value: Longint);
+begin
+  Text := IntToHex(Value, MaxLength);
+end;
+
+procedure TSpTBXEdit.SetAsInteger(const Value: Longint);
+begin
+  Text := IntToStr(Value);
+end;
+
 procedure TSpTBXEdit.SetBorderStyle(const Value: TBorderStyle);
 begin
   if FBorderStyle <> Value then begin
@@ -1234,6 +1313,39 @@ begin
   else
     if Ctl3D then
       SpDrawXPEditFrame(Self, HotTrackFrame, False, FBorderStyle = bsNone);
+end;
+
+procedure TSpTBXEdit.WMPaste(var Msg: TMessage);
+var
+  i: integer;
+  s, s1, s2: string;
+begin
+  Clipboard.Open;
+  try
+    s := ClipBoard.AsText;
+  finally
+    Clipboard.Close;
+  end;
+  s2 := Text; //1602
+  for i := 1 to Length(s) do
+    if IsValidChar(s2, s[i], SelStart) then
+    begin
+      s1 := s1 + s[i];
+      s2 := s2 + s[i];
+    end;
+  Clipboard.Open;
+  try
+    ClipBoard.AsText := s1;
+  finally
+    Clipboard.Close;
+  end;
+  inherited;
+  Clipboard.Open;
+  try
+    ClipBoard.AsText := s;
+  finally
+    Clipboard.Close;
+  end;
 end;
 
 procedure TSpTBXEdit.WMSpSkinChange(var Message: TMessage);
@@ -1548,9 +1660,19 @@ begin
   inherited;
 end;
 
+function TSpTBXSpinEdit.GetAsInteger: Longint;
+begin
+  Result := Trunc(GetValue);
+end;
+
 function TSpTBXSpinEdit.GetValue: Extended;
 begin
   Result := SpinOptions.Value;
+end;
+
+procedure TSpTBXSpinEdit.SetAsInteger(const Value: Longint);
+begin
+  SetValue(Value);
 end;
 
 procedure TSpTBXSpinEdit.SetValue(const Value: Extended);
@@ -1759,6 +1881,14 @@ begin
   if Assigned(FOnDrawItemBackground) then FOnDrawItemBackground(Self, ACanvas, ARect, Index, State, PaintStage, PaintDefault);
 end;
 
+function TSpTBXComboBox.DoValidate(const Key: Char; var AText: string;
+  const Posn: Integer): Boolean;
+begin
+  Result := True;
+  if Assigned(FOnCustomValidate) then
+    FOnCustomValidate(Self, Key, AText, Posn, Result);
+end;
+
 procedure TSpTBXComboBox.DrawItem(Index: Integer; Rect: TRect;
   State: TOwnerDrawState);
 var
@@ -1814,6 +1944,16 @@ begin
     ComboWndProc(Message, FEditHandle, FDefEditProc)
   else
     inherited;
+end;
+
+function TSpTBXComboBox.GetAsHex: Longint;
+begin
+  Result := StrToIntDef('$' + Text, 0);
+end;
+
+function TSpTBXComboBox.GetAsInteger: Longint;
+begin
+  Result := StrToIntDef(Text, 0);
 end;
 
 function TSpTBXComboBox.GetDropDownButtonRect: TRect;
@@ -1877,6 +2017,23 @@ begin
     Invalidate;
 end;
 
+function TSpTBXComboBox.IsValidChar(var S: string; var Key: Char;
+  Posn: Integer): Boolean;
+begin
+  Result := DoValidate(Key, S, Posn);
+end;
+
+procedure TSpTBXComboBox.KeyPress(var Key: Char);
+var
+  s: string;
+begin
+  s:= Text;
+  if not IsValidChar(s, Key, SelStart + 1) and (Key >= #32) then
+    Key := #0;
+  Text := s;
+  inherited KeyPress(Key);
+end;
+
 procedure TSpTBXComboBox.UpdateDropDownButton;
 var
   ButtonState: Boolean;
@@ -1915,6 +2072,16 @@ begin
   Result := True;
 end;
 {$IFEND}
+
+procedure TSpTBXComboBox.SetAsHex(const Value: Integer);
+begin
+  Text := IntToHex(Value, MaxLength);
+end;
+
+procedure TSpTBXComboBox.SetAsInteger(const Value: Integer);
+begin
+  Text := IntToStr(Value);
+end;
 
 procedure TSpTBXComboBox.SetItemHeight(Value: Integer);
 begin
@@ -2012,6 +2179,26 @@ begin
       I := GetItemHt;
     Message.MeasureItemStruct^.itemHeight := I;
   end;
+end;
+
+procedure TSpTBXComboBox.ComboWndProc(var Message: TMessage; ComboWnd: HWnd;
+  ComboProc: TWindowProcPtr);
+var
+  i: integer;
+  s, s1: string;
+begin
+  if Message.Msg = WM_PASTE then
+  begin
+    s := ClipBoard.AsText;
+    for i := 1 to Length(s) do
+      if IsValidChar(s1, s[i], Length(s1)) then
+        s1 := s1 + s[i];
+    ClipBoard.AsText := s1;
+    inherited;
+    ClipBoard.AsText := s;
+  end
+  else
+    inherited;
 end;
 
 procedure TSpTBXComboBox.CMSPFontChanged(var Message: TMessage);
@@ -2546,7 +2733,7 @@ begin
   end;
 end;
 
-procedure TSpTBXEditItem.SetText(Value: string);
+procedure TSpTBXEditItem.SetText(const Value: string);
 begin
   SetTextEx(Value, tcrSetProperty);
 end;
@@ -3177,6 +3364,11 @@ begin
   inherited;
 end;
 
+function TSpTBXSpinEditItem.GetAsInteger: Longint;
+begin
+  Result := Trunc(GetValue);
+end;
+
 function TSpTBXSpinEditItem.GetItemViewerClass(AView: TTBView): TTBItemViewerClass;
 begin
   if not FAllowVerticalEditor and (AView.Orientation = tbvoVertical) then
@@ -3188,6 +3380,11 @@ end;
 function TSpTBXSpinEditItem.GetValue: Extended;
 begin
   Result := SpinOptions.Value;
+end;
+
+procedure TSpTBXSpinEditItem.SetAsInteger(const Value: Longint);
+begin
+  SetValue(Value);
 end;
 
 procedure TSpTBXSpinEditItem.SetValue(const Value: Extended);

@@ -202,7 +202,8 @@ type
 
   TSpGlyphLayout = (
     ghlGlyphLeft,                 // Glyph icon on the left of the caption
-    ghlGlyphTop                   // Glyph icon on the top of the caption
+    ghlGlyphTop,                  // Glyph icon on the top of the caption
+    ghlGlyphNone
   );
 
   TSpGlowDirection = (
@@ -281,7 +282,7 @@ type
   public
     constructor Create; virtual;
     procedure Fill(ASkinType: Integer; AColor1, AColor2, AColor3, AColor4: TColor);
-    procedure ReadFromString(S: string);
+    procedure ReadFromString(const S: string);
     function WriteToString: string;
     function IsEmpty: Boolean;
     function IsEqual(AOptionEntry: TSpTBXSkinOptionEntry): Boolean;
@@ -307,8 +308,9 @@ type
     destructor Destroy; override;
     function IsEmpty: Boolean;
     procedure Reset;
-    procedure LoadFromIni(MemIni: TMemIniFile; Section, Ident: string);
-    procedure SaveToIni(MemIni: TMemIniFile; Section, Ident: string);
+    procedure LoadFromIni(MemIni: TMemIniFile; const Section: string; Ident:
+        string);
+    procedure SaveToIni(MemIni: TMemIniFile; const Section, Ident: string);
   published
     property Body: TSpTBXSkinOptionEntry read FBody write FBody;
     property Borders: TSpTBXSkinOptionEntry read FBorders write FBorders;
@@ -341,9 +343,9 @@ type
     procedure FillOptions; virtual;
     function Options(Component: TSpTBXSkinComponentsType; State: TSpTBXSkinStatesType): TSpTBXSkinOptionCategory; overload;
     function Options(Component: TSpTBXSkinComponentsType): TSpTBXSkinOptionCategory; overload;
-    procedure LoadFromFile(Filename: string);
+    procedure LoadFromFile(const Filename: string);
     procedure LoadFromStrings(L: TStrings); virtual;
-    procedure SaveToFile(Filename: string);
+    procedure SaveToFile(const Filename: string);
     procedure SaveToStrings(L: TStrings); virtual;
     procedure SaveToMemIni(MemIni: TMemIniFile); virtual;
     procedure Reset(ForceResetSkinProperties: Boolean = False);
@@ -420,19 +422,19 @@ type
     procedure RemoveSkinNotification(AObject: TObject);
     procedure BroadcastSkinNotification;
 
-    procedure LoadFromFile(Filename: string);
-    procedure SaveToFile(Filename: string);
+    procedure LoadFromFile(const Filename: string);
+    procedure SaveToFile(const Filename: string);
 
-    procedure AddSkin(SkinName: string; SkinClass: TSpTBXSkinOptionsClass); overload;
+    procedure AddSkin(const SkinName: string; SkinClass: TSpTBXSkinOptionsClass); overload;
     procedure AddSkin(SkinOptions: TStrings); overload;
-    function AddSkinFromFile(Filename: string): string;
+    function AddSkinFromFile(const Filename: string): string;
     procedure SetToDefaultSkin;
-    procedure SetSkin(SkinName: string);
+    procedure SetSkin(const SkinName: string);
 
     // [Old-Themes]
     {$IF CompilerVersion >= 23} // for Delphi XE2 and up
-    procedure SetDelphiStyle(StyleName: string);
-    function IsValidDelphiStyle(StyleName: string): Boolean;
+    procedure SetDelphiStyle(const StyleName: string);
+    function IsValidDelphiStyle(const StyleName: string): Boolean;
     {$IFEND}
 
     property CurrentSkin: TSpTBXSkinOptions read FCurrentSkin;
@@ -482,19 +484,19 @@ procedure SpDrawParentBackground(Control: TControl; DC: HDC; R: TRect);
 { WideString helpers }
 function SpCreateRotatedFont(DC: HDC; Orientation: Integer = 2700): HFONT;
 function SpDrawRotatedText(const DC: HDC; AText: string; var ARect: TRect; const AFormat: Cardinal; RotationAngle: TSpTextRotationAngle = tra270): Integer;
-function SpCalcXPText(ACanvas: TCanvas; ARect: TRect; Caption: string; CaptionAlignment: TAlignment; Flags: Cardinal; GlyphSize, RightGlyphSize: TSize; Layout: TSpGlyphLayout; PushedCaption: Boolean; out ACaptionRect, AGlyphRect, ARightGlyphRect: TRect; RotationAngle: TSpTextRotationAngle = tra0): Integer;
-function SpDrawXPGlassText(ACanvas: TCanvas; Caption: string; var ARect: TRect; Flags: Cardinal; CaptionGlowSize: Integer): Integer;
-function SpDrawXPText(ACanvas: TCanvas; Caption: string; var ARect: TRect; Flags: Cardinal; CaptionGlow: TSpGlowDirection = gldNone; CaptionGlowColor: TColor = clYellow; RotationAngle: TSpTextRotationAngle = tra0): Integer; overload;
-function SpDrawXPText(ACanvas: TCanvas; ARect: TRect; Caption: string; CaptionGlow: TSpGlowDirection; CaptionGlowColor: TColor; CaptionAlignment: TAlignment; Flags: Cardinal; GlyphSize: TSize; Layout: TSpGlyphLayout; PushedCaption: Boolean; out ACaptionRect, AGlyphRect: TRect; RotationAngle: TSpTextRotationAngle = tra0): Integer; overload;
-function SpDrawXPText(ACanvas: TCanvas; ARect: TRect; Caption: string; CaptionGlow: TSpGlowDirection; CaptionGlowColor: TColor; CaptionAlignment: TAlignment; Flags: Cardinal; IL: TCustomImageList; ImageIndex: Integer; Layout: TSpGlyphLayout; Enabled, PushedCaption, DisabledIconCorrection: Boolean; out ACaptionRect, AGlyphRect: TRect; RotationAngle: TSpTextRotationAngle = tra0): Integer; overload;
+function SpCalcXPText(ACanvas: TCanvas; ARect: TRect; const Caption: string; CaptionAlignment: TAlignment; Flags: Cardinal; GlyphSize, RightGlyphSize: TSize; Layout: TSpGlyphLayout; PushedCaption: Boolean; out ACaptionRect, AGlyphRect, ARightGlyphRect: TRect; RotationAngle: TSpTextRotationAngle = tra0): Integer;
+function SpDrawXPGlassText(ACanvas: TCanvas; const Caption: string; var ARect: TRect; Flags: Cardinal; CaptionGlowSize: Integer): Integer;
+function SpDrawXPText(ACanvas: TCanvas; const Caption: string; var ARect: TRect; Flags: Cardinal; CaptionGlow: TSpGlowDirection = gldNone; CaptionGlowColor: TColor = clYellow; RotationAngle: TSpTextRotationAngle = tra0): Integer; overload;
+function SpDrawXPText(ACanvas: TCanvas; ARect: TRect; const Caption: string; CaptionGlow: TSpGlowDirection; CaptionGlowColor: TColor; CaptionAlignment: TAlignment; Flags: Cardinal; GlyphSize: TSize; Layout: TSpGlyphLayout; PushedCaption: Boolean; out ACaptionRect, AGlyphRect: TRect; RotationAngle: TSpTextRotationAngle = tra0): Integer; overload;
+function SpDrawXPText(ACanvas: TCanvas; ARect: TRect; const Caption: string; CaptionGlow: TSpGlowDirection; CaptionGlowColor: TColor; CaptionAlignment: TAlignment; Flags: Cardinal; IL: TCustomImageList; ImageIndex: Integer; Layout: TSpGlyphLayout; Enabled, PushedCaption, DisabledIconCorrection: Boolean; out ACaptionRect, AGlyphRect: TRect; RotationAngle: TSpTextRotationAngle = tra0): Integer; overload;
 function SpGetTextSize(DC: HDC; S: string; NoPrefix: Boolean): TSize;
 function SpGetControlTextHeight(AControl: TControl; AFont: TFont): Integer;
-function SpGetControlTextSize(AControl: TControl; AFont: TFont; S: string): TSize;
-function SpStripAccelChars(S: string): string;
-function SpStripShortcut(S: string): string;
-function SpStripTrailingPunctuation(S: string): string;
+function SpGetControlTextSize(AControl: TControl; AFont: TFont; const S: string): TSize;
+function SpStripAccelChars(const S: string): string;
+function SpStripShortcut(const S: string): string;
+function SpStripTrailingPunctuation(const S: string): string;
 function SpRectToString(R: TRect): string;
-function SpStringToRect(S: string; out R: TRect): Boolean;
+function SpStringToRect(const S: string; out R: TRect): Boolean;
 
 { Color helpers }
 function SpColorToHTML(const Color: TColor): string;
@@ -857,14 +859,16 @@ begin
   DeleteObject(RotatedFont);
 end;
 
-function SpCalcXPText(ACanvas: TCanvas; ARect: TRect; Caption: string;
-  CaptionAlignment: TAlignment; Flags: Cardinal; GlyphSize, RightGlyphSize: TSize;
-  Layout: TSpGlyphLayout; PushedCaption: Boolean; out ACaptionRect, AGlyphRect, ARightGlyphRect: TRect;
-  RotationAngle: TSpTextRotationAngle = tra0): Integer;
+function SpCalcXPText(ACanvas: TCanvas; ARect: TRect; const Caption: string;
+    CaptionAlignment: TAlignment; Flags: Cardinal; GlyphSize, RightGlyphSize:
+    TSize; Layout: TSpGlyphLayout; PushedCaption: Boolean; out ACaptionRect,
+    AGlyphRect, ARightGlyphRect: TRect; RotationAngle: TSpTextRotationAngle =
+    tra0): Integer;
 var
   R: TRect;
   TextOffset, Spacing, RightSpacing: TPoint;
   CaptionSz: TSize;
+  CaptionInt: string;
 begin
   Result := 0;
   ACaptionRect := Rect(0, 0, 0, 0);
@@ -873,6 +877,10 @@ begin
   TextOffset := Point(0, 0);
   Spacing := Point(0, 0);
   RightSpacing := Point(0, 0);
+  if Layout = ghlGlyphNone then
+   CaptionInt := ''
+  else
+   CaptionInt := Caption;
   if (Caption <> '') and (GlyphSize.cx > 0) and (GlyphSize.cy > 0) then
     Spacing := Point(SpDPIScale(4), SpDPIScale(1));
   if (Caption <> '') and (RightGlyphSize.cx > 0) and (RightGlyphSize.cy > 0) then
@@ -891,7 +899,7 @@ begin
 
   // Get the caption size
   if ((Flags and DT_WORDBREAK) <> 0) or ((Flags and DT_END_ELLIPSIS) <> 0) or ((Flags and DT_PATH_ELLIPSIS) <> 0) then begin
-    if Layout = ghlGlyphLeft then  // Glyph on left or right side
+    if (Layout in [ghlGlyphLeft, ghlGlyphNone]) then  // Glyph on left or right side
       R := Rect(0, 0, ARect.Right - ARect.Left - GlyphSize.cx - Spacing.X - RightGlyphSize.cx - RightSpacing.X + SpDPIScale(2), SpDPIScale(1))
     else  // Glyph on top
       R := Rect(0, 0, ARect.Right - ARect.Left + SpDPIScale(2), SpDPIScale(1));
@@ -906,7 +914,7 @@ begin
     // The R.Right is reduced by 3 which cuts down the string and
     // adds the ellipsis.
     // We have to obtain the real size and check if it fits in the Rect.
-    CaptionSz := SpGetTextSize(ACanvas.Handle, Caption, True);
+    CaptionSz := SpGetTextSize(ACanvas.Handle, CaptionInt, True);
     if CaptionSz.cx <= R.Right then begin
       R := Rect(0, 0, CaptionSz.cx, CaptionSz.cy);
       Result := CaptionSz.cy;
@@ -914,7 +922,7 @@ begin
   end;
 
   if Result <= 0 then begin
-    Result := SpDrawXPText(ACanvas, Caption, R, Flags or DT_CALCRECT, gldNone, clYellow);
+    Result := SpDrawXPText(ACanvas, CaptionInt, R, Flags or DT_CALCRECT, gldNone, clYellow);
     CaptionSz.cx := R.Right;
     CaptionSz.cy := R.Bottom;
   end;
@@ -957,7 +965,7 @@ begin
       taCenter:
         begin
           // Total width = Icon + Space + Text
-          if Layout = ghlGlyphLeft then begin
+          if (Layout in [ghlGlyphLeft, ghlGlyphNone]) then begin
             AGlyphRect.Left := R.Left + (R.Right - R.Left - (GlyphSize.cx + Spacing.X + CaptionSz.cx)) div 2;
             TextOffset.X := (GlyphSize.cx + Spacing.X) div 2;
           end
@@ -976,7 +984,7 @@ begin
         end;
     end;
 
-    if Layout = ghlGlyphLeft then
+    if (Layout in [ghlGlyphLeft, ghlGlyphNone]) then
       AGlyphRect.Top := R.Top + (R.Bottom - R.Top - GlyphSize.cy) div 2
     else begin
       AGlyphRect.Top := R.Top + (R.Bottom - R.Top - (GlyphSize.cy + Spacing.Y + CaptionSz.cy)) div 2;
@@ -1014,8 +1022,8 @@ begin
   end;
 end;
 
-function SpDrawXPGlassText(ACanvas: TCanvas; Caption: string; var ARect: TRect;
-  Flags: Cardinal; CaptionGlowSize: Integer): Integer;
+function SpDrawXPGlassText(ACanvas: TCanvas; const Caption: string; var ARect:
+    TRect; Flags: Cardinal; CaptionGlowSize: Integer): Integer;
 
   function InternalDraw(C: TCanvas; var R: TRect): Integer;
   var
@@ -1061,9 +1069,10 @@ begin
     Result := InternalDraw(ACanvas, ARect);
 end;
 
-function SpDrawXPText(ACanvas: TCanvas; Caption: string; var ARect: TRect;
-  Flags: Cardinal; CaptionGlow: TSpGlowDirection = gldNone;
-  CaptionGlowColor: TColor = clYellow; RotationAngle: TSpTextRotationAngle = tra0): Integer; overload;
+function SpDrawXPText(ACanvas: TCanvas; const Caption: string; var ARect:
+    TRect; Flags: Cardinal; CaptionGlow: TSpGlowDirection = gldNone;
+    CaptionGlowColor: TColor = clYellow; RotationAngle: TSpTextRotationAngle =
+    tra0): Integer;
 
   function IsCalcRect: Boolean;
   begin
@@ -1138,11 +1147,11 @@ begin
   end;
 end;
 
-function SpDrawXPText(ACanvas: TCanvas; ARect: TRect; Caption: string;
-  CaptionGlow: TSpGlowDirection; CaptionGlowColor: TColor; CaptionAlignment: TAlignment;
-  Flags: Cardinal; GlyphSize: TSize; Layout: TSpGlyphLayout; PushedCaption: Boolean;
-  out ACaptionRect, AGlyphRect: TRect;
-  RotationAngle: TSpTextRotationAngle = tra0): Integer; overload;
+function SpDrawXPText(ACanvas: TCanvas; ARect: TRect; const Caption: string;
+    CaptionGlow: TSpGlowDirection; CaptionGlowColor: TColor; CaptionAlignment:
+    TAlignment; Flags: Cardinal; GlyphSize: TSize; Layout: TSpGlyphLayout;
+    PushedCaption: Boolean; out ACaptionRect, AGlyphRect: TRect; RotationAngle:
+    TSpTextRotationAngle = tra0): Integer;
 var
   DummyRightGlyphSize: TSize;
   DummyRightGlyphRect: TRect;
@@ -1155,11 +1164,12 @@ begin
   SpDrawXPText(ACanvas, Caption, ACaptionRect, Flags and not DT_CALCRECT, CaptionGlow, CaptionGlowColor, RotationAngle);
 end;
 
-function SpDrawXPText(ACanvas: TCanvas; ARect: TRect; Caption: string;
-  CaptionGlow: TSpGlowDirection; CaptionGlowColor: TColor; CaptionAlignment: TAlignment;
-  Flags: Cardinal; IL: TCustomImageList; ImageIndex: Integer; Layout: TSpGlyphLayout;
-  Enabled, PushedCaption, DisabledIconCorrection: Boolean; out ACaptionRect, AGlyphRect: TRect;
-  RotationAngle: TSpTextRotationAngle = tra0): Integer; overload;
+function SpDrawXPText(ACanvas: TCanvas; ARect: TRect; const Caption: string;
+    CaptionGlow: TSpGlowDirection; CaptionGlowColor: TColor; CaptionAlignment:
+    TAlignment; Flags: Cardinal; IL: TCustomImageList; ImageIndex: Integer;
+    Layout: TSpGlyphLayout; Enabled, PushedCaption, DisabledIconCorrection:
+    Boolean; out ACaptionRect, AGlyphRect: TRect; RotationAngle:
+    TSpTextRotationAngle = tra0): Integer;
 var
   GlyphSize, DummyRightGlyphSize: TSize;
   DummyRightGlyphRect: TRect;
@@ -1205,7 +1215,8 @@ begin
   Result := Sz.cy;
 end;
 
-function SpGetControlTextSize(AControl: TControl; AFont: TFont; S: string): TSize;
+function SpGetControlTextSize(AControl: TControl; AFont: TFont; const S:
+    string): TSize;
 // Returns the control text size based on the font
 var
   ACanvas: TControlCanvas;
@@ -1220,7 +1231,7 @@ begin
   end;
 end;
 
-function SpStripAccelChars(S: string): string;
+function SpStripAccelChars(const S: string): string;
 var
   I: Integer;
 begin
@@ -1233,7 +1244,7 @@ begin
   end;
 end;
 
-function SpStripShortcut(S: string): string;
+function SpStripShortcut(const S: string): string;
 var
   P: Integer;
 begin
@@ -1243,7 +1254,7 @@ begin
     SetLength(Result, P - 1);
 end;
 
-function SpStripTrailingPunctuation(S: string): string;
+function SpStripTrailingPunctuation(const S: string): string;
 // Removes any colon (':') or ellipsis ('...') from the end of S and returns
 // the resulting string
 var
@@ -1263,7 +1274,7 @@ begin
   Result := Format('%d, %d, %d, %d', [R.Left, R.Top, R.Right, R.Bottom]);
 end;
 
-function SpStringToRect(S: string; out R: TRect): Boolean;
+function SpStringToRect(const S: string; out R: TRect): Boolean;
 var
   L: TStringList;
 begin
@@ -2768,7 +2779,7 @@ begin
   FColor4 := clNone;
 end;
 
-procedure TSpTBXSkinOptionEntry.ReadFromString(S: string);
+procedure TSpTBXSkinOptionEntry.ReadFromString(const S: string);
 var
   L: TStringList;
 begin
@@ -2838,14 +2849,16 @@ begin
   FTextColor := clNone;
 end;
 
-procedure TSpTBXSkinOptionCategory.SaveToIni(MemIni: TMemIniFile; Section, Ident: string);
+procedure TSpTBXSkinOptionCategory.SaveToIni(MemIni: TMemIniFile; const
+    Section, Ident: string);
 begin
   MemIni.WriteString(Section, Ident + '.Body', Body.WriteToString);
   MemIni.WriteString(Section, Ident + '.Borders', Borders.WriteToString);
   MemIni.WriteString(Section, Ident + '.TextColor', SpColorToString(TextColor));
 end;
 
-procedure TSpTBXSkinOptionCategory.LoadFromIni(MemIni: TMemIniFile; Section, Ident: string);
+procedure TSpTBXSkinOptionCategory.LoadFromIni(MemIni: TMemIniFile; const
+    Section: string; Ident: string);
 begin
   Reset;
   if Ident = '' then Ident := SSpTBXSkinStatesString[sknsNormal];
@@ -2959,7 +2972,7 @@ begin
   Result := FOptions[Component, sknsNormal];
 end;
 
-procedure TSpTBXSkinOptions.SaveToFile(Filename: string);
+procedure TSpTBXSkinOptions.SaveToFile(const Filename: string);
 var
   MemIni: TMemIniFile;
 begin
@@ -3007,7 +3020,7 @@ begin
   end;
 end;
 
-procedure TSpTBXSkinOptions.LoadFromFile(Filename: string);
+procedure TSpTBXSkinOptions.LoadFromFile(const Filename: string);
 var
   L: TStringList;
 begin
@@ -3822,8 +3835,8 @@ begin
   inherited;
 end;
 
-procedure TSpTBXSkinManager.AddSkin(SkinName: string;
-  SkinClass: TSpTBXSkinOptionsClass);
+procedure TSpTBXSkinManager.AddSkin(const SkinName: string; SkinClass:
+    TSpTBXSkinOptionsClass);
 var
   K: TSpTBXSkinsListEntry;
 begin
@@ -3861,7 +3874,7 @@ begin
   end;
 end;
 
-function TSpTBXSkinManager.AddSkinFromFile(Filename: string): string;
+function TSpTBXSkinManager.AddSkinFromFile(const Filename: string): string;
 var
   L: TStringList;
 begin
@@ -3919,12 +3932,12 @@ begin
   Broadcast;
 end;
 
-procedure TSpTBXSkinManager.LoadFromFile(Filename: string);
+procedure TSpTBXSkinManager.LoadFromFile(const Filename: string);
 begin
   FCurrentSkin.LoadFromFile(Filename);
 end;
 
-procedure TSpTBXSkinManager.SaveToFile(Filename: string);
+procedure TSpTBXSkinManager.SaveToFile(const Filename: string);
 begin
   FCurrentSkin.SaveToFile(Filename);
 end;
@@ -3998,7 +4011,7 @@ begin
   {$IFEND}
 end;
 
-procedure TSpTBXSkinManager.SetSkin(SkinName: string);
+procedure TSpTBXSkinManager.SetSkin(const SkinName: string);
 var
   K: TSpTBXSkinsListEntry;
 begin
@@ -4026,7 +4039,7 @@ end;
 
 // [Old-Themes]
 {$IF CompilerVersion >= 23} // for Delphi XE2 and up
-procedure TSpTBXSkinManager.SetDelphiStyle(StyleName: string);
+procedure TSpTBXSkinManager.SetDelphiStyle(const StyleName: string);
 begin
   if not SameText(StyleName, TStyleManager.ActiveStyle.Name) then begin
     if not IsDefaultSkin then
@@ -4036,7 +4049,7 @@ begin
   end;
 end;
 
-function TSpTBXSkinManager.IsValidDelphiStyle(StyleName: string): Boolean;
+function TSpTBXSkinManager.IsValidDelphiStyle(const StyleName: string): Boolean;
 var
   S: string;
 begin

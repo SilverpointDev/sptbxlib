@@ -175,6 +175,8 @@ type
     property OnMouseDown;
     property OnMouseMove;
     property OnMouseUp;
+    property OnMouseEnter;
+    property OnMouseLeave;
     property OnResize;
     property OnStartDock;
     property OnStartDrag;
@@ -594,7 +596,7 @@ type
     procedure CMFocusChanged(var Message: TCMFocusChanged); message CM_FOCUSCHANGED;
   protected
     procedure AdjustFont(AFont: TFont); override;
-    function CanUpdateExclusive: Boolean; override;    
+    function CanUpdateExclusive: Boolean; override;
     procedure DoInternalGlyphDraw(ACanvas: TCanvas; AGlyphRect: TRect); override;
     procedure SetChecked(Value: Boolean); override;
     procedure Toggle; override;
@@ -1982,7 +1984,7 @@ end;
 procedure TSpTBXTextObject.DoMouseEnter;
 begin
   Invalidate;
-  if Assigned(FOnMouseEnter) then FOnMouseEnter(Self);  
+  if Assigned(FOnMouseEnter) then FOnMouseEnter(Self);
 end;
 
 procedure TSpTBXTextObject.DoMouseLeave;
@@ -2586,7 +2588,7 @@ end;
 constructor TSpTBXButtonControl.Create(AOwner: TComponent);
 begin
   inherited;
-  ControlStyle := ControlStyle - [csDoubleClicks];  
+  ControlStyle := ControlStyle - [csDoubleClicks];
   FGroupIndex := 0;
 end;
 

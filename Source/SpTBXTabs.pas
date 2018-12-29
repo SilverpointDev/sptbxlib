@@ -395,8 +395,8 @@ type
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
-    function Add(ACaption: string): TSpTBXTabItem;
-    function Insert(NewIndex: Integer; ACaption: string): TSpTBXTabItem;
+    function Add(const ACaption: string): TSpTBXTabItem;
+    function Insert(NewIndex: Integer; const ACaption: string): TSpTBXTabItem;
     function GetTabSetHeight: Integer;
     procedure MakeVisible(ATab: TSpTBXTabItem);
     procedure ScrollLeft;
@@ -2476,7 +2476,7 @@ begin
   Result := TSpTBXTabToolbar;
 end;
 
-function TSpTBXCustomTabSet.Add(ACaption: string): TSpTBXTabItem;
+function TSpTBXCustomTabSet.Add(const ACaption: string): TSpTBXTabItem;
 var
   I: Integer;
   SpacerIV: TSpTBXItemViewer;
@@ -2499,7 +2499,8 @@ begin
   end;
 end;
 
-function TSpTBXCustomTabSet.Insert(NewIndex: Integer; ACaption: string): TSpTBXTabItem;
+function TSpTBXCustomTabSet.Insert(NewIndex: Integer; const ACaption: string):
+    TSpTBXTabItem;
 begin
   Result := TSpTBXTabItem.Create(Self);
   try

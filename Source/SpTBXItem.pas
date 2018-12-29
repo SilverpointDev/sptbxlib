@@ -997,6 +997,8 @@ type
     property OnMouseMove;
     property OnMouseUp;
     property OnMove;
+    property OnMouseEnter;
+    property OnMouseLeave;
     property OnRecreated;
     property OnRecreating;
     property OnDockChanged;
@@ -1114,6 +1116,8 @@ type
     property OnMouseDown;
     property OnMouseMove;
     property OnMouseUp;
+    property OnMouseWheelDown;
+    property OnMouseWheelUp;
     property OnMove;
     property OnRecreated;
     property OnRecreating;
@@ -1231,6 +1235,7 @@ type
     function GetRootItemClass: TTBRootItemClass; override;
   public
     procedure Popup(X: Integer; Y: Integer); override;
+    procedure PopupAtMousePos;
     function PopupEx(X, Y: Integer; PopupControl: TControl = nil; ReturnClickedItemOnly: Boolean = False): TTBCustomItem; virtual;
   published
     property ToolBoxPopup: Boolean read FToolBoxPopup write FToolBoxPopup default False;
@@ -7803,7 +7808,7 @@ begin
   // Change the readonly IsToolbar property using RTTI, the property must
   // be published.
   // Tip from: http://hallvards.blogspot.com/2004/05/hack-1-write-access-to-read-only.html
-  PBoolean(Integer(Self) + (Integer(GetPropInfo(TSpTBXPopupWindowView, 'IsToolbar').GetProc) and $00FFFFFF))^ := Value;
+  PBoolean(NativeUInt(Self) + (NativeUInt(GetPropInfo(TSpTBXPopupWindowView, 'IsToolbar').GetProc) and $00FFFFFF))^ := Value;
 end;
 
 //WMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWM
@@ -7985,6 +7990,14 @@ begin
   PopupEx(X, Y);
 end;
 
+procedure TSpTBXPopupMenu.PopupAtMousePos;
+var
+  Point: TPoint;
+begin
+  GetCursorPos(Point);
+  Popup(Point.X, Point.Y);
+end;
+
 function TSpTBXPopupMenu.PopupEx(X, Y: Integer; PopupControl: TControl = nil;
   ReturnClickedItemOnly: Boolean = False): TTBCustomItem;
 begin
@@ -8040,7 +8053,9 @@ begin
     - Drop a TMemo inside a TSpTBXPanel
     - Change Memo.ScrollBars to ssVertical
     - Run and try to resize using a VCL Style.
-    The problem seems to be that TScrollingStyleHook.WndProc gets called    non stop, even when the window is not visible.    TScrollingStyleHook.WndProc calls TScrollingStyleHook.PaintNC which
+    The problem seems to be that TScrollingStyleHook.WndProc gets called
+    non stop, even when the window is not visible.
+    TScrollingStyleHook.WndProc calls TScrollingStyleHook.PaintNC which
     constantly shows and repaints the scrollbars.
     Seems to be a VCL bug.
 
