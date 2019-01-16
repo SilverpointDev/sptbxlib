@@ -5917,7 +5917,8 @@ end;
 constructor TSpTBXDock.Create(AOwner: TComponent);
 begin
   inherited;
-  ControlStyle := ControlStyle + [csOpaque];
+  // csParentBackground will be removed in first invocation of WMEraseBkgnd
+  ControlStyle := ControlStyle + [csParentBackground, csOpaque];
   Color := clNone;
   SkinManager.AddSkinNotification(Self);
   DoubleBuffered := True;
@@ -6055,7 +6056,11 @@ end;
 
 procedure TSpTBXDock.WMEraseBkgnd(var Message: TWMEraseBkgnd);
 begin
-  //DrawBackground(Message.DC, ClientRect);
+  if ParentBackground then begin
+    inherited;
+    ParentBackground := False;
+  end;
+
   Message.Result := 1;
 end;
 
@@ -6163,7 +6168,7 @@ end;
 constructor TSpTBXToolbar.Create(AOwner: TComponent);
 begin
   inherited;
-  ControlStyle := ControlStyle + [csOpaque];
+  ControlStyle := ControlStyle + [csOpaque, csParentBackground];
   Color := clNone;
 
   Items.RegisterNotification(DoItemNotification);
@@ -6623,6 +6628,11 @@ procedure TSpTBXToolbar.WMEraseBkgnd(var Message: TWMEraseBkgnd);
 begin
   if (csDestroying in ComponentState) then Exit;
 
+  if ParentBackground then begin
+    inherited;
+    //ParentBackground := False;
+  end;
+
   Message.Result := 1;
 //  ACanvas := TCanvas.Create;
 //  ACanvas.Handle := Message.DC;
@@ -6831,6 +6841,7 @@ begin
   for I := 0 to View.ViewerCount - 1 do
     Exclude(View.Viewers[i].State, tbisInvalidated);
   inherited;
+  ParentBackground := False;
 end;
 
 procedure TSpTBXToolbar.MouseDown(Button: TMouseButton; Shift: TShiftState;
