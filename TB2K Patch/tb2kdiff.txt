@@ -1,17 +1,5 @@
---- TB2Ver.inc	Sat Sep 13 17:06:46 2008
-+++ TB2Ver.inc	Tue Nov 27 00:39:20 2018
-@@ -49,9 +49,6 @@
-   {$IF SizeOf(Char) > 1}
-     {$DEFINE JR_WIDESTR}  { defined if String type = WideString }
-   {$IFEND}
--  {$IF not Defined(CLR) and (SizeOf(Pointer) <> 4)}
--    {$MESSAGE WARN 'This version of Toolbar2000 has not been tested on 64-bit Delphi for Win32'}
--  {$IFEND}
- {$ENDIF}
- 
- {$ALIGN ON}
---- TB2Acc.pas	Sat Apr 19 01:31:00 2008
-+++ TB2Acc.pas	Mon Nov 26 14:58:21 2018
+--- TB2Acc.pas	Sat Apr 19 00:31:00 2008
++++ TB2Acc.pas	Mon Sep 03 09:30:03 2018
 @@ -36,7 +36,8 @@
  uses
    Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
@@ -22,8 +10,8 @@
  
  type
    { Our declaration for IAccessible }
---- TB2Common.pas	Wed Sep 17 15:46:30 2008
-+++ TB2Common.pas	Mon Nov 26 14:58:21 2018
+--- TB2Common.pas	Wed Sep 17 14:46:30 2008
++++ TB2Common.pas	Thu Nov 15 11:15:20 2018
 @@ -31,7 +31,8 @@
  {$I TB2Ver.inc}
  
@@ -72,8 +60,8 @@
  
  initialization
    InitGradientFillFunc;
---- TB2Dock.pas	Wed Sep 17 16:12:26 2008
-+++ TB2Dock.pas	Mon Nov 26 14:58:21 2018
+--- TB2Dock.pas	Wed Sep 17 15:12:26 2008
++++ TB2Dock.pas	Fri Dec 28 13:19:15 2018
 @@ -562,26 +562,37 @@
  uses
    {$IFDEF CLR} Types, System.Runtime.InteropServices, {$ENDIF}
@@ -142,6 +130,15 @@
          if twrdCaption in RedrawWhat then begin
            SaveIndex := SaveDC(DC);
            ExcludeClipRect(DC, R2.Left, R2.Top, R2.Right, R2.Bottom);
+@@ -2663,7 +2674,7 @@
+       Bmp := CreateCompatibleBitmap(DC, CR.Right, CR.Bottom);
+       SelectObject(BmpDC, Bmp);
+       SendMessage(W, WM_NCPAINT, 0, 0);
+-      SendMessage(W, WM_ERASEBKGND, WPARAM(BmpDC), 0);
++      SendMessage(W, WM_ERASEBKGND, WPARAM(BmpDC), LPARAM(BmpDC)); // Robert: Pass BmpDC on LParam to support DoubleBuffered property
+       SendMessage(W, WM_PAINT, WPARAM(BmpDC), 0);
+       BitBlt(DC, 0, 0, CR.Right, CR.Bottom, BmpDC, 0, 0, SRCCOPY);
+     finally
 @@ -3353,12 +3364,12 @@
    BottomRight.X := Z;
    BottomRight.Y := Z;
@@ -355,8 +352,8 @@
      if not FTransparent then begin
        { Copy from a possible DIB to our DDB }
        BitBlt(FBitmapCache.Canvas.Handle, 0, 0, FBitmapCache.Width,
---- TB2DsgnItemEditor.pas	Thu Sep 25 14:49:32 2008
-+++ TB2DsgnItemEditor.pas	Mon Nov 26 14:58:21 2018
+--- TB2DsgnItemEditor.pas	Thu Sep 25 13:49:32 2008
++++ TB2DsgnItemEditor.pas	Mon Sep 03 09:30:04 2018
 @@ -207,7 +207,8 @@
    can't be unloaded. When a design-time package is uninstalled, it remains
    loaded until the IDE is restarted. }
@@ -367,8 +364,8 @@
  var
    I: Integer;
    Info: TItemClassInfo;
---- TB2ExtItems.pas	Thu Apr 10 17:51:12 2008
-+++ TB2ExtItems.pas	Mon Nov 26 14:58:21 2018
+--- TB2ExtItems.pas	Thu Apr 10 16:51:12 2008
++++ TB2ExtItems.pas	Mon Sep 03 09:30:04 2018
 @@ -214,9 +214,9 @@
  uses
    TB2Common, TB2Consts;
@@ -540,8 +537,8 @@
    //View.FreeNotification(Self);
    FEditControl := TEdit.Create(nil);
    try
---- TB2Item.pas	Fri Sep 19 12:35:48 2008
-+++ TB2Item.pas	Tue Nov 27 00:38:52 2018
+--- TB2Item.pas	Fri Sep 19 11:35:48 2008
++++ TB2Item.pas	Thu Nov 15 11:15:32 2018
 @@ -40,7 +40,11 @@
  uses
    Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
@@ -976,22 +973,7 @@
    end;
  end;
  
-@@ -5049,8 +5069,12 @@
-   if FWindow.HandleAllocated then
-     ValidateRect(FWindow.Handle, nil);
-   AutoSize(ASize.X, ASize.Y);
--  if FWindow.HandleAllocated then
--    DoubleBufferedRepaint(FWindow.Handle);
-+  if FWindow.HandleAllocated then begin
-+    if (Owner is TWinControl) and TWinControl(Owner).DoubleBuffered then
-+      InvalidateRect(FWindow.Handle, nil, True)
-+    else
-+      DoubleBufferedRepaint(FWindow.Handle);
-+  end;
- end;
- 
- function TTBView.UpdatePositions: TPoint;
-@@ -5076,10 +5100,10 @@
+@@ -5076,10 +5096,10 @@
    var Margins: TRect);
  begin
    if AOrientation = tbvoFloating then begin
@@ -1006,7 +988,7 @@
    end
    else begin
      Margins.Left := 0;
-@@ -5180,7 +5204,7 @@
+@@ -5180,7 +5200,7 @@
        BmpDC := DrawCanvas.Handle;
        SaveIndex2 := SaveDC(BmpDC);
        SetWindowOrgEx(BmpDC, R1.Left, R1.Top, nil);
@@ -1015,7 +997,7 @@
        RestoreDC(BmpDC, SaveIndex2);
      end;
  
-@@ -5669,9 +5693,9 @@
+@@ -5669,9 +5689,9 @@
    end
    else
      EndModal;
@@ -1028,7 +1010,7 @@
  end;
  
  procedure TTBView.Scroll(ADown: Boolean);
-@@ -6336,7 +6360,7 @@
+@@ -6336,7 +6356,7 @@
  begin
    inherited Create(AOwner);
    Visible := False;
@@ -1037,7 +1019,7 @@
    ControlStyle := ControlStyle - [csCaptureMouse];
    ShowHint := True;
    Color := tbMenuBkColor;
-@@ -6518,18 +6542,18 @@
+@@ -6518,18 +6538,18 @@
    begin
      X := (R.Left + R.Right) div 2;
      Y := (R.Top + R.Bottom) div 2;
@@ -1062,7 +1044,7 @@
      end;
      Canvas.Pen.Color := tbMenuTextColor;
      Canvas.Brush.Color := tbMenuTextColor;
-@@ -6589,9 +6613,9 @@
+@@ -6589,9 +6609,9 @@
    else begin
      FrameRect(DC, R, GetSysColorBrush(COLOR_BTNSHADOW));
      Brush := CreateSolidBrush(ColorToRGB(TTBPopupWindow(AppData).Color));
@@ -1074,8 +1056,8 @@
      FrameRect(DC, R, Brush);
      DeleteObject(Brush);
    end;
---- TB2Reg.pas	Thu Sep 18 15:08:40 2008
-+++ TB2Reg.pas	Mon Nov 26 14:58:21 2018
+--- TB2Reg.pas	Thu Sep 18 14:08:40 2008
++++ TB2Reg.pas	Mon Sep 03 09:30:04 2018
 @@ -65,10 +65,15 @@
  
  uses
@@ -1093,8 +1075,8 @@
  { TTBImageIndexPropertyEditor }
  
  { Unfortunately TComponentImageIndexPropertyEditor seems to be gone in
---- TB2Toolbar.pas	Mon Jun 23 14:05:48 2008
-+++ TB2Toolbar.pas	Mon Nov 26 14:58:21 2018
+--- TB2Toolbar.pas	Mon Jun 23 13:05:48 2008
++++ TB2Toolbar.pas	Mon Sep 03 09:30:04 2018
 @@ -288,9 +288,7 @@
        IsSelected, IsPushed, UseDisabledShadow: Boolean); override;
    end;
@@ -1165,8 +1147,8 @@
            DistanceToSmallerSize := NewSize;
          end;
          Break;
---- TB2ToolWindow.pas	Wed Jan  5 20:56:50 2005
-+++ TB2ToolWindow.pas	Mon Nov 26 14:58:21 2018
+--- TB2ToolWindow.pas	Wed Jan 05 20:56:50 2005
++++ TB2ToolWindow.pas	Mon Sep 03 09:30:04 2018
 @@ -120,6 +120,8 @@
    end;
  
@@ -1190,3 +1172,14 @@
  end;
  
  procedure TTBToolWindow.Paint;
+--- TB2Ver.inc	Sat Sep 13 16:06:46 2008
++++ TB2Ver.inc	Mon Nov 26 10:45:10 2018
+@@ -50,7 +50,7 @@
+     {$DEFINE JR_WIDESTR}  { defined if String type = WideString }
+   {$IFEND}
+   {$IF not Defined(CLR) and (SizeOf(Pointer) <> 4)}
+-    {$MESSAGE WARN 'This version of Toolbar2000 has not been tested on 64-bit Delphi for Win32'}
++    // Robert: {$MESSAGE WARN 'This version of Toolbar2000 has not been tested on 64-bit Delphi for Win32'}
+   {$IFEND}
+ {$ENDIF}
+ 

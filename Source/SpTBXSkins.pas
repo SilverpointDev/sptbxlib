@@ -56,7 +56,10 @@ Development notes:
 
 interface
 
-{$BOOLEVAL OFF} // Unit depends on short-circuit boolean evaluation
+{$BOOLEVAL OFF}   // Unit depends on short-circuit boolean evaluation
+{$IF CompilerVersion >= 25} // for Delphi XE4 and up
+  {$LEGACYIFEND ON} // XE4 and up requires $IF to be terminated with $ENDIF instead of $IFEND
+{$IFEND}
 
 uses
   Windows, Messages, Classes, SysUtils, Graphics, Controls, StdCtrls,
@@ -655,10 +658,8 @@ begin
 end;
 
 procedure SpDrawParentBackground(Control: TControl; DC: HDC; R: TRect);
-// Delphi 2007 and Vista compatible
 var
   Parent: TWinControl;
-  P: TPoint;
   Brush: HBRUSH;
 begin
   Parent := Control.Parent;
@@ -671,13 +672,8 @@ begin
     if Parent.HandleAllocated then begin
       if not Parent.DoubleBuffered and (Control is TWinControl) and SkinManager.IsXPThemesEnabled then
         UxTheme.DrawThemeParentBackground(TWinControl(Control).Handle, DC, @R)
-      else begin
-        // Same as Controls.PerformEraseBackground
-        GetWindowOrgEx(DC, P);
-        SetWindowOrgEx(DC, P.X + Control.Left, P.Y + Control.Top, nil);
-        Parent.Perform(WM_ERASEBKGND, WPARAM(DC), LPARAM(DC));
-        SetWindowOrgEx(DC, P.X, P.Y, nil);
-      end;
+      else
+        Controls.PerformEraseBackground(Control, DC);
     end;
 end;
 
@@ -1724,8 +1720,8 @@ procedure SpDrawImageList(ACanvas: TCanvas; const ARect: TRect; ImageList: TCust
 begin
   if Assigned(ImageList) and (ImageIndex > -1) and (ImageIndex < ImageList.Count) then
     if not Enabled and DisabledIconCorrection then
-        SpDrawIconShadow(ACanvas, ARect, ImageList, ImageIndex)
-      else
+      SpDrawIconShadow(ACanvas, ARect, ImageList, ImageIndex)
+    else
       ImageList.Draw(ACanvas, ARect.Left, ARect.Top, ImageIndex, Enabled);
 end;
 
@@ -2125,7 +2121,7 @@ begin
           Point(R.Right - 1, R.Top),
           Point(R.Left, R.Bottom - 1)
         ]);
-  end;
+      end;
     gptChevron:
       begin
         ACanvas.Polyline([
@@ -2148,7 +2144,7 @@ begin
           Point(R.Left + SpDPIScale(6) + 1, R.Top + SpDPIScale(2)),
           Point(R.Left + SpDPIScale(4) + 1, R.Top + SpDPIScale(2) * 2)
         ]);
-end;
+      end;
     gptVerticalChevron:
       begin
         ACanvas.Polyline([
@@ -2701,7 +2697,7 @@ begin
 
         // Add the bitmaps
         ImageList.Add(Bimage, Bmask);
-        finally
+      finally
         Bimage.Free;
         Bmask.Free;
       end;
@@ -2889,7 +2885,7 @@ begin
   if Self = SkinManager.CurrentSkin then begin
     SkinManager.ResetToSystemStyle;
     SkinManager.BroadcastSkinNotification;
-end;
+  end;
 end;
 
 procedure TSpTBXSkinOptions.CopyOptions(AComponent, ToComponent: TSpTBXSkinComponentsType);
@@ -3198,8 +3194,8 @@ begin
       Exit; // Exit if the State is not valid
   end;
 
-    if State = sknsDisabled then Result := clGrayText
-    else Result := clBtnText;
+ if State = sknsDisabled then Result := clGrayText
+ else Result := clBtnText;
  if SkinType = sknDelphiStyle then
    Result := GetThemedSystemColor(Result);
 
@@ -3276,13 +3272,18 @@ begin
         if (SkinType = sknWindows) or (SkinType = sknDelphiStyle) then
           Result := GetTextColor(skncTab, State);
     skncWindowTitleBar:
-      if SkinType = sknSkin then
-        Result := GetTextColor(skncToolbarItem, State)  // Use skncToolbarItem to get the default text color
-      else
-        if (SkinType = sknWindows) or (SkinType = sknDelphiStyle) then begin
+      case SkinType of
+        sknNone:
+          if State = sknsDisabled then
+            Result := clInactiveCaptionText
+          else
+            Result := clCaptionText;
+        sknWindows, sknDelphiStyle:
           if GetThemedElementDetails(Component, State, Details) then
             GetThemedElementTextColor(Details, Result);
-        end;
+        sknSkin:
+          Result := GetTextColor(skncToolbarItem, State);  // Use skncToolbarItem to get the default text color
+      end;
   end;
 end;
 
@@ -3717,8 +3718,8 @@ begin
   else begin
     if SkinType = sknNone then
       CheckColor := clMenuText // On sknNone it's clMenuText even when disabled
-      else
-        CheckColor := GetTextColor(skncMenuItem, State);
+    else
+      CheckColor := GetTextColor(skncMenuItem, State);
     SpDrawGlyphPattern(ACanvas, ARect, gptMenuCheckmark, CheckColor);
   end;
 end;
@@ -3734,7 +3735,7 @@ begin
   SkinType := SkinManager.GetSkinType;
   // Vcl Styles does not DPI scale menu radio buttons, Windows does
   if ((SkinType = sknWindows) and SpIsWinVistaOrUp) or
-    ((SkinType = sknDelphiStyle) and (Screen.PixelsPerInch = 96)) then
+     ((SkinType = sknDelphiStyle) and (Screen.PixelsPerInch = 96)) then
   begin
     // [Old-Themes]
     {$IF CompilerVersion >= 23} //for Delphi XE2 and up
@@ -3753,8 +3754,8 @@ begin
   else begin
     if SkinType = sknNone then
       CheckColor := clMenuText // On sknNone it's clMenuText even when disabled
-      else
-        CheckColor := GetTextColor(skncMenuItem, State);
+    else
+      CheckColor := GetTextColor(skncMenuItem, State);
     SpDrawGlyphPattern(ACanvas, ARect, gptMenuRadiomark, CheckColor);
   end;
 end;
@@ -3893,7 +3894,7 @@ begin
   {$IF CompilerVersion >= 23} // for Delphi XE2 and up
   // Reset the VCL Style to System Style
   if TStyleManager.IsCustomStyleActive then
-      TStyleManager.SetStyle(TStyleManager.SystemStyle);
+    TStyleManager.SetStyle(TStyleManager.SystemStyle);
   {$IFEND}
 end;
 
@@ -3937,10 +3938,10 @@ function TSpTBXSkinManager.GetSkinType: TSpTBXSkinType;
 begin
   Result := sknSkin;
 
-    {$IF CompilerVersion >= 23} // for Delphi XE2 and up
-    if TStyleManager.IsCustomStyleActive then
-      Result := sknDelphiStyle;
-    {$IFEND}
+  {$IF CompilerVersion >= 23} // for Delphi XE2 and up
+  if TStyleManager.IsCustomStyleActive then
+    Result := sknDelphiStyle;
+  {$IFEND}
 
   if (Result = sknSkin) and IsDefaultSkin then
     Result := sknWindows;

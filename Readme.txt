@@ -45,18 +45,17 @@ To install SpTBXLib manually:
 
 To install SpTBXLib with Silverpoint MultiInstaller (http://www.silverpointdevelopment.com/multiinstaller/index.htm):
 - Create a new folder for the installation.
-- Download all the component zips to a folder: SpTBXLib + TB2K + TB2K Patch
-- Download the MultiInstaller and the Setup.Ini, extract them to the folder:
+- Download all the component zips to a folder: SpTBXLib + TB2K
+- Download Silverpoint MultiInstaller and the Setup.Ini, extract them to the folder:
 
 The installation folder will end up with this files: 
 C:\MyInstall
        |-  SpTBXLib.zip
        |-  tb2k-2.2.2.zip
-       |-  TB2Kpatch-1.1.zip
        |-  MultiInstaller.exe
        |-  Setup.ini 
 
-You are ready to install the component packages, just run the MultiInstaller, select the destination folder, and all the components will be unziped, patched, compiled and installed on the Delphi IDE.
+You are ready to install the component packages, just run MultiInstaller, select the destination folder, and all the components will be unziped, patched, compiled and installed on the Delphi IDE.
 
 For more info go to:
 http://www.silverpointdevelopment.com/sptbxlib/support/index.htm

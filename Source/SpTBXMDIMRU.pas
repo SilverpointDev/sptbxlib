@@ -39,7 +39,10 @@ Development notes:
 
 interface
 
-{$BOOLEVAL OFF} // Unit depends on short-circuit boolean evaluation
+{$BOOLEVAL OFF}   // Unit depends on short-circuit boolean evaluation
+{$IF CompilerVersion >= 25} // for Delphi XE4 and up
+  {$LEGACYIFEND ON} // XE4 and up requires $IF to be terminated with $ENDIF instead of $IFEND
+{$IFEND}
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
@@ -338,11 +341,13 @@ begin
       sknNone:
         begin
           PaintDefault := False;
+          ARect := SpCenterRect(ARect, SpDPIScale(16), SpDPIScale(16));
           DrawFrameControl(ACanvas.Handle, ARect, DFC_CAPTION, ButtonIndexFlags[AImageIndex] or NoneFlags[State]);
         end;
       sknWindows:
         begin
           PaintDefault := False;
+          ARect := SpCenterRect(ARect, SpDPIScale(16), SpDPIScale(16));
           DrawThemeBackground(SpTBXThemeServices.Theme[teWindow], ACanvas.Handle, XPPart[AImageIndex], XPFlags[State], ARect, nil);
         end;
     end;

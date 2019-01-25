@@ -43,7 +43,10 @@ To Do:
 
 interface
 
-{$BOOLEVAL OFF} // Unit depends on short-circuit boolean evaluation
+{$BOOLEVAL OFF}   // Unit depends on short-circuit boolean evaluation
+{$IF CompilerVersion >= 25} // for Delphi XE4 and up
+  {$LEGACYIFEND ON} // XE4 and up requires $IF to be terminated with $ENDIF instead of $IFEND
+{$IFEND}
 
 uses
   Windows, Messages, Classes, SysUtils, Controls, Graphics, ImgList, Forms,
@@ -2350,7 +2353,7 @@ begin
       R.Bottom := R.Top + ACheckWidth;
 
       if SkinManager.GetSkinType = sknSkin then
-      Canvas.FillRect(R);
+        Canvas.FillRect(R);
       SpDrawXPCheckBoxGlyph(Canvas, R, ItemEnabled[Index], Self.State[Index], False, False);
 
       // Draw the background and focus
@@ -3249,13 +3252,13 @@ function TSpTBXSpinEditViewer.HandleEditMessage(var Message: TMessage): Boolean;
 begin
   case Message.Msg of
     WM_CHAR:
-    case TWMChar(Message).CharCode of
-      VK_TAB, VK_RETURN:
-        begin
-          Item.Text := EditControl.Text;
-          Item.SpinOptions.UpdateValueFromText;
-          EditControl.Text := Item.Text;
-        end;
+      case TWMChar(Message).CharCode of
+        VK_TAB, VK_RETURN:
+          begin
+            Item.Text := EditControl.Text;
+            Item.SpinOptions.UpdateValueFromText;
+            EditControl.Text := Item.Text;
+          end;
       end;
     WM_KEYDOWN:
       case TWMKeyDown(Message).CharCode of

@@ -45,7 +45,10 @@ TODO:
 
 interface
 
-{$BOOLEVAL OFF} // Unit depends on short-circuit boolean evaluation
+{$BOOLEVAL OFF}   // Unit depends on short-circuit boolean evaluation
+{$IF CompilerVersion >= 25} // for Delphi XE4 and up
+  {$LEGACYIFEND ON} // XE4 and up requires $IF to be terminated with $ENDIF instead of $IFEND
+{$IFEND}
 
 uses
   Windows, Messages, Classes, SysUtils, Controls, Graphics, ImgList, Forms,
@@ -271,7 +274,7 @@ type
 
   { TSpTBXTabSheet }
 
-  TSpTBXTabSheet = class(TCustomControl)
+  TSpTBXTabSheet = class(TSpTBXCustomContainer)
   private
     FTabControl: TSpTBXCustomTabControl;
     FItem: TSpTBXTabItem;
@@ -286,12 +289,10 @@ type
     function GetImageIndex: Integer;
     procedure SetImageIndex(const Value: Integer);
     procedure CMVisiblechanged(var Message: TMessage); message CM_VISIBLECHANGED;
-    procedure WMEraseBkgnd(var Message: TMessage); message WM_ERASEBKGND;
-    procedure WMWindowPosChanged(var Message: TWMWindowPosChanged); message WM_WINDOWPOSCHANGED;
   protected
-    procedure CreateParams(var Params: TCreateParams); override;
     procedure AdjustClientRect(var Rect: TRect); override;
     procedure DefineProperties(Filer: TFiler); override;
+    procedure DrawBackground(ACanvas: TCanvas; ARect: TRect); override;
     procedure Notification(AComponent: TComponent; Operation: TOperation); override;
     procedure ReadState(Reader: TReader); override;
     procedure VisibleChanging; override;
@@ -321,8 +322,6 @@ type
     FTabVisible: Boolean;
     FLoadingActiveIndex: Integer;
     FUpdatingIndex: Boolean;
-    FResizing: Boolean;
-    FOnDrawBackground: TSpTBXDrawEvent;
     FOnActiveTabChange: TSpTBXTabChangeEvent;
     FOnActiveTabChanging: TSpTBXTabChangingEvent;
     FOnActiveTabReorder: TSpTBXTabChangeEvent;
@@ -355,16 +354,10 @@ type
     procedure SetTabVisible(const Value: Boolean);
     function GetTabToolbar: TSpTBXTabToolbar;
     procedure CMColorchanged(var Message: TMessage); message CM_COLORCHANGED;
-    procedure CMSpTBXControlsInvalidate(var Message: TMessage); message CM_SPTBXCONTROLSINVALIDATE;
-    procedure WMEraseBkgnd(var Message: TMessage); message WM_ERASEBKGND;
     procedure WMInvalidateTabBackground(var Message: TMessage); message WM_INVALIDATETABBACKGROUND;
-    procedure WMWindowPosChanged(var Message: TWMWindowPosChanged); message WM_WINDOWPOSCHANGED;
   protected
-    FBackground: TBitmap;
     // Painting
-    procedure DoDrawBackground(ACanvas: TCanvas; ARect: TRect;
-      const PaintStage: TSpTBXPaintStage; var PaintDefault: Boolean); virtual;
-    function GetFullRepaint: Boolean; virtual;
+    procedure DrawBackground(ACanvas: TCanvas; ARect: TRect); override;
 
     // Tabs
     function CanActiveTabChange(const TabIndex, NewTabIndex: Integer): Boolean; virtual;
@@ -381,7 +374,7 @@ type
     function GetToolbarClass: TSpTBXToolbarClass; override;
     procedure Loaded; override;
 
-    property Color default clBtnFace;
+    property Color default clNone;
     property ParentColor default False;
     property ActiveTabIndex: Integer read GetActiveTabIndex write SetActiveTabIndex;
     property TabAutofit: Boolean read GetTabAutofit write SetTabAutofit default False;
@@ -399,15 +392,12 @@ type
     property OnActiveTabChanging: TSpTBXTabChangingEvent read FOnActiveTabChanging write FOnActiveTabChanging;
     property OnActiveTabReorder: TSpTBXTabChangeEvent read FOnActiveTabReorder write FOnActiveTabReorder;
     property OnActiveTabReordering: TSpTBXTabChangingEvent read FOnActiveTabReordering write FOnActiveTabReordering;
-    property OnDrawBackground: TSpTBXDrawEvent read FOnDrawBackground write FOnDrawBackground;
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
     function Add(ACaption: string): TSpTBXTabItem;
     function Insert(NewIndex: Integer; ACaption: string): TSpTBXTabItem;
-    function DrawBackground(DC: HDC; ARect: TRect): Boolean;
     function GetTabSetHeight: Integer;
-    procedure InvalidateBackground(InvalidateChildren: Boolean = True); override;
     procedure MakeVisible(ATab: TSpTBXTabItem);
     procedure ScrollLeft;
     procedure ScrollRight;
@@ -489,14 +479,13 @@ type
     function GetPages(Index: Integer): TSpTBXTabSheet;
     function GetPagesCount: Integer;
     procedure SetActivePage(const Value: TSpTBXTabSheet);
-    procedure CMSpTBXControlsInvalidate(var Message: TMessage); message CM_SPTBXCONTROLSINVALIDATE;
     procedure WMSpSkinChange(var Message: TMessage); message WM_SPSKINCHANGE;
   protected
     FPages: TList;
     procedure DoActiveTabChange(const ItemIndex: Integer); override;
-    function GetFullRepaint: Boolean; override;
     procedure TabInserted(Item: TSpTBXTabItem); override;
     procedure TabDeleting(Item: TSpTBXTabItem; FreeTabSheet: Boolean = True); override;
+    procedure WMEraseBkgnd(var Message: TWmEraseBkgnd); message WM_ERASEBKGND;
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
@@ -716,6 +705,8 @@ begin
       sknNone:
         begin
           BottomTabs := False; // Don't flip
+          if AColor = clNone then
+            AColor := clBtnFace;
           B.Canvas.Brush.Color := AColor;
           B.Canvas.FillRect(R);
           ExtCtrls.Frame3D(B.Canvas, R, clWindow, clWindowFrame, 1);
@@ -1393,7 +1384,7 @@ begin
     T := TSpTBXTabToolbar(Owner);
     if Assigned(T.FOwnerTabControl) then begin
       SendMessage(T.FOwnerTabControl.Handle, WM_SETREDRAW, 1, 0);
-      SpInvalidateSpTBXControl(T.FOwnerTabControl, True, False);
+      T.FOwnerTabControl.InvalidateBackground(True);
     end;
   end;
 end;
@@ -1452,20 +1443,19 @@ procedure TSpTBXTabToolbar.InternalDrawBackground(ACanvas: TCanvas; ARect: TRect
   PaintOnNCArea: Boolean; PaintBorders: Boolean = True);
 var
   B: TBitmap;
-  R, BitmapR, DestR: TRect;
+  R, DestR: TRect;
   Tab: TSpTBXTabItem;
   IV: TTBItemViewer;
   PrevDelta, NextDelta: Integer;
 begin
-  // Draw on NC area of the toolbar
-  // Left border of the first tab if it's active
-  // Bottom border of the tabset
+  // Draw on NC area of the toolbar:
+  // 1) Left border of the first tab if it's active
+  // 2) Bottom border of the tabset
   if PaintOnNCArea and Assigned(FOwnerTabControl) then begin
     B := TBitmap.Create;
-    B.Canvas.Lock;
     try
-      R := ARect;
-      B.SetSize(R.Right - R.Left, R.Bottom - R.Top);
+      B.SetSize(ARect.Right - ARect.Left, ARect.Bottom - ARect.Top);
+      R := Rect(0, 0, B.Width, B.Height);
       SpDrawXPToolbar(Self, B.Canvas, R, PaintOnNCArea, FTabBackgroundBorders and (SkinManager.GetSkinType <> sknNone), skncTabToolbar);
 
       // Draw the bottom border of the active tab
@@ -1492,33 +1482,23 @@ begin
           if not Assigned(Tab.GetNextTab(True, sivtInmediateSkipNonVisible)) then
             NextDelta := 1;
         end;
-          if FTabPosition = ttpTop then
+        if FTabPosition = ttpTop then
           ExcludeClipRect(B.Canvas.Handle, DestR.Left + PrevDelta, R.Bottom - SpDPIScale(2), DestR.Right - NextDelta, R.Bottom + SpDPIScale(4))
         else
           ExcludeClipRect(B.Canvas.Handle, DestR.Left + PrevDelta, R.Top + SpDPIScale(2), DestR.Right - NextDelta, R.Top - SpDPIScale(4));
       end;
 
       // Draw the bottom border of the tabs pane
-      BitmapR := Rect(0, 0, FOwnerTabControl.FBackground.Width, FOwnerTabControl.FBackground.Height);
-      case FTabPosition of
-        ttpTop:
-          begin
-            // Use the toolbar margins
-            DestR := Rect(R.Left, R.Bottom - CDefaultToolbarBorderSize, R.Right, R.Bottom);
-            BitmapR.Bottom := BitmapR.Top + CDefaultToolbarBorderSize;
-          end;
-        ttpBottom:
-          begin
-            // Use the toolbar margins
-            DestR := Rect(R.Left, R.Top, R.Right, R.Top + CDefaultToolbarBorderSize);
-            BitmapR.Top := BitmapR.Bottom - CDefaultToolbarBorderSize;
-          end;
-      end;
-      B.Canvas.CopyRect(DestR, FOwnerTabControl.FBackground.Canvas, BitmapR);
+      // We just need the top or bottom borders, instead of painting the whole
+      // tabcontrol background just paint a 10 pixel height area, don't need to scale
+      if FTabPosition = ttpTop then
+        DestR := Bounds(R.Left, R.Bottom - CDefaultToolbarBorderSize, R.Right - R.Left, 10)
+      else
+        DestR := Bounds(R.Left, R.Top - (10 - CDefaultToolbarBorderSize), R.Right - R.Left, 10);
+      SpDrawXPTabControlBackground(B.Canvas, DestR, Color, FTabPosition = ttpBottom);
 
-      ACanvas.Draw(0, 0, B);
+      ACanvas.Draw(ARect.Left, ARect.Top, B);
     finally
-      B.Canvas.UnLock;
       B.Free;
     end;
   end
@@ -2258,20 +2238,10 @@ end;
 constructor TSpTBXTabSheet.Create(AOwner: TComponent);
 begin
   inherited;
-  ControlStyle := ControlStyle + [csAcceptsControls, csSetCaption];
+  //Color := clBtnFace;
+  Color := clNone;
   Align := alClient;
   Visible := False;
-end;
-
-procedure TSpTBXTabSheet.CreateParams(var Params: TCreateParams);
-begin
-  inherited CreateParams(Params);
-  if not (csDesigning in ComponentState) then begin
-    with Params do
-      Style := Style or WS_CLIPCHILDREN;
-    with Params.WindowClass do
-      Style := Style and not (CS_HREDRAW or CS_VREDRAW);
-  end;
 end;
 
 procedure TSpTBXTabSheet.DefineProperties(Filer: TFiler);
@@ -2294,6 +2264,19 @@ begin
   FTabControl := nil;
   FItem := nil;
   inherited;
+end;
+
+procedure TSpTBXTabSheet.DrawBackground(ACanvas: TCanvas; ARect: TRect);
+begin
+  if Assigned(FTabControl) and Visible then begin
+    if FTabControl.TabVisible then begin
+      case FTabControl.TabPosition of
+        ttpTop:    dec(ARect.Top, SpDPIScale(4));
+        ttpBottom: inc(ARect.Bottom, SpDPIScale(4));
+      end;
+    end;
+    FTabControl.DrawBackground(ACanvas, ARect);
+  end;
 end;
 
 procedure TSpTBXTabSheet.Notification(AComponent: TComponent;
@@ -2420,55 +2403,22 @@ begin
   end;
 end;
 
-procedure TSpTBXTabSheet.WMEraseBkgnd(var Message: TMessage);
-var
-  R: TRect;
-begin
-  Message.Result := 1;
-
-  if Assigned(FTabControl) and Visible then begin
-    if not DoubleBuffered or (Message.wParam = WPARAM(Message.lParam)) then begin
-      R := ClientRect;
-      if FTabControl.TabVisible then begin
-        case FTabControl.TabPosition of
-          ttpTop:    dec(R.Top, SpDPIScale(4));
-          ttpBottom: inc(R.Bottom, SpDPIScale(4));
-        end;
-      end;
-      FTabControl.DrawBackground(TWMEraseBkgnd(Message).DC, R);
-    end;
-  end;
-end;
-
-procedure TSpTBXTabSheet.WMWindowPosChanged(var Message: TWMWindowPosChanged);
-begin
-  inherited;
-  SpInvalidateSpTBXControl(Self, True, True);
-end;
-
 //WMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWM
 { TSpTBXCustomTabSet }
 
 constructor TSpTBXCustomTabSet.Create(AOwner: TComponent);
 begin
   inherited;
-  ControlStyle := ControlStyle + [csAcceptsControls, csOpaque];
-
   FTabVisible := True;
-  FBackground := TBitmap.Create;
-
   Width := 289;
   Height := FDock.Height + SpDPIScale(2);
-  ParentColor := False;
-  Color := clBtnFace;
-
   FToolbar.Items.RegisterNotification(ItemNotification);
+  DoubleBuffered := False;
 end;
 
 destructor TSpTBXCustomTabSet.Destroy;
 begin
   FToolbar.Items.UnRegisterNotification(ItemNotification);
-  FreeAndNil(FBackground);
   inherited;
 end;
 
@@ -2527,11 +2477,6 @@ end;
 function TSpTBXCustomTabSet.GetToolbarClass: TSpTBXToolbarClass;
 begin
   Result := TSpTBXTabToolbar;
-end;
-
-function TSpTBXCustomTabSet.GetFullRepaint: Boolean;
-begin
-  Result := True;
 end;
 
 function TSpTBXCustomTabSet.Add(ACaption: string): TSpTBXTabItem;
@@ -2821,62 +2766,9 @@ begin
     Result := 0;
 end;
 
-procedure TSpTBXCustomTabSet.DoDrawBackground(ACanvas: TCanvas;
-  ARect: TRect; const PaintStage: TSpTBXPaintStage;
-  var PaintDefault: Boolean);
+procedure TSpTBXCustomTabSet.DrawBackground(ACanvas: TCanvas; ARect: TRect);
 begin
-  if Assigned(FOnDrawBackground) then FOnDrawBackground(Self, ACanvas, ARect, PaintStage, PaintDefault);
-end;
-
-function TSpTBXCustomTabSet.DrawBackground(DC: HDC; ARect: TRect): Boolean;
-var
-  ACanvas: TCanvas;
-  PaintDefault: Boolean;
-  R: TRect;
-begin
-  Result := False;
-  if (csDestroying in ComponentState) or not Assigned(FDock) or
-    not Assigned(FBackground) or IsRectEmpty(ARect) then Exit;
-
-  ACanvas := TCanvas.Create;
-  try
-    ACanvas.Handle := DC;
-    ACanvas.Lock;
-    R := Rect(0, 0, ARect.Right - ARect.Left, ARect.Bottom - ARect.Top);
-
-    if (FBackground.Width = R.Right) and (FBackground.Height = R.Bottom) and not Assigned(FOnDrawBackground) then
-      ACanvas.Draw(ARect.Left, ARect.Top, FBackground)
-    else begin
-      FBackground.SetSize(R.Right, R.Bottom);
-      FBackground.Canvas.Brush.Color := clWhite;
-      FBackground.Canvas.FillRect(R);
-
-      PaintDefault := True;
-      DoDrawBackground(FBackground.Canvas, R, pstPrePaint, PaintDefault);
-      if PaintDefault then
-        SpDrawXPTabControlBackground(FBackground.Canvas, R, Color, TabPosition = ttpBottom);
-      PaintDefault := True;
-      DoDrawBackground(FBackground.Canvas, R, pstPostPaint, PaintDefault);
-
-      ACanvas.Draw(ARect.Left, ARect.Top, FBackground);
-    end;
-
-    Result := True;
-  finally
-    ACanvas.Unlock;
-    ACanvas.Handle := 0;
-    ACanvas.Free;
-  end;
-end;
-
-procedure TSpTBXCustomTabSet.InvalidateBackground(InvalidateChildren: Boolean);
-begin
-  // Force background repaint
-  if not (csDestroying in ComponentState) and Assigned(FToolbar) then begin
-    if Assigned(FBackground) then
-      FBackground.Width := 1;
-    SpInvalidateSpTBXControl(Self, InvalidateChildren, FResizing);
-  end;
+  SpDrawXPTabControlBackground(ACanvas, ARect, Color, TabPosition = ttpBottom);
 end;
 
 procedure TSpTBXCustomTabSet.ItemNotification(Ancestor: TTBCustomItem;
@@ -3046,35 +2938,8 @@ end;
 procedure TSpTBXCustomTabSet.CMColorchanged(var Message: TMessage);
 begin
   inherited;
-  if Assigned(FToolbar) then begin
+  if Assigned(FToolbar) then
     Toolbar.TabColor := Color;
-    InvalidateBackground;
-  end;
-end;
-
-procedure TSpTBXCustomTabSet.CMSpTBXControlsInvalidate(var Message: TMessage);
-begin
-  InvalidateBackground;
-  Message.Result := 1;
-end;
-
-procedure TSpTBXCustomTabSet.WMEraseBkgnd(var Message: TMessage);
-var
-  R: TRect;
-begin
-  if not DoubleBuffered or (Message.wParam = WPARAM(Message.lParam)) then begin
-    if not (csDestroying in ComponentState) and GetFullRepaint then begin
-      R := ClientRect;
-      if FTabVisible then begin
-        case TabPosition of
-          ttpTop:    Inc(R.Top, GetTabSetHeight - 2);
-          ttpBottom: Dec(R.Bottom, GetTabSetHeight - 2);
-        end;
-      end;
-      DrawBackground(TWMEraseBkgnd(Message).DC, R);
-    end;
-  end;
-  Message.Result := 1;
 end;
 
 procedure TSpTBXCustomTabSet.WMInvalidateTabBackground(var Message: TMessage);
@@ -3099,22 +2964,12 @@ begin
   end;
 end;
 
-procedure TSpTBXCustomTabSet.WMWindowPosChanged(var Message: TWMWindowPosChanged);
-begin
-  FResizing := True;
-  inherited;
-  if GetFullRepaint then
-    InvalidateBackground;
-  FResizing := False;
-end;
-
 //WMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWM
 { TSpTBXCustomTabControl }
 
 constructor TSpTBXCustomTabControl.Create(AOwner: TComponent);
 begin
   inherited;
-//  ControlStyle := ControlStyle - [csAcceptsControls];
   FPages := TList.Create;
 
   // FEmptyTabSheet is used to hide the rest of the TabSheets
@@ -3126,6 +2981,8 @@ begin
   FEmptyTabSheet.Visible := True;
   FEmptyTabSheet.BringToFront;
   FEmptyTabSheet.ControlStyle := FEmptyTabSheet.ControlStyle - [csAcceptsControls];
+  FEmptyTabSheet.Color := clNone;
+  FEmptyTabSheet.DoubleBuffered := False;
 
   Width := 289;
   Height := 193;
@@ -3157,15 +3014,6 @@ begin
     for I := 0 to C - 1 do
       Pages[I].Realign;
   end;
-end;
-
-function TSpTBXCustomTabControl.GetFullRepaint: Boolean;
-begin
-  if not (csDestroying in ComponentState) then
-    Result := not Assigned(FPages) or (FPages.Count = 0) or not Assigned(FToolbar) or
-      not Assigned(Toolbar.ActiveTab) or not Toolbar.ActiveTab.Checked
-  else
-    Result := False;
 end;
 
 function TSpTBXCustomTabControl.GetPage(Item: TSpTBXTabItem): TSpTBXTabSheet;
@@ -3274,16 +3122,8 @@ begin
   end;
 end;
 
-procedure TSpTBXCustomTabControl.CMSpTBXControlsInvalidate(var Message: TMessage);
-var
-  I, C: Integer;
+procedure TSpTBXCustomTabControl.WMEraseBkgnd(var Message: TWmEraseBkgnd);
 begin
-  // Force TabControl and TabSheets background repaint
-  if not (csDestroying in ComponentState) and Assigned(FToolbar) then begin
-    C := PagesCount;
-    for I := 0 to C - 1 do
-      SpInvalidateSpTBXControl(Pages[I], True, True);
-  end;
   Message.Result := 1;
 end;
 

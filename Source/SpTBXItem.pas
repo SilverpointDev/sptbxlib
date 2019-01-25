@@ -64,7 +64,10 @@ Development notes:
 
 interface
 
-{$BOOLEVAL OFF} // Unit depends on short-circuit boolean evaluation
+{$BOOLEVAL OFF}   // Unit depends on short-circuit boolean evaluation
+{$IF CompilerVersion >= 25} // for Delphi XE4 and up
+  {$LEGACYIFEND ON} // XE4 and up requires $IF to be terminated with $ENDIF instead of $IFEND
+{$IFEND}
 
 uses
   Windows, Messages, Classes, SysUtils, Forms, Controls, Graphics, ImgList,
@@ -825,7 +828,6 @@ type
     procedure Resize; override;
     function UsingBackground: Boolean; override;
     function UsingBitmap: Boolean;
-    procedure Paint; override;
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
@@ -833,6 +835,7 @@ type
     property PrevHeight: Integer read FPrevHeight;
   published
     property Color default clNone;
+    property DoubleBuffered;
     property OnCanResize;
     property OnDrawBackground: TSpTBXDrawEvent read FOnDrawBackground write FOnDrawBackground;
   end;
@@ -883,7 +886,7 @@ type
     procedure CMMouseleave(var Message: TMessage); message CM_MOUSELEAVE;
     procedure CMHintShow(var Message: TCMHintShow); message CM_HINTSHOW;
     procedure CMTextChanged(var Message: TMessage); message CM_TEXTCHANGED;
-    procedure WMEraseBkgnd(var Message: TWMEraseBkgnd); message WM_ERASEBKGND;
+    procedure WMEraseBkgnd(var Message: TMessage); message WM_ERASEBKGND;
     procedure WMSize(var Message: TWMSize); message WM_SIZE;
     procedure WMSpSkinChange(var Message: TMessage); message WM_SPSKINCHANGE;
     procedure SetCustomizable(const Value: Boolean);
@@ -898,7 +901,6 @@ type
     procedure RightAlignItems; virtual;
 
     // Painting
-    procedure Paint; override;
     procedure DrawNCArea(const DrawToDC: Boolean; const ADC: HDC; const Clip: HRGN); override;
     function GetItemsTextColor(State: TSpTBXSkinStatesType): TColor; virtual;
     procedure InternalDrawBackground(ACanvas: TCanvas; ARect: TRect; PaintOnNCArea: Boolean; PaintBorders: Boolean = True); virtual;
@@ -1027,7 +1029,7 @@ type
     function GetClientAreaHeight: Integer;
     procedure SetClientAreaHeight(Value: Integer);
     procedure CMTextChanged(var Message: TMessage); message CM_TEXTCHANGED;
-    procedure WMEraseBkgnd(var Message: TWMEraseBkgnd); message WM_ERASEBKGND;
+    procedure WMEraseBkgnd(var Message: TMessage); message WM_ERASEBKGND;
     procedure WMSpSkinChange(var Message: TMessage); message WM_SPSKINCHANGE;
     procedure WMWindowPosChanged(var Message: TWMWindowPosChanged); message WM_WINDOWPOSCHANGED;
   protected
@@ -1237,31 +1239,55 @@ type
     property OnClosePopup: TNotifyEvent read GetOnClosePopup write SetOnClosePopup;
   end;
 
+  { TSpTBXCustomContainer }
+
+  TSpTBXCustomContainer = class(TSpTBXCustomControl)
+  private
+    FOnDrawBackground: TSpTBXDrawEvent;
+    procedure CMColorChanged(var Message: TMessage); message CM_COLORCHANGED;
+    procedure CMFontChanged(var Message: TMessage); message CM_FONTCHANGED;
+    procedure CMTextChanged(var Message: TMessage); message CM_TEXTCHANGED;
+    procedure WMEraseBkgnd(var Message: TMessage); message WM_ERASEBKGND;
+    procedure WMSpSkinChange(var Message: TMessage); message WM_SPSKINCHANGE;
+    procedure WMWindowPosChanged(var Message: TWMWindowPosChanged); message WM_WINDOWPOSCHANGED;
+  protected
+    FIsResizing: Boolean;
+    procedure CreateParams(var Params: TCreateParams); override;
+    procedure DoDrawBackground(ACanvas: TCanvas; ARect: TRect; const PaintStage: TSpTBXPaintStage; var PaintDefault: Boolean); virtual;
+    procedure DrawBackground(ACanvas: TCanvas; ARect: TRect); virtual;
+    property ParentColor default False;
+    property OnDrawBackground: TSpTBXDrawEvent read FOnDrawBackground write FOnDrawBackground;
+  public
+    constructor Create(AOwner: TComponent); override;
+    destructor Destroy; override;
+    procedure InvalidateBackground(InvalidateChildren: Boolean = True); virtual;
+    property Color default clNone;
+  end;
+
   { TSpTBXCompoundItemsControl }
 
-  TSpTBXCompoundItemsControl = class(TSpTBXCustomControl, ITBItems)
+  TSpTBXCompoundItemsControl = class(TSpTBXCustomContainer, ITBItems)
   private
     procedure DockRequestDock(Sender: TObject; Bar: TTBCustomDockableWindow; var Accept: Boolean);
     function GetRootItems: TTBRootItem;
     function GetView: TSpTBXToolbarView;
     function GetImages: TCustomImageList;
     procedure SetImages(const Value: TCustomImageList);
-    procedure WMSpSkinChange(var Message: TMessage); message WM_SPSKINCHANGE;
   protected
     FDock: TSpTBXDock;
     FToolbar: TSpTBXToolbar;
-    procedure CreateParams(var Params: TCreateParams); override;
     function GetDockClass: TSpTBXDockClass; virtual;
     function GetToolbarClass: TSpTBXToolbarClass; virtual;
     function GetItems: TTBCustomItem; virtual;  // For ITBItems interface
     procedure Loaded; override;
+    property Color default clNone;
+    property ParentColor default False;
     procedure SetName(const Value: TComponentName); override;
     property Images: TCustomImageList read GetImages write SetImages;
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
     procedure GetChildren(Proc: TGetChildProc; Root: TComponent); override;  // For ITBItems interface
-    procedure InvalidateBackground(InvalidateChildren: Boolean = True); virtual;
     property View: TSpTBXToolbarView read GetView;
   published
     property Items: TTBRootItem read GetRootItems;
@@ -1481,7 +1507,6 @@ type
     FNewAppWndProc: Pointer;
     FRegion: HRGN;
     FUpdateRegionCalled: Boolean;
-    FOnDrawBackground: TSpTBXDrawEvent;
     FOldParentFormWndProc: TWndMethod;
     procedure AppWndProc(var Msg: TMessage);
     procedure NewParentFormWndProc(var Message: TMessage);
@@ -1497,7 +1522,6 @@ type
     procedure CMStyleChanged(var Message: TMessage); message CM_STYLECHANGED;
     {$IFEND}
     procedure CMTextChanged(var Message: TMessage); message CM_TEXTCHANGED;
-    procedure WMEraseBkgnd(var Message: TMessage); message WM_ERASEBKGND;
     procedure WMSetCursor(var Message: TWMSetCursor); message WM_SETCURSOR;
     procedure WMSpSkinChange(var Message: TMessage); message WM_SPSKINCHANGE;
     procedure WMWindowPosChanged(var Message: TWMWindowPosChanged); message WM_WINDOWPOSCHANGED;
@@ -1514,8 +1538,7 @@ type
     // Painting
     procedure DoDrawDockBackground(ACanvas: TCanvas; ARect: TRect;
       const PaintStage: TSpTBXPaintStage; var PaintDefault: Boolean); override;
-    procedure DoDrawBackground(ACanvas: TCanvas; ARect: TRect;
-      const PaintStage: TSpTBXPaintStage; var PaintDefault: Boolean); virtual;
+    procedure DrawBackground(ACanvas: TCanvas; ARect: TRect); override;
 
     // Sizing
     procedure AdjustClientRect(var Rect: TRect); override;
@@ -1528,7 +1551,6 @@ type
     property FullScreenMaximize: Boolean read FFullScreenMaximize write SetFullScreenMaximize default False;
     property Options: TSpTBXTitleBarButtonOptions read FOptions write FOptions;
     property WindowState: TWindowState read GetWindowState write SetWindowState;
-    property OnDrawBackground: TSpTBXDrawEvent read FOnDrawBackground write FOnDrawBackground;
     property OnSystemMenuPopup: TSpTBXPopupEvent read GetSystemMenuPopup write SetSystemMenuPopup;
   public
     constructor Create(AOwner: TComponent); override;
@@ -1641,6 +1663,7 @@ procedure SpDrawXPToolbar(ACanvas: TCanvas; ARect: TRect; Docked, Floating, Vert
 procedure SpDrawXPToolbar(W: TTBCustomDockableWindow; ACanvas: TCanvas; ARect: TRect; PaintOnNCArea: Boolean; PaintBorders: Boolean = True; SkinComponent: TSpTBXSkinComponentsType = skncToolbar); overload;
 procedure SpDrawXPToolbarGrip(W: TTBCustomDockableWindow; ACanvas: TCanvas; ARect: TRect);
 procedure SpDrawXPTooltipBackground(ACanvas: TCanvas; ARect: TRect);
+procedure SpInvalidateSpTBXControl(AControl: TWinControl; InvalidateChildren: Boolean);
 
 { Menu helpers }
 function SpCalcPopupPosition(const X, Y, Width, Height: Integer; PopupControl: TControl = nil; IsVertical: Boolean = False): TPoint;
@@ -3107,39 +3130,39 @@ begin
       sknWindows, sknDelphiStyle:
         begin
           if SkinManager.GetSkinType = sknDelphiStyle then begin
-          if Vertical then begin
-            Details := SpTBXThemeServices.GetElementDetails(trGripperVert);
+            if Vertical then begin
+              Details := SpTBXThemeServices.GetElementDetails(trGripperVert);
               Inc(GripR.Left, SpDpiScale(2));
               OffsetRect(GripR, 0, SpDPIScale(2));
-          end
-          else begin
-            Details := SpTBXThemeServices.GetElementDetails(trGripper);
+            end
+            else begin
+              Details := SpTBXThemeServices.GetElementDetails(trGripper);
               Inc(GripR.Top, SpDpiScale(2));
               OffsetRect(GripR, SpDPIScale(2), 0);
-          end;
-        end
-        else begin
-          // Since GetThemePartSize does not seem to work properly, assume we use default
-          // WindowsXP themes where the gripper pattern repeats itself every 4 pixels
-          if Vertical then begin
-            Details := SpTBXThemeServices.GetElementDetails(trGripperVert);
+            end;
+          end
+          else begin
+            // Since GetThemePartSize does not seem to work properly, assume we use default
+            // WindowsXP themes where the gripper pattern repeats itself every 4 pixels
+            if Vertical then begin
+              Details := SpTBXThemeServices.GetElementDetails(trGripperVert);
               GripR := SpCenterRectVert(GripR, 6);  // Do not use SpDPIScale, Windows paints the grip with 4 pixels
               GripR.Right := GripR.Left + ((GripR.Right - GripR.Left) div 4) * 4;
               OffsetRect(GripR, 0, SpDPIScale(1));
-          end
-          else begin
-            Details := SpTBXThemeServices.GetElementDetails(trGripper);
+            end
+            else begin
+              Details := SpTBXThemeServices.GetElementDetails(trGripper);
               GripR := SpCenterRectHoriz(GripR, 6);  // Do not use SpDPIScale, Windows paints the grip with 4 pixels
               GripR.Bottom := GripR.Top + ((GripR.Bottom - GripR.Top) div 4) * 4;
               OffsetRect(GripR, SpDPIScale(1), 0);
-          end;
+            end;
           end;
 
           // Weird Delphi styles painting bug, we need to clip the bottom
           SaveIndex := SaveDC(ACanvas.Handle);
           try
             ExcludeClipRect(ACanvas.Handle, ARect.Left, ARect.Bottom - SpDPIScale(3), ARect.Right, ARect.Bottom);
-          SpTBXThemeServices.DrawElement(ACanvas.Handle, Details, GripR);
+            SpTBXThemeServices.DrawElement(ACanvas.Handle, Details, GripR);
           finally
             RestoreDC(ACanvas.Handle, SaveIndex);
           end;
@@ -3212,6 +3235,41 @@ begin
     end
     else
       ACanvas.FillRect(ARect);
+end;
+
+procedure SpInvalidateSpTBXControl(AControl: TWinControl; InvalidateChildren: Boolean);
+var
+  I: Integer;
+  ChildW: TWinControl;
+begin
+  // Invalidate will not fire WM_ERASEBKGND, because csOpaque is setted
+  if Assigned(AControl) and not (csDestroying in AControl.ComponentState) and AControl.HandleAllocated then
+  begin
+    if InvalidateChildren then begin
+      RedrawWindow(AControl.Handle, nil, 0, RDW_ERASE or RDW_INVALIDATE);
+      // Only invalidate SpTBXControls
+      for I := 0 to AControl.ControlCount - 1 do
+        if AControl.Controls[I] is TWinControl then begin
+          ChildW := TWinControl(AControl.Controls[I]);
+          if not (csDestroying in ChildW.ComponentState) and
+            {not (csFreeNotification in ChildW.ComponentState) and} ChildW.HandleAllocated then
+          begin
+            if (ChildW.Anchors = [akLeft, akTop, akRight, akBottom]) or
+               (ChildW.Anchors = [akLeft, akTop, akRight]) or (ChildW.Anchors = [akLeft, akTop, akBottom]) or
+               (ChildW.Anchors = [akLeft, akRight, akBottom]) or (ChildW.Anchors = [akTop, akRight, akBottom]) then
+              Continue;
+
+            if (ChildW is TSpTBXCustomContainer) and (csParentBackground in ChildW.ControlStyle) then
+              RedrawWindow(ChildW.Handle, nil, 0, RDW_ERASE or RDW_INVALIDATE or RDW_ALLCHILDREN)
+            else
+              if not (ChildW is TSpTBXDock) and not (ChildW is TSpTBXToolbar) then
+                RedrawWindow(ChildW.Handle, nil, 0, RDW_ERASE or RDW_INVALIDATE);
+          end;
+        end;
+    end
+    else
+      RedrawWindow(AControl.Handle, nil, 0, RDW_ERASE or RDW_INVALIDATE);
+  end;
 end;
 
 //WMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWM
@@ -4419,7 +4477,7 @@ begin
           // the background is the popup, get the text color of the menu items
           Result := CurrentSkin.GetTextColor(skncMenuItem, State)
         else
-        Result := CurrentSkin.GetTextColor(skncToolbarItem, State);
+          Result := CurrentSkin.GetTextColor(skncToolbarItem, State);
       end;
     end
     else
@@ -5213,7 +5271,7 @@ begin
   if TStyleManager.IsCustomStyleActive then
     I := FStrings.IndexOf(TStyleManager.ActiveStyle.Name)
   else
-  I := FStrings.IndexOf(SkinManager.CurrentSkinName);
+    I := FStrings.IndexOf(SkinManager.CurrentSkinName);
   {$ELSE}
   I := FStrings.IndexOf(SkinManager.CurrentSkinName);
   {$IFEND}
@@ -5917,11 +5975,8 @@ end;
 constructor TSpTBXDock.Create(AOwner: TComponent);
 begin
   inherited;
-  // csParentBackground will be removed in first invocation of WMEraseBkgnd
-  ControlStyle := ControlStyle + [csParentBackground, csOpaque];
   Color := clNone;
   SkinManager.AddSkinNotification(Self);
-  DoubleBuffered := True;
 end;
 
 destructor TSpTBXDock.Destroy;
@@ -5981,12 +6036,6 @@ begin
     ACanvas.Handle := 0;
     ACanvas.Free;
   end;
-end;
-
-procedure TSpTBXDock.Paint;
-begin
-  DrawBackground(Canvas.Handle, ClientRect);
-  inherited;
 end;
 
 procedure TSpTBXDock.Resize;
@@ -6056,11 +6105,7 @@ end;
 
 procedure TSpTBXDock.WMEraseBkgnd(var Message: TWMEraseBkgnd);
 begin
-  if ParentBackground then begin
-    inherited;
-    ParentBackground := False;
-  end;
-
+  DrawBackground(Message.DC, ClientRect);
   Message.Result := 1;
 end;
 
@@ -6168,7 +6213,6 @@ end;
 constructor TSpTBXToolbar.Create(AOwner: TComponent);
 begin
   inherited;
-  ControlStyle := ControlStyle + [csOpaque, csParentBackground];
   Color := clNone;
 
   Items.RegisterNotification(DoItemNotification);
@@ -6177,7 +6221,6 @@ begin
   FCustomizable := True;
   FDisplayMode := tbdmSelectiveCaption;
   SkinManager.AddSkinNotification(Self);
-  DoubleBuffered := True;
 end;
 
 destructor TSpTBXToolbar.Destroy;
@@ -6620,37 +6663,54 @@ begin
     RedrawWindow(Handle, nil, 0, RDW_ERASE or RDW_INVALIDATE or RDW_ALLCHILDREN or RDW_FRAME);
 end;
 
-procedure TSpTBXToolbar.WMEraseBkgnd(var Message: TWMEraseBkgnd);
-// Same as TSpTBXToolWindow.WMEraseBkgnd
-//var
-//  ACanvas: TCanvas;
-//  R: TRect;
+procedure TSpTBXToolbar.WMEraseBkgnd(var Message: TMessage);
+// Same as TSpTBXCustomToolWindow.WMEraseBkgnd
+var
+  ACanvas: TCanvas;
+  R: TRect;
+  WindowOrg: TPoint;
 begin
+  Message.Result := 1;
   if (csDestroying in ComponentState) then Exit;
 
-  if ParentBackground then begin
-    inherited;
-    //ParentBackground := False;
+  // Only erase background if we're not double buffering or painting to memory
+  // TTBCustomDockableWindow doesn't support DoubleBuffered property, we need to
+  // change this line in TTBView.DrawItem:
+  //   FWindow.Perform(WM_ERASEBKGND, WPARAM(BmpDC), 0);
+  // To:
+  //   FWindow.Perform(WM_ERASEBKGND, WPARAM(BmpDC), LPARAM(BmpDC)); // Pass BmpDC on LParam to support DoubleBuffered property
+//  if not DoubleBuffered or (Message.wParam = WPARAM(Message.lParam)) then
+  if DoubleBuffered and (TMessage(Message).wParam <> WPARAM(TMessage(Message).lParam)) then
+  begin
+    // When using VCL Styles and a VCL control is inside a Toolbar, DrawControlBackground in StyleAPI.inc calls:
+    // Control.Parent.Perform(WM_ERASEBKGND, WPARAM(DC), 1);
+    // We need to check if the WindowOrg is 0 to discard
+    if Message.LParam <> 1 then begin
+      GetWindowOrgEx(TWMEraseBkgnd(Message).DC, WindowOrg);
+      if WindowOrg.x = 0 then
+        Exit;
+    end;
   end;
 
-  Message.Result := 1;
-//  ACanvas := TCanvas.Create;
-//  ACanvas.Handle := Message.DC;
-//  try
-//    R := ClientRect;
-//    if Docked then begin
-//      InflateRect(R, DefaultToolbarBorderSize, DefaultToolbarBorderSize);
-//      if IsVertical then
-//        Dec(R.Top, SpGetDragHandleSize(Self))
-//      else
-//        Dec(R.Left, SpGetDragHandleSize(Self));
-//    end;
-//
-//    InternalDrawBackground(ACanvas, R, False);
-//  finally
-//    ACanvas.Handle := 0;
-//    ACanvas.Free;
-//  end;
+  ACanvas := TCanvas.Create;
+  ACanvas.Handle := TWMEraseBkgnd(Message).DC;
+  try
+    ACanvas.Lock;
+    R := ClientRect;
+    if Docked then begin
+      InflateRect(R, CDefaultToolbarBorderSize, CDefaultToolbarBorderSize);
+      if IsVertical then
+        Dec(R.Top, SpGetDragHandleSize(Self))
+      else
+        Dec(R.Left, SpGetDragHandleSize(Self));
+    end;
+
+    InternalDrawBackground(ACanvas, R, False);
+  finally
+    ACanvas.Unlock;
+    ACanvas.Handle := 0;
+    ACanvas.Free;
+  end;
 end;
 
 procedure TSpTBXToolbar.WMSize(var Message: TWMSize);
@@ -6819,29 +6879,6 @@ begin
         TSpTBXItemViewer(View.Selected).InternalMouseMove(Shift, X, Y);
     end;
   end;
-end;
-
-procedure TSpTBXToolbar.Paint;
-var
-  R: TRect;
-  I : Integer;
-begin
-  R := ClientRect;
-  if Docked then begin
-    InflateRect(R, CDefaultToolbarBorderSize, CDefaultToolbarBorderSize);
-    if IsVertical then
-      Dec(R.Top, SpGetDragHandleSize(Self))
-    else
-      Dec(R.Left, SpGetDragHandleSize(Self));
-  end;
-  InternalDrawBackground(Canvas, R, False);
-
-  // the following is to avoid painting OffScreen in TTBView.DrawItem
-  // this is not necessary since SpTBXToolbar is DoubleBuffered
-  for I := 0 to View.ViewerCount - 1 do
-    Exclude(View.Viewers[i].State, tbisInvalidated);
-  inherited;
-  ParentBackground := False;
 end;
 
 procedure TSpTBXToolbar.MouseDown(Button: TMouseButton; Shift: TShiftState;
@@ -7216,17 +7253,37 @@ begin
     TSpTBXFloatingWindowParent(Parent).RedrawCloseButton;
 end;
 
-procedure TSpTBXCustomToolWindow.WMEraseBkgnd(var Message: TWMEraseBkgnd);
+procedure TSpTBXCustomToolWindow.WMEraseBkgnd(var Message: TMessage);
 // Same as TSpTBXToolbar.WMEraseBkgnd
 var
   ACanvas: TCanvas;
   R: TRect;
+  WindowOrg: TPoint;
 begin
+  Message.Result := 1;
   if (csDestroying in ComponentState) then Exit;
 
-  Message.Result := 1;
+  // Only erase background if we're not double buffering or painting to memory
+  // TTBCustomDockableWindow doesn't support DoubleBuffered property, we need to
+  // change this line in TTBView.DrawItem:
+  //   FWindow.Perform(WM_ERASEBKGND, WPARAM(BmpDC), 0);
+  // To:
+  //   FWindow.Perform(WM_ERASEBKGND, WPARAM(BmpDC), LPARAM(BmpDC)); // Pass BmpDC on LParam to support DoubleBuffered property
+//  if not DoubleBuffered or (Message.wParam = WPARAM(Message.lParam)) then
+  if DoubleBuffered and (TMessage(Message).wParam <> WPARAM(TMessage(Message).lParam)) then
+  begin
+    // When using VCL Styles and a VCL control is inside a Toolbar, DrawControlBackground in StyleAPI.inc calls:
+    // Control.Parent.Perform(WM_ERASEBKGND, WPARAM(DC), 1);
+    // We need to check if the WindowOrg is 0 to discard
+    if Message.LParam <> 1 then begin
+      GetWindowOrgEx(TWMEraseBkgnd(Message).DC, WindowOrg);
+      if WindowOrg.x = 0 then
+        Exit;
+    end;
+  end;
+
   ACanvas := TCanvas.Create;
-  ACanvas.Handle := Message.DC;
+  ACanvas.Handle := TWMEraseBkgnd(Message).DC;
   try
     R := ClientRect;
     if Docked then begin
@@ -7349,7 +7406,6 @@ begin
               ACanvas.Font.Color := CurrentSkin.GetTextColor(skncWindowTitleBar, sknsNormal)
             else
               ACanvas.Font.Color := CurrentSkin.GetTextColor(skncWindowTitleBar, sknsDisabled);
-
             if DockableWindow is TSpTBXToolbar then
               S := TSpTBXToolbar(DockWindow).Caption
             else
@@ -7804,10 +7860,10 @@ begin
   if ItemInfo.Pushed then OffsetRect(R2, SpDPIScale(1), SpDPIScale(1));
 
   if ItemInfo.Enabled then begin
-  if SkinManager.GetSkinType = sknSkin then
-    PatternColor := GetTextColor(ItemInfo.State)
-  else
-    PatternColor := CurrentSkin.GetThemedSystemColor(clBtnText);
+    if SkinManager.GetSkinType = sknSkin then
+      PatternColor := GetTextColor(ItemInfo.State)
+    else
+      PatternColor := CurrentSkin.GetThemedSystemColor(clBtnText);
     if not ItemInfo.IsVertical then
       SpDrawGlyphPattern(Canvas, R2, gptChevron, PatternColor)
     else
@@ -7953,11 +8009,301 @@ begin
 end;
 
 //WMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWM
+{ TSpTBXCustomContainer }
+
+constructor TSpTBXCustomContainer.Create(AOwner: TComponent);
+begin
+  inherited;
+  ControlStyle := ControlStyle + [csAcceptsControls, csOpaque] - [csParentBackground];
+  Color := clNone;
+  ParentColor := False;
+  SkinManager.AddSkinNotification(Self);
+
+  //DoubleBuffered := True;
+end;
+
+procedure TSpTBXCustomContainer.CreateParams(var Params: TCreateParams);
+begin
+  inherited CreateParams(Params);
+  if not (csDesigning in ComponentState) then begin
+    // Disable complete redraws when size changes. CS_HREDRAW and CS_VREDRAW
+    // cause flicker and are not necessary for this control at run time
+    // Invalidate in WMWindowPosChanged message instead.
+    with Params do
+      Style := Style or WS_CLIPCHILDREN;
+    with Params.WindowClass do
+      Style := Style and not (CS_HREDRAW or CS_VREDRAW);
+
+    {
+    Do not set WS_EX_COMPOSITED, using it causes incorrect painting when
+    child controls use TScrollingStyleHook.
+    To reproduce:
+    - Drop a TMemo inside a TSpTBXPanel
+    - Change Memo.ScrollBars to ssVertical
+    - Run and try to resize using a VCL Style.
+    The problem seems to be that TScrollingStyleHook.WndProc gets called    non stop, even when the window is not visible.    TScrollingStyleHook.WndProc calls TScrollingStyleHook.PaintNC which
+    constantly shows and repaints the scrollbars.
+    Seems to be a VCL bug.
+
+    // WS_EX_COMPOSITED flag to enable double buffering.
+    // Possible issues with GDI+
+    // https://docs.microsoft.com/en-us/windows/desktop/winmsg/extended-window-styles
+    // This only works on Windows XP and above
+    if CheckWin32Version(5, 1) then
+      Params.ExStyle := Params.ExStyle or WS_EX_COMPOSITED;
+      }
+  end;
+end;
+
+destructor TSpTBXCustomContainer.Destroy;
+begin
+  SkinManager.RemoveSkinNotification(Self);
+  inherited;
+end;
+
+procedure TSpTBXCustomContainer.CMColorChanged(var Message: TMessage);
+begin
+  inherited;
+  InvalidateBackground(False);
+end;
+
+procedure TSpTBXCustomContainer.CMFontChanged(var Message: TMessage);
+begin
+  inherited;
+  InvalidateBackground(False);
+end;
+
+procedure TSpTBXCustomContainer.CMTextChanged(var Message: TMessage);
+begin
+  inherited;
+  InvalidateBackground(False);
+  Realign;
+end;
+
+procedure TSpTBXCustomContainer.DoDrawBackground(ACanvas: TCanvas; ARect: TRect;
+  const PaintStage: TSpTBXPaintStage; var PaintDefault: Boolean);
+begin
+  if Assigned(FOnDrawBackground) then FOnDrawBackground(Self, ACanvas, ARect,
+    PaintStage, PaintDefault);
+end;
+
+procedure TSpTBXCustomContainer.DrawBackground(ACanvas: TCanvas; ARect: TRect);
+begin
+  //
+end;
+
+procedure TSpTBXCustomContainer.InvalidateBackground(InvalidateChildren: Boolean);
+begin
+  // Force background repaint, calling invalidate doesn't repaint children controls
+  // Invalidate will not fire WM_ERASEBKGND, because csOpaque is setted
+  if FIsResizing then
+    SpInvalidateSpTBXControl(Self, InvalidateChildren)
+  else
+    if not (csDestroying in ComponentState) and HandleAllocated then
+      if InvalidateChildren then
+        RedrawWindow(Handle, nil, 0, RDW_ERASE or RDW_INVALIDATE or RDW_ALLCHILDREN)
+      else
+        RedrawWindow(Handle, nil, 0, RDW_ERASE or RDW_INVALIDATE);
+end;
+
+procedure TSpTBXCustomContainer.WMEraseBkgnd(var Message: TMessage);
+var
+  R: TRect;
+
+  ACanvas: TCanvas;
+  PaintDefault: Boolean;
+  SaveIndex: Integer;
+
+  WindowOrg: TPoint;
+begin
+  Message.Result := 1;
+
+  // Only erase background if we're not double buffering or painting to memory
+  //  if not DoubleBuffered or (TMessage(Message).wParam = WPARAM(TMessage(Message).lParam)) then
+  if DoubleBuffered and (TMessage(Message).wParam <> WPARAM(TMessage(Message).lParam)) then
+  begin
+    // When using VCL Styles and a VCL control is inside a Panel, DrawControlBackground in StyleAPI.inc calls:
+    // Control.Parent.Perform(WM_ERASEBKGND, WPARAM(DC), 1);
+    // We need to check if the WindowOrg is 0 to discard
+    if Message.LParam <> 1 then begin
+      GetWindowOrgEx(TWMEraseBkgnd(Message).DC, WindowOrg);
+      if WindowOrg.x = 0 then
+        Exit;
+    end;
+  end;
+
+  R := ClientRect;
+  ACanvas := TCanvas.Create;
+  ACanvas.Handle := TWMEraseBkgnd(Message).DC;
+  SaveIndex := SaveDC(TWMEraseBkgnd(Message).DC);
+  try
+    ACanvas.Lock;
+
+    if (Color = clNone) and Assigned(Parent) and SkinManager.IsXPThemesEnabled and
+      ((csDesigning in ComponentState) or (csParentBackground in ControlStyle)) then
+    begin
+      if SpIsGlassPainting(Self) then
+        // When painting on Glass fill the bitmap with the transparent color
+        SpFillRect(ACanvas, R, clBlack) // Transparent color
+      else begin
+        // The Panel is a special component, it has the ability
+        // to paint the parent background on its children controls.
+        // For that it receives WM_ERASEBKGND messages from its children
+        // via SpDrawParentBackground.
+        SpDrawParentBackground(Self, ACanvas.Handle, R);
+      end;
+    end
+    else
+      if Color = clNone then
+        SpFillRect(ACanvas, R, CurrentSkin.GetThemedSystemColor(clBtnFace))
+      else
+        SpFillRect(ACanvas, R, Color);
+
+    // Set the Font after SpDrawParentBackground, DrawThemeParentBackground,
+    // or PerformEraseBackground.
+    // The API messes the font, it seems it destroys it.
+    // For more info see:
+    // - TCustomActionControl.DrawBackground for more info.
+    // - Theme Explorer Main.pas TMainForm.ControlMessage
+    //   (http://www.soft-gems.net:8080/browse/Demos)
+    ACanvas.Font.Handle := 0;  // Reset the font, it gets destroyed
+    ACanvas.Font.Color := $010101;  // Force a change
+    ACanvas.Font.Assign(Self.Font);
+
+    PaintDefault := True;
+    DoDrawBackground(ACanvas, R, pstPrePaint, PaintDefault);
+    if PaintDefault then
+      DrawBackground(ACanvas, R);
+    PaintDefault := True;
+    DoDrawBackground(ACanvas, R, pstPostPaint, PaintDefault);
+  finally
+    ACanvas.Unlock;
+    ACanvas.Handle := 0;
+    ACanvas.Free;
+    RestoreDC(TWMEraseBkgnd(Message).DC, SaveIndex);
+  end;
+end;
+
+{
+Can't use internal double buffering.
+Seems there's a bug in VCL Styles, to reproduce:
+- Drop a TCheckbox inside a SpTBXPanel
+- Run using a VCL Style
+The checkbox is painted with a white background.
+This doesn't happen when using the default Windows theme or when using Skins.
+
+procedure TSpTBXCustomContainer.WMEraseBkgnd(var Message: TMessage);
+var
+  R: TRect;
+  ACanvas: TCanvas;
+  PaintDefault: Boolean;
+
+  B: TBitmap;
+  SaveIndex: Integer;
+  DC2: HDC;
+begin
+  Message.Result := 1;
+  if (TWMEraseBkgnd(Message).DC = 0) then
+    Exit;
+
+  R := ClientRect;
+
+  DC2 := 0;
+  B := TBitmap.Create;
+  ACanvas := TCanvas.Create;
+  SaveIndex := SaveDC(TWMEraseBkgnd(Message).DC);
+  try
+    // Create ACanvas based on a mem DC
+    B.SetSize(R.Right - R.Left, R.Bottom - R.Top);
+    DC2 := CreateCompatibleDC(TWMEraseBkgnd(Message).DC);
+    SelectObject(DC2, B.Handle);
+    ACanvas.Handle := DC2;
+    ACanvas.Lock;
+
+    if (Color = clNone) and Assigned(Parent) and SkinManager.IsXPThemesEnabled and
+      ((csDesigning in ComponentState) or (csParentBackground in ControlStyle)) then
+    begin
+      if SpIsGlassPainting(Self) then
+        // When painting on Glass fill the bitmap with the transparent color
+        SpFillRect(ACanvas, R, clBlack) // Transparent color
+      else begin
+        // The Panel is a special component, it has the ability
+        // to paint the parent background on its children controls.
+        // For that it receives WM_ERASEBKGND messages from its children
+        // via SpDrawParentBackground.
+        SpDrawParentBackground(Self, ACanvas.Handle, R);
+      end;
+    end
+    else
+      // Only erase background if we're not double buffering or painting to memory
+      if not DoubleBuffered or (TMessage(Message).wParam = WPARAM(TMessage(Message).lParam)) then
+        if Color = clNone then
+          SpFillRect(ACanvas, R, CurrentSkin.GetThemedSystemColor(clBtnFace))
+        else
+          SpFillRect(ACanvas, R, Color);
+
+    // Set the Font after SpDrawParentBackground, DrawThemeParentBackground,
+    // or PerformEraseBackground.
+    // The API messes the font, it seems it destroys it.
+    // For more info see:
+    // - TCustomActionControl.DrawBackground for more info.
+    // - Theme Explorer Main.pas TMainForm.ControlMessage
+    //   (http://www.soft-gems.net:8080/browse/Demos)
+    ACanvas.Font.Handle := 0;  // Reset the font, it gets destroyed
+    ACanvas.Font.Color := $010101;  // Force a change
+    ACanvas.Font.Assign(Self.Font);
+
+    PaintDefault := True;
+    DoDrawBackground(ACanvas, R, pstPrePaint, PaintDefault);
+    if PaintDefault then
+      DrawBackground(ACanvas, R);
+    PaintDefault := True;
+    DoDrawBackground(ACanvas, R, pstPostPaint, PaintDefault);
+
+    BitBlt(TWMEraseBkgnd(Message).DC, R.Left, R.Top, B.Width, B.Height,
+      ACanvas.Handle, 0, 0, SRCCOPY);
+  finally
+    ACanvas.Unlock;
+    ACanvas.Handle := 0;
+    ACanvas.Free;
+    if DC2 <> 0 then
+      DeleteDC(DC2);
+    B.Free;
+    RestoreDC(TWMEraseBkgnd(Message).DC, SaveIndex);
+  end;
+end;
+}
+
+procedure TSpTBXCustomContainer.WMSpSkinChange(var Message: TMessage);
+begin
+  InvalidateBackground(True);
+end;
+
+procedure TSpTBXCustomContainer.WMWindowPosChanged(var Message: TWMWindowPosChanged);
+begin
+  inherited;
+  FIsResizing := True;
+  try
+    InvalidateBackground(True);
+  finally
+    FIsResizing := False;
+  end;
+
+  if (Message.WindowPos.flags and SWP_NOSIZE) = 0 then begin
+    Realign;
+    Update;
+  end;
+end;
+
+//WMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWM
 { TSpTBXCompoundItemsControl }
 
 constructor TSpTBXCompoundItemsControl.Create(AOwner: TComponent);
 begin
   inherited;
+  //Color := clBtnFace;
+  Color := clNone;
+  ParentColor := False;
 
   FDock := GetDockClass.Create(Self);
   FDock.Parent := Self;
@@ -7975,27 +8321,10 @@ begin
   FToolbar.Stretch := True;
   FToolbar.ShrinkMode := tbsmNone;
   FToolbar.ShowCaption := False;
-
-  SkinManager.AddSkinNotification(Self);
-end;
-
-procedure TSpTBXCompoundItemsControl.CreateParams(var Params: TCreateParams);
-begin
-  // Disable complete redraws when size changes. CS_HREDRAW and CS_VREDRAW
-  // cause flicker and are not necessary for this control at run time
-  // Invalidate in WMWindowPosChanged message instead.
-  inherited CreateParams(Params);
-  if not (csDesigning in ComponentState) then begin
-    with Params do
-      Style := Style or WS_CLIPCHILDREN;
-    with Params do
-      WindowClass.Style := WindowClass.Style and not (CS_HREDRAW or CS_VREDRAW);
-  end;
 end;
 
 destructor TSpTBXCompoundItemsControl.Destroy;
 begin
-  SkinManager.RemoveSkinNotification(Self);
   FToolbar.Free;
   FDock.Free;
   inherited;
@@ -8086,16 +8415,6 @@ begin
     Result := nil;
 end;
 
-procedure TSpTBXCompoundItemsControl.InvalidateBackground(InvalidateChildren: Boolean);
-begin
-  // Invalidate will not fire WM_ERASEBKGND, because csOpaque is setted
-  if not (csDestroying in ComponentState) and HandleAllocated then
-    if InvalidateChildren then
-      RedrawWindow(Handle, nil, 0, RDW_ERASE or RDW_INVALIDATE or RDW_ALLCHILDREN)
-    else
-      RedrawWindow(Handle, nil, 0, RDW_ERASE or RDW_INVALIDATE);
-end;
-
 procedure TSpTBXCompoundItemsControl.SetImages(const Value: TCustomImageList);
 begin
   if Assigned(FToolbar) then FToolbar.Images := Value;
@@ -8109,17 +8428,13 @@ begin
       FToolbar.Name := Name + 'Toolbar';
 end;
 
-procedure TSpTBXCompoundItemsControl.WMSpSkinChange(var Message: TMessage);
-begin
-  InvalidateBackground;
-end;
-
 //WMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWM
 { TSpTBXCompoundBar }
 
 constructor TSpTBXCompoundBar.Create(AOwner: TComponent);
 begin
   inherited;
+
   Height := FDock.Height;
   FDock.OnDrawBackground := DrawDockBackground;
   FDock.OnResize := DockResize;
@@ -8580,7 +8895,9 @@ end;
 constructor TSpTBXCustomStatusBar.Create(AOwner: TComponent);
 begin
   inherited;
+  ControlStyle := ControlStyle - [csAcceptsControls];
   Align := alBottom;
+  DoubleBuffered := False;
 end;
 
 function TSpTBXCustomStatusBar.CanResize(var NewWidth, NewHeight: Integer): Boolean;
@@ -8687,6 +9004,9 @@ end;
 
 procedure TSpTBXCustomStatusBar.WMEraseBkgnd(var Message: TWMEraseBkgnd);
 begin
+  // Prevent background painting, not needed, it is painted by the Dock/Toolbar
+  // Since csAcceptsControls is not setted the control is clipped on resize causing
+  // incorrect background painting
   Message.Result := 1;
 end;
 
@@ -8863,7 +9183,6 @@ begin
 
   FActive := True;
   FMouseActive := True;
-  ControlStyle := ControlStyle + [csAcceptsControls];
 
   Align := alClient;
   FDock.OnResize := nil;
@@ -9218,10 +9537,31 @@ begin
   end;
 end;
 
-procedure TSpTBXCustomTitleBar.DoDrawBackground(ACanvas: TCanvas; ARect: TRect;
-  const PaintStage: TSpTBXPaintStage; var PaintDefault: Boolean);
+procedure TSpTBXCustomTitleBar.DrawBackground(ACanvas: TCanvas; ARect: TRect);
+var
+  DockAreaR: TRect;
+  FloatingBorderSize: TPoint;
+  Maximized: Boolean;
 begin
-  if Assigned(FOnDrawBackground) then FOnDrawBackground(Self, ACanvas, ARect, PaintStage, PaintDefault);
+  ACanvas.Brush.Color := Color; // SpDrawXPTitleBarBody needs it to paint the background
+  ACanvas.FillRect(ARect);
+
+  Maximized := (WindowState = wsMaximized) and FMouseActive;
+  if Maximized then
+    InflateRect(ARect, SpDpiScale(4), SpDpiScale(4));
+  if Active then begin
+    FloatingBorderSize := GetFloatingBorderSize;
+    SpDrawXPTitleBarBody(ACanvas, ARect, True, FloatingBorderSize);
+
+    // [Theme-Change]
+    // On WindowsXP make sure we paint the titlebar on the NC area
+    // TSpTBXCustomTitleBar.WMEraseBkgnd and TSpTBXCustomTitleBar.DoDrawDockBackground handles this issue
+    if Assigned(FDock) and not Maximized and (SkinManager.GetSkinType in [sknWindows, sknDelphiStyle]) then begin
+      DockAreaR := ARect;
+      DockAreaR.Bottom := FDock.Height + FloatingBorderSize.Y; // don't multiply by 2
+      SpDrawXPTitleBar(ACanvas, DockAreaR, True);
+    end;
+  end;
 end;
 
 function TSpTBXCustomTitleBar.GetClientAreaRect: TRect;
@@ -9426,56 +9766,6 @@ begin
     FOptions.CaptionLabel := Caption;
 end;
 
-procedure TSpTBXCustomTitleBar.WMEraseBkgnd(var Message: TMessage);
-var
-  ARect, DockAreaR: TRect;
-  FloatingBorderSize: TPoint;
-  Maximized, PaintDefault: Boolean;
-  B: TBitmap;
-begin
-  Message.Result := 1;
-  // Only erase background if we are not Doublebuffering or painting to memory
-  // On Delphi XE2 WParam and LParam are different in size, WParam is
-  // UINT_PTR (64 bit) and LParam is INT_PTR (32 bit)
-  if not DoubleBuffered or (Message.wParam = WPARAM(Message.lParam)) then begin
-    B := TBitmap.Create;
-    try
-      ARect := GetClientRect;
-      B.SetSize(ARect.Right, ARect.Bottom);
-      B.Canvas.Brush.Color := Color; // SpDrawXPTitleBarBody needs it to paint the background
-      B.Canvas.FillRect(ARect);
-
-      PaintDefault := True;
-      DoDrawBackground(B.Canvas, ARect, pstPrePaint, PaintDefault);
-      if PaintDefault then begin
-        Maximized := (WindowState = wsMaximized) and FMouseActive;
-        if Maximized then
-          InflateRect(ARect, SpDpiScale(4), SpDpiScale(4));
-        if Active then begin
-          FloatingBorderSize := GetFloatingBorderSize;
-          SpDrawXPTitleBarBody(B.Canvas, ARect, True, FloatingBorderSize);
-
-          // [Theme-Change]
-          // On WindowsXP make sure we paint the titlebar on the NC area
-          // TSpTBXCustomTitleBar.WMEraseBkgnd and TSpTBXCustomTitleBar.DoDrawDockBackground handles this issue
-          if Assigned(FDock) and not Maximized and (SkinManager.GetSkinType in [sknWindows, sknDelphiStyle]) then begin
-            DockAreaR := ARect;
-            DockAreaR.Bottom := FDock.Height + FloatingBorderSize.Y; // don't multiply by 2
-            SpDrawXPTitleBar(B.Canvas, DockAreaR, True);
-          end;
-        end;
-      end;
-
-      PaintDefault := True;
-      DoDrawBackground(B.Canvas, ARect, pstPostPaint, PaintDefault);
-
-      BitBlt(TWMEraseBkgnd(Message).DC, 0, 0, B.Width, B.Height, B.Canvas.Handle, 0, 0, SRCCOPY);
-    finally
-      B.Free;
-    end;
-  end;
-end;
-
 procedure TSpTBXCustomTitleBar.WMSetCursor(var Message: TWMSetCursor);
 var
   P: TPoint;
@@ -9505,7 +9795,6 @@ begin
   if not FUpdateRegionCalled then
     UpdateRegion;
 
-  InvalidateBackground(False);
   if [csDesigning, csDestroying] * ComponentState = [] then begin
     if FOptions.Maximize then
       FOptions.SetupButtonIcon(FOptions.MaximizeButton);

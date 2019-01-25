@@ -29,7 +29,6 @@ the specific language governing rights and limitations under the License.
 The initial developer of this code is Robert Lee.
 
 Requirements:
-For Delphi/C++Builder 2009 or newer:
   - Jordan Russell's Toolbar 2000
     http://www.jrsoftware.org
 
@@ -37,7 +36,10 @@ For Delphi/C++Builder 2009 or newer:
 
 interface
 
-{$BOOLEVAL OFF} // Unit depends on short-circuit boolean evaluation
+{$BOOLEVAL OFF}   // Unit depends on short-circuit boolean evaluation
+{$IF CompilerVersion >= 25} // for Delphi XE4 and up
+  {$LEGACYIFEND ON} // XE4 and up requires $IF to be terminated with $ENDIF instead of $IFEND
+{$IFEND}
 
 uses
   Windows, Messages, Classes, SysUtils, Controls, Graphics, ImgList, Forms,
@@ -529,33 +531,33 @@ begin
   // is visible.
   UninstallHooks;
   if Assigned(FFormPopupMenu.PopupForm) then
-  if FFormPopupMenu.PopupForm.Visible then begin
-    if Assigned(FPopupControl) and (FPopupControl is TWinControl) then begin
-      W := FPopupControl as TWinControl;
-      if FocusParentControl and W.CanFocus then
-        W.SetFocus;
-      // Send a message to the PopupControl and it's children controls
-      // to inform that the Popup was closed.
-      Msg.Msg := CM_SPPOPUPCLOSE;
-      Msg.WParam := WPARAM(Self);
-      if Selected then
-        Msg.LParam := 1
-      else
-        Msg.LParam := 0;
-      Msg.Result := 0;
-      PostMessage(W.Handle, Msg.Msg, Msg.WParam, Msg.LParam);
-      W.Broadcast(Msg);
+    if FFormPopupMenu.PopupForm.Visible then begin
+      if Assigned(FPopupControl) and (FPopupControl is TWinControl) then begin
+        W := FPopupControl as TWinControl;
+        if FocusParentControl and W.CanFocus then
+          W.SetFocus;
+        // Send a message to the PopupControl and it's children controls
+        // to inform that the Popup was closed.
+        Msg.Msg := CM_SPPOPUPCLOSE;
+        Msg.WParam := WPARAM(Self);
+        if Selected then
+          Msg.LParam := 1
+        else
+          Msg.LParam := 0;
+        Msg.Result := 0;
+        PostMessage(W.Handle, Msg.Msg, Msg.WParam, Msg.LParam);
+        W.Broadcast(Msg);
+      end;
+
+      Visible := False;
+
+      // Broadcast the close message to all the notifies
+      if Assigned(ActiveFormPopupMenu) then
+        ActiveFormPopupMenu.BroadcastCloseMessage(Selected);
+      ActiveFormPopupMenu := nil; // Reset global variable
+      FPopupControl := nil;
+      DoRollUp(Selected);
     end;
-
-    Visible := False;
-
-    // Broadcast the close message to all the notifies
-    if Assigned(ActiveFormPopupMenu) then
-      ActiveFormPopupMenu.BroadcastCloseMessage(Selected);
-    ActiveFormPopupMenu := nil; // Reset global variable
-    FPopupControl := nil;
-    DoRollUp(Selected);
-  end;
 end;
 
 procedure TSpTBXCustomWrapperPopupForm.SetBorderStyle(const Value: TSpTBXPopupBorderStyleType);
@@ -1089,10 +1091,12 @@ begin
   // When Styles are used WM_NCHITTEST and WM_NCCALCSIZE are handled by
   // TFormStyleHook. We need to override the handling by re-registering
   // the hook by using an empty style hook (TStyleHook)
+  TCustomStyleEngine.UnRegisterStyleHook(TSpTBXWrapperPopupForm, TStyleHook); // Re-register
   TCustomStyleEngine.RegisterStyleHook(TSpTBXWrapperPopupForm, TStyleHook);
   {$IFEND}
 end;
 
 initialization
   InitializeStock;
+
 end.

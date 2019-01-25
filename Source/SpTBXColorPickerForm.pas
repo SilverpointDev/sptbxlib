@@ -38,14 +38,19 @@ Development notes:
 
 interface
 
-{$BOOLEVAL OFF} // Unit depends on short-circuit boolean evaluation
+{$BOOLEVAL OFF}   // Unit depends on short-circuit boolean evaluation
+{$IF CompilerVersion >= 25} // for Delphi XE4 and up
+  {$LEGACYIFEND ON} // XE4 and up requires $IF to be terminated with $ENDIF instead of $IFEND
+{$IFEND}
 
 uses
-  Windows, Messages, Classes, SysUtils, Controls, Graphics, ImgList, Forms,
-  Menus, StdCtrls, ExtCtrls, ActnList, Dialogs,
+  Windows, Messages, Classes, SysUtils, Controls, Graphics, Forms,
+  Menus, StdCtrls, ExtCtrls, ActnList, Dialogs, ImgList,
   TB2Dock, TB2Toolbar, TB2Item, TB2ExtItems,
   SpTBXSkins, SpTBXItem, SpTBXControls, SpTBXEditors, SpTBXFormPopupMenu,
   SpTBXExtEditors, SpTBXTabs;
+  // Delphi XE8 and up will automatically add System.ImageList, make sure to delete it
+  // Adding a compiler conditional doesn't work
 
 type
   { TSpTBXColorPickerDragObject }

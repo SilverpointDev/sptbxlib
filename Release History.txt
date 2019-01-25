@@ -1,3 +1,10 @@
+26 November 2018 - version 2.5.5
+  - Added RAD Studio 10.3 Rio support.
+  - Added TB2K patch files
+  - Fixed compile errors on XE1
+  - Fixed DPI scaling issues
+  - Fixed toolbar resize flicker
+
 21 September 2018 - version 2.5.4
   - Added RAD Studio 10.2 Tokyo support.
   - Added high DPI support, thanks to PyScripter.

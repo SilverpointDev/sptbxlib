@@ -254,6 +254,8 @@ object SpTBXCustomizeForm: TSpTBXCustomizeForm
     TabOrder = 1
     Borders = False
     TBXStyleBackground = True
+    ExplicitTop = 288
+    ExplicitWidth = 225
     DesignSize = (
       347
       35)

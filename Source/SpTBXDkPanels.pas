@@ -48,7 +48,10 @@ Limitations:
 
 interface
 
-{$BOOLEVAL OFF} // Unit depends on short-circuit boolean evaluation
+{$BOOLEVAL OFF}   // Unit depends on short-circuit boolean evaluation
+{$IF CompilerVersion >= 25} // for Delphi XE4 and up
+  {$LEGACYIFEND ON} // XE4 and up requires $IF to be terminated with $ENDIF instead of $IFEND
+{$IFEND}
 
 uses
   Windows, Messages, Classes, SysUtils, Controls, Graphics, ImgList, Forms,
@@ -255,7 +258,6 @@ type
     procedure DoneReadingPositionData(const Data: TTBReadPositionData); override;
     procedure ReadPositionData(const Data: TTBReadPositionData); override;
     procedure WritePositionData(const Data: TTBWritePositionData); override;
-    procedure InvalidateBackground(InvalidateChildren: Boolean = True); override;
     function IsResizable: Boolean;
     function IsVerticalTitleBar: Boolean;
     function Maximize: Boolean; virtual;
@@ -2698,11 +2700,6 @@ begin
     PrevRestoreSize.Free;
     MultiDock.EndUpdate;
   end;
-end;
-
-procedure TSpTBXCustomDockablePanel.InvalidateBackground(InvalidateChildren: Boolean);
-begin
-  SpInvalidateSpTBXControl(Self, True, True);
 end;
 
 function TSpTBXCustomDockablePanel.IsResizable: Boolean;
