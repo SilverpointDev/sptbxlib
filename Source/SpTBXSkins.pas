@@ -1295,13 +1295,22 @@ begin
   Result := Format('#%.2x%.2x%.2x', [GetRValue(R), GetGValue(R), GetBValue(R)]);
 end;
 
+resourcestring
+  SColorNone = 'None';
+  SColorDefault = 'Default';
+
 function SpColorToString(const Color: TColor; TextType: TSpTBXColorTextType = cttDefault): string;
 begin
   case TextType of
     cttDefault:
       Result := ColorToString(Color);
     cttHTML:
-      Result := SpColorToHTML(Color);
+      case Color of
+        clNone: Result := SColorNone;
+        clDefault: Result := SColorDefault;
+      else
+        Result := SpColorToHTML(Color);
+      end;
     cttIdentAndHTML:
       begin
         Result := ColorToString(Color);
@@ -1318,6 +1327,15 @@ begin
   Result := False;
   Color := clDefault;
   L := Length(S);
+
+  if S = SColorNone then begin
+    Color := clNone;
+    Exit(True)
+  end else if S = SColorDefault then begin
+    Color := clDefault;
+    Exit(True)
+  end;
+
   if L < 2 then Exit;
 
   if (S[1] = '#') and (L = 7) then begin  // HTML format: #FFFFFF
