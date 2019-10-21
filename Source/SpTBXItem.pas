@@ -8040,8 +8040,7 @@ begin
     - Drop a TMemo inside a TSpTBXPanel
     - Change Memo.ScrollBars to ssVertical
     - Run and try to resize using a VCL Style.
-    The problem seems to be that TScrollingStyleHook.WndProc gets called    non stop, even when the window is not visible.    TScrollingStyleHook.WndProc calls TScrollingStyleHook.PaintNC which
-    constantly shows and repaints the scrollbars.
+    The problem seems to be that TScrollingStyleHook.WndProc gets called    non stop, even when the window is not visible.    TScrollingStyleHook.WndProc calls TScrollingStyleHook.PaintNC which    constantly shows and repaints the scrollbars.
     Seems to be a VCL bug.
 
     // WS_EX_COMPOSITED flag to enable double buffering.
