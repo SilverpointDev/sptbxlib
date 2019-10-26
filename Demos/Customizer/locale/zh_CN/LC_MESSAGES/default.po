@@ -1,4 +1,4 @@
-msgid ""
+﻿msgid ""
 msgstr ""
 "Project-Id-Version: Customizer Demo\n"
 "POT-Creation-Date: 2005-08-09 16:55\n"

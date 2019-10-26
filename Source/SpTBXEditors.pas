@@ -646,7 +646,9 @@ begin
   IV := View.Find(Item);
   if Assigned(IV) then begin
     View.Select(IV, False);
-    View.ExecuteSelected(False);
+    // Call View.EnterToolbarLoop to reset FDoneActionData.DoneAction to
+    // tbdaNone and execute the selected edit item viewer.
+    View.EnterToolbarLoop([tbetExecuteSelected]);
     Result := True;
   end;
 end;
