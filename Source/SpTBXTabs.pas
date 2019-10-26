@@ -485,7 +485,6 @@ type
     procedure DoActiveTabChange(const ItemIndex: Integer); override;
     procedure TabInserted(Item: TSpTBXTabItem); override;
     procedure TabDeleting(Item: TSpTBXTabItem; FreeTabSheet: Boolean = True); override;
-    procedure WMEraseBkgnd(var Message: TWmEraseBkgnd); message WM_ERASEBKGND;
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
@@ -3120,11 +3119,6 @@ begin
       Break;
     end;
   end;
-end;
-
-procedure TSpTBXCustomTabControl.WMEraseBkgnd(var Message: TWmEraseBkgnd);
-begin
-  Message.Result := 1;
 end;
 
 procedure TSpTBXCustomTabControl.WMSpSkinChange(var Message: TMessage);
