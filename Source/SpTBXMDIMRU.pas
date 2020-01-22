@@ -280,7 +280,7 @@ constructor TSpTBXMDIButtonsItem.Create(AOwner: TComponent);
     A.ItemStyle := A.ItemStyle + [tbisRightAlign];
     Result.Images := MDIButtonsImgList;
     Result.ImageIndex := ImageIndex;
-    Result.CustomWidth := 17;
+    Result.CustomWidth := SpDPIScale(17);
     Result.OnClick := ItemClick;
     Result.OnDrawItem := DrawItem;
     Result.OnDrawImage := DrawItemImage;

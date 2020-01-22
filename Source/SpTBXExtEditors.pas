@@ -433,10 +433,7 @@ end;
 
 procedure TSpTBXColorEdit.UpdateTextFromValue;
 begin
-  if (SelectedColor = clNone) or (SelectedColor = clDefault) then
-    Text := ColorToString(SelectedColor)
-  else
-    Text := SpColorToString(SelectedColor, FSelectedFormat);
+  Text := SpColorToString(SelectedColor, FSelectedFormat);
   SelStart := Length(Text);
 end;
 

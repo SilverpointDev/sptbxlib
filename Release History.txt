@@ -1,3 +1,11 @@
+22 January 2020 - version 2.5.6
+  - Allow localization of clNone and clDefault color names in TSpTBXColorEdit
+  - Fixed MDI button high DPI scaling issues.
+  - Fixed TSpTBXEditItem.StartEditing handling, it resets DoneAction to tbdaNone before entering in editing mode.
+  - Fixed double buffer painting on TTBCustomDockableWindow.WMMove
+  - Fixed incorrect MDI button painting.
+  - Fixed incorrect Caption painting on TSpTBXPanel when Font color is changed.
+
 26 November 2018 - version 2.5.5
   - Added RAD Studio 10.3 Rio support.
   - Added TB2K patch files

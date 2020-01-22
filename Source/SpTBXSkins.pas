@@ -69,6 +69,10 @@ uses
   {$IFEND}
   Themes, Generics.Collections;
 
+resourcestring
+  SSpTBXColorNone = 'None';
+  SSpTBXColorDefault = 'Default';
+
 const
   WM_SPSKINCHANGE = WM_APP + 2007;   // Skin change notification message
 
@@ -265,7 +269,7 @@ type
   { Colors }
 
   TSpTBXColorTextType = (
-    cttDefault,        // Default format (clWhite, $FFFFFF)
+    cttDefault,        // Use color idents (clWhite), if not possible use Delphi format ($FFFFFF)
     cttHTML,           // HTML format (#FFFFFF)
     cttIdentAndHTML    // Use color idents (clWhite), if not possible use HTML format
   );
@@ -1301,7 +1305,12 @@ begin
     cttDefault:
       Result := ColorToString(Color);
     cttHTML:
-      Result := SpColorToHTML(Color);
+      // Use resourcestring only when clNone or clDefault
+      if Color = clNone then Result := SSpTBXColorNone
+      else
+        if Color = clDefault then Result := SSpTBXColorDefault
+        else
+          Result := SpColorToHTML(Color);
     cttIdentAndHTML:
       begin
         Result := ColorToString(Color);
@@ -1319,6 +1328,19 @@ begin
   Color := clDefault;
   L := Length(S);
   if L < 2 then Exit;
+
+  // Try to convert clNone and clDefault resourcestring
+  if S = SSpTBXColorNone then begin
+    Color := clNone;
+    Result := True;
+    Exit;
+  end
+  else
+    if S = SSpTBXColorDefault then begin
+      Color := clDefault;
+      Result := True;
+      Exit;
+    end;
 
   if (S[1] = '#') and (L = 7) then begin  // HTML format: #FFFFFF
     S[1] := '$';
