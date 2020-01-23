@@ -69,6 +69,10 @@ uses
   {$IFEND}
   Themes, Generics.Collections;
 
+resourcestring
+  SSpTBXColorNone = 'None';
+  SSpTBXColorDefault = 'Default';
+
 const
   WM_SPSKINCHANGE = WM_APP + 2007;   // Skin change notification message
 
@@ -265,7 +269,7 @@ type
   { Colors }
 
   TSpTBXColorTextType = (
-    cttDefault,        // Default format (clWhite, $FFFFFF)
+    cttDefault,        // Use color idents (clWhite), if not possible use Delphi format ($FFFFFF)
     cttHTML,           // HTML format (#FFFFFF)
     cttIdentAndHTML    // Use color idents (clWhite), if not possible use HTML format
   );
@@ -1295,22 +1299,18 @@ begin
   Result := Format('#%.2x%.2x%.2x', [GetRValue(R), GetGValue(R), GetBValue(R)]);
 end;
 
-resourcestring
-  SColorNone = 'None';
-  SColorDefault = 'Default';
-
 function SpColorToString(const Color: TColor; TextType: TSpTBXColorTextType = cttDefault): string;
 begin
   case TextType of
     cttDefault:
       Result := ColorToString(Color);
     cttHTML:
-      case Color of
-        clNone: Result := SColorNone;
-        clDefault: Result := SColorDefault;
+      // Use resourcestring only when clNone or clDefault
+      if Color = clNone then Result := SSpTBXColorNone
       else
-        Result := SpColorToHTML(Color);
-      end;
+        if Color = clDefault then Result := SSpTBXColorDefault
+        else
+          Result := SpColorToHTML(Color);
     cttIdentAndHTML:
       begin
         Result := ColorToString(Color);
@@ -1327,16 +1327,20 @@ begin
   Result := False;
   Color := clDefault;
   L := Length(S);
-
-  if S = SColorNone then begin
-    Color := clNone;
-    Exit(True)
-  end else if S = SColorDefault then begin
-    Color := clDefault;
-    Exit(True)
-  end;
-
   if L < 2 then Exit;
+
+  // Try to convert clNone and clDefault resourcestring
+  if S = SSpTBXColorNone then begin
+    Color := clNone;
+    Result := True;
+    Exit;
+  end
+  else
+    if S = SSpTBXColorDefault then begin
+      Color := clDefault;
+      Result := True;
+      Exit;
+    end;
 
   if (S[1] = '#') and (L = 7) then begin  // HTML format: #FFFFFF
     S[1] := '$';

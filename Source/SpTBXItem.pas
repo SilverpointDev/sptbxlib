@@ -9863,7 +9863,7 @@ begin
 
   // Dummy ImageList, used by TSpTBXItemViewer and TSpTBXButtonOptions
   MDIButtonsImgList := TImageList.Create(nil);
-  MDIButtonsImgList.SetSize(8, 8);
+  MDIButtonsImgList.SetSize(SpDPIScale(8), SpDPIScale(8));
 
   {$IF CompilerVersion >= 23}
   // XE2 and up

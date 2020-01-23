@@ -141,7 +141,6 @@ const
   crSpTBXEyeDropper = 103;   // Cursor ID used for Eye Dropper cursor
 
 resourcestring
-  SSpTBXTransparentColor = 'Transparent Color';
   SSpTBXColorPicker = 'Color Picker';
   SSpTBXClickAndDrag = 'Drag && Drop';
 
@@ -514,10 +513,11 @@ end;
 procedure TSpTBXColorPickerForm.UpdateColorLabel(AColor: TColor; AButtonType: Integer = -1);
 begin
   btnColor.CaptionGlowColor := AColor;
-  if AColor = clNone then
-    btnLabel.Caption := SSpTBXTransparentColor
+  if AColor = clNone then btnLabel.Caption := SSpTBXColorNone
   else
-    btnLabel.Caption := SpColorToHTML(AColor);
+    if AColor = clDefault then btnLabel.Caption := SSpTBXColorDefault
+    else
+      btnLabel.Caption := SpColorToHTML(AColor);
 end;
 
 end.
