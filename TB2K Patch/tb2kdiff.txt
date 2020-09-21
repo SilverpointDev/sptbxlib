@@ -1,5 +1,5 @@
 --- TB2Acc.pas	Sat Apr 19 00:31:00 2008
-+++ TB2Acc.pas	Mon Sep 03 09:30:03 2018
++++ TB2Acc.pas	Fri May 29 05:32:49 2020
 @@ -36,7 +36,8 @@
  uses
    Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
@@ -11,8 +11,8 @@
  type
    { Our declaration for IAccessible }
 --- TB2Common.pas	Wed Sep 17 14:46:30 2008
-+++ TB2Common.pas	Thu Nov 15 11:15:20 2018
-@@ -31,7 +31,8 @@
++++ TB2Common.pas	Fri Mar  6 00:15:52 2020
+@@ -31,11 +31,13 @@
  {$I TB2Ver.inc}
  
  uses
@@ -22,15 +22,73 @@
  
  type
    THandleWMPrintNCPaintProc = procedure(Wnd: HWND; DC: HDC; AppData: TObject);
-@@ -117,6 +118,7 @@
- function TextOutStr(const DC: HDC; const X, Y: Integer;
+   TPaintHandlerProc = procedure(var Message: TWMPaint) of object;
++  TScalingFunction = function(Value: Integer): Integer of object;
+ 
+   { The type of item a TList holds; it differs between Win32 and .NET VCL }
+   TListItemType = {$IFNDEF CLR} Pointer {$ELSE} TObject {$ENDIF};
+@@ -63,9 +65,9 @@
+ procedure DrawHalftoneInvertRect(const DC: HDC; const NewRect, OldRect: TRect;
+   const NewSize, OldSize: TSize);
+ procedure DrawRotatedText(const DC: HDC; AText: String; const ARect: TRect;
+-  const AFormat: Cardinal);
++  const AFormat: Cardinal; ScalingFunction: TScalingFunction);
+ procedure DrawSmallWindowCaption(const Wnd: HWND; const DC: HDC;
+-  const ARect: TRect; const AText: String; const AActive: Boolean);
++  const ARect: TRect; const AText: String; const AActive: Boolean; PPI: Integer);
+ function DrawTextStr(const DC: HDC; const AText: String; var ARect: TRect;
+   const AFormat: UINT): Integer;
+ function EscapeAmpersands(const S: String): String;
+@@ -118,6 +120,20 @@
    const AText: String): BOOL;
  function UsingMultipleMonitors: Boolean;
-+function DPIScale(X: integer): integer;
  
++type
++  (*  Helper methods for TControl *)
++  TControlHelper = class helper for TControl
++  public
++    {$IF CompilerVersion <= 31}
++    function CurrentPPI: Integer;
++    function FCurrentPPI: Integer;
++    {$IFEND}
++    (* Scale a value according to the FCurrentPPI *)
++    function PPIScale(Value: integer): integer;
++    (* Reverse PPI Scaling  *)
++    function PPIUnScale(Value: integer): integer;
++  end;
++
  const
    PopupMenuWindowNCSize = 3;
-@@ -827,7 +829,7 @@
+   DT_HIDEPREFIX = $00100000;
+@@ -725,7 +741,7 @@
+ end;
+ 
+ procedure DrawSmallWindowCaption(const Wnd: HWND; const DC: HDC;
+-  const ARect: TRect; const AText: String; const AActive: Boolean);
++  const ARect: TRect; const AText: String; const AActive: Boolean; PPI: Integer);
+ { Draws a (non-themed) small window caption bar.
+   On Windows Vista, a custom routine is used to work around an ugly bug in
+   DrawCaption that causes the text to be painted at the wrong coordinates.
+@@ -762,6 +778,7 @@
+   CaptionFont, SaveFont: HFONT;
+   SaveBkMode: Integer;
+   SaveTextColor: TColorRef;
++  LogFont: TLogFontW;
+ begin
+   if ARect.Right <= ARect.Left then
+     Exit;
+@@ -783,7 +800,9 @@
+     Inc(TextRect.Left, GetSystemMetrics(SM_CXEDGE));
+     if (TextRect.Right > TextRect.Left) and
+        GetSystemNonClientMetrics(NonClientMetrics) then begin
+-      CaptionFont := CreateFontIndirect(NonClientMetrics.lfSmCaptionFont);
++      LogFont:= NonClientMetrics.lfSmCaptionFont;
++      LogFont.lfHeight := MulDiv(LogFont.lfHeight, PPI, Screen.PixelsPerInch);
++      CaptionFont := CreateFontIndirect(LogFont);
+       if CaptionFont <> 0 then begin
+         SaveFont := SelectObject(DC, CaptionFont);
+         SaveBkMode := SetBkMode(DC, TRANSPARENT);
+@@ -827,7 +846,7 @@
                SelectObject(BmpDC, Bmp);
                SaveIndex := SaveDC(BmpDC);
                SetWindowOrgEx(BmpDC, R.Left, R.Top, nil);
@@ -39,30 +97,170 @@
                SendMessage(Wnd, WM_PAINT, WPARAM(BmpDC), 0);
                RestoreDC(BmpDC, SaveIndex);
                BitBlt(WndDC, R.Left, R.Top, R.Right - R.Left, R.Bottom - R.Top,
-@@ -1295,7 +1297,7 @@
+@@ -1248,7 +1267,7 @@
+ end;
+ 
+ procedure DrawRotatedText(const DC: HDC; AText: String; const ARect: TRect;
+-  const AFormat: Cardinal);
++  const AFormat: Cardinal; ScalingFunction: TScalingFunction);
+ { Like DrawText, but draws the text at a 270 degree angle.
+   The only format flag this function respects is DT_HIDEPREFIX. Text is always
+   drawn centered. }
+@@ -1295,7 +1314,7 @@
    if (P > 0) and (AFormat and DT_HIDEPREFIX = 0) then begin
      SU := GetTextWidth(DC, Copy(AText, 1, P-1), False);
      FU := SU + GetTextWidth(DC, AText[P], False);
 -    Inc(X, TextMetrics.tmDescent - 2);
-+    Inc(X, TextMetrics.tmDescent - DPIScale(2));
++    Inc(X, TextMetrics.tmDescent - ScalingFunction(2));
      Pen := CreatePen(PS_SOLID, 1, GetTextColor(DC));
      SavePen := SelectObject(DC, Pen);
      MoveToEx(DC, X, Y + SU, nil);
-@@ -1560,6 +1562,11 @@
+@@ -1560,6 +1579,38 @@
    Result := Longint(I);
  end;
  {$ENDIF}
 +
-+function DPIScale(X: integer): integer;
++{ TControlHelper }
++
++{$IF CompilerVersion <= 31}
++function TControlHelper.CurrentPPI: Integer;
 +begin
-+  Result := MulDiv(X, Screen.PixelsPerInch, 96);
++  Result := Screen.PixelsPerInch;
++end;
++
++function TControlHelper.FCurrentPPI: Integer;
++begin
++  Result := Screen.PixelsPerInch;
++end;
++{$IFEND}
++
++function TControlHelper.PPIScale(Value: integer): integer;
++begin
++  {$IF CompilerVersion > 31}
++  Result := MulDiv(Value, FCurrentPPI, 96);
++  {$ELSE}
++  Result := MulDiv(Value, Screen.PixelsPerInch, 96);
++  {$IFEND}
++end;
++
++function TControlHelper.PPIUnScale(Value: integer): integer;
++begin
++  {$IF CompilerVersion > 31}
++  Result := MulDiv(Value, 96, FCurrentPPI);
++  {$ELSE}
++  Result := MulDiv(Value, 96, Screen.PixelsPerInch);
++  {$IFEND}
 +end;
  
  initialization
    InitGradientFillFunc;
 --- TB2Dock.pas	Wed Sep 17 15:12:26 2008
-+++ TB2Dock.pas	Fri Dec 28 13:19:15 2018
-@@ -562,26 +562,37 @@
++++ TB2Dock.pas	Mon Sep 21 20:46:18 2020
+@@ -37,7 +37,12 @@
+ {$I TB2Ver.inc}
+ 
+ uses
+-  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, IniFiles;
++  {$IF CompilerVersion >= 33}
++  WinApi.WinCodec,
++  System.UITypes,
++  System.Messaging,
++  {$IFEND}
++  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, IniFiles, ImgList;
+ 
+ type
+   TTBCustomForm = {$IFDEF JR_D3} TCustomForm {$ELSE} TForm {$ENDIF};
+@@ -135,6 +140,9 @@
+     procedure SetParent(AParent: TWinControl); override;
+     procedure Paint; override;
+     function UsingBackground: Boolean; virtual;
++    function GetDockedBorderSize: Integer; virtual;
++    function DefaultScalingFlags: TScalingFlags; override;
++    procedure ChangeScale(M, D: Integer{$if CompilerVersion >= 31}; isDpiChange: Boolean{$ifend}); override;
+   public
+     constructor Create(AOwner: TComponent); override;
+     destructor Destroy; override;
+@@ -148,6 +156,7 @@
+       const ExcludeControl: TTBCustomDockableWindow): Integer;
+ 
+     property CommitNewPositions: Boolean read FCommitNewPositions write FCommitNewPositions;
++    property DockedBorderSize: Integer read GetDockedBorderSize;
+     property NonClientWidth: Integer read FNonClientWidth;
+     property NonClientHeight: Integer read FNonClientHeight;
+     property ToolbarCount: Integer read GetToolbarCount;
+@@ -180,7 +189,29 @@
+     {$ENDIF}
+   end;
+ 
+-  { TTBFloatingWindowParent - internal }
++ {$IF CompilerVersion >= 33}
++  TTBVirtualImageList = class(TCustomImageList)
++  private
++    FDPIChangedMessageID: Integer;
++    FSourceImageList: TCustomImageList;
++    procedure SetSourceImageList(Value: TCustomImageList);
++    procedure DPIChangedMessageHandler(const Sender: TObject; const Msg: System.Messaging.TMessage);
++  protected
++    function GetCount: Integer; override;
++    procedure Notification(AComponent: TComponent; Operation: TOperation); override;
++  public
++    constructor Create(AOwner: TComponent); override;
++    destructor Destroy; override;
++    procedure DoDraw(Index: Integer; Canvas: TCanvas; X, Y: Integer;
++       Style: Cardinal; Enabled: Boolean = True); override;
++    property SourceImageList: TCustomImageList
++      read FSourceImageList write SetSourceImageList;
++    property Width;
++    property Height;
++  end;
++ {$ENDIF}
++
++ { TTBFloatingWindowParent - internal }
+ 
+   TTBToolWindowNCRedrawWhatElement = (twrdBorder, twrdCaption, twrdCloseButton);
+   TTBToolWindowNCRedrawWhat = set of TTBToolWindowNCRedrawWhatElement;
+@@ -194,6 +225,7 @@
+     FShouldShow: Boolean;
+ 
+     procedure CallRecreateWnd;
++    function GetSmallCaptionHeight: Integer;
+     function GetCaptionRect(const AdjustForBorder, MinusCloseButton: Boolean): TRect;
+     function GetCloseButtonRect(const AdjustForBorder: Boolean): TRect;
+     procedure SetCloseButtonState(Pushed: Boolean);
+@@ -216,6 +248,7 @@
+     procedure WMPrint(var Message: TMessage); message WM_PRINT;
+     procedure WMPrintClient(var Message: {$IFNDEF CLR} TMessage {$ELSE} TWMPrintClient {$ENDIF}); message WM_PRINTCLIENT;
+   protected
++    procedure DoAfterMonitorDpiChanged(OldDPI, NewDPI: Integer); override;
+     procedure AlignControls(AControl: TControl; var Rect: TRect); override;
+     procedure CreateParams(var Params: TCreateParams); override;
+     procedure DrawNCArea(const DrawToDC: Boolean; const ADC: HDC;
+@@ -224,6 +257,10 @@
+     property DockableWindow: TTBCustomDockableWindow read FDockableWindow;
+     property CloseButtonDown: Boolean read FCloseButtonDown;
+   public
++    {$IF CompilerVersion >= 33}
++    FVirtualImageList : TTBVirtualImageList;
++    constructor CreateNew(AOwner: TComponent; Dummy: Integer = 0); override;
++    {$IFEND}
+     property ParentForm: TTBCustomForm read FParentForm;
+   end;
+ 
+@@ -448,7 +485,13 @@
+     procedure ResizeTrack(var Rect: TRect; const OrigRect: TRect); dynamic;
+     procedure ResizeTrackAccept; dynamic;
+     procedure SizeChanging(const AWidth, AHeight: Integer); virtual;
++    function GetDockedBorderSize: Integer; virtual;
++    function GetDragHandleSize: Integer; virtual;
++    function GetDragHandleXOffset: Integer; virtual;
+   public
++    property DragHandleSize: Integer read GetDragHandleSize;
++    property DragHandleXOffset: Integer read GetDragHandleXOffset;
++    property DockedBorderSize: Integer read GetDockedBorderSize;
+     property Docked: Boolean read FDocked;
+     property Canvas;
+     property CurrentDock: TTBDock read FCurrentDock write SetCurrentDock stored False;
+@@ -562,26 +605,22 @@
  uses
    {$IFDEF CLR} Types, System.Runtime.InteropServices, {$ENDIF}
    Registry, Consts, Menus,
@@ -73,25 +271,6 @@
  type
    TControlAccess = class(TControl);
  
-+ function DockedBorderSize: integer; begin Result := DPIScale(2); end;
-+ function DockedBorderSize2: integer; begin Result := DockedBorderSize*2; end;
-+ function DefaultBarWidthHeight: integer; begin Result := DPIScale(8); end;
-+ function ForceDockAtLeftPos: integer; begin Result := -DPIScale(8); end;
-+
-+ function DragHandleSizes(CloseButtonWhenDocked: Boolean; DragHandleStyle: TTBDragHandleStyle): Integer;
-+ const
-+   Sizes: array[Boolean, TTBDragHandleStyle] of Integer = ((9, 0, 6), (14, 14, 14));
-+ begin
-+   Result := DPIScale(Sizes[CloseButtonWhenDocked, DragHandleStyle]);
-+ end;
-+
-+ function DragHandleXOffsets(CloseButtonWhenDocked: Boolean; DragHandleStyle: TTBDragHandleStyle): Integer;
-+ const
-+   Offsets: array[Boolean, TTBDragHandleStyle] of Integer = ((2, 0, 1), (3, 0, 5));
-+ begin
-+   Result := DPIScale(Offsets[CloseButtonWhenDocked, DragHandleStyle]);
-+ end;
-+
  const
 -  DockedBorderSize = 2;
 -  DockedBorderSize2 = DockedBorderSize*2;
@@ -99,6 +278,10 @@
 -    ((9, 0, 6), (14, 14, 14));
 -  DragHandleXOffsets: array[Boolean, TTBDragHandleStyle] of Integer =
 -    ((2, 0, 1), (3, 0, 5));
++ _DockedBorderSize = 2;
++ _ForceDockAtLeftPos = -8;
++
++const
    HT_TB2k_Border = 2000;
    HT_TB2k_Close = 2001;
    HT_TB2k_Caption = 2002;
@@ -110,27 +293,306 @@
  
    PositionLeftOrRight = [dpLeft, dpRight];
  
-@@ -2493,7 +2504,7 @@
-       R2 := R;
-       DrawEdge(DC, R, EDGE_RAISED, BF_RECT or BF_ADJUST);
-       S := FDockableWindow.GetFloatingBorderSize;
--      InflateRect(R2, -(S.X - 1), -(S.Y - 1));
-+      InflateRect(R2, -(S.X - DPIScale(1)), -(S.Y - DPIScale(1)));
-       FrameRect(DC, R2, GetSysColorBrush(COLOR_BTNFACE));
-       SaveIndex := SaveDC(DC);
-       ExcludeClipRect(DC, R2.Left, R2.Top, R2.Right, R2.Bottom);
-@@ -2535,8 +2546,8 @@
+@@ -606,12 +645,6 @@
+ 
+ { Misc. functions }
+ 
+-function GetSmallCaptionHeight: Integer;
+-{ Returns height of the caption of a small window }
+-begin
+-  Result := GetSystemMetrics(SM_CYSMCAPTION);
+-end;
+-
+ function GetMDIParent(const Form: TTBCustomForm): TTBCustomForm;
+ { Returns the parent of the specified MDI child form. But, if Form isn't a
+   MDI child, it simply returns Form. }
+@@ -913,6 +946,11 @@
+       Style := Style and not(CS_HREDRAW or CS_VREDRAW);
+ end;
+ 
++function TTBDock.DefaultScalingFlags: TScalingFlags;
++begin
++  Result := [];
++end;
++
+ destructor TTBDock.Destroy;
+ begin
+   if Assigned(FBackground) then
+@@ -1023,6 +1061,11 @@
+   end;
+ end;
+ 
++function TTBDock.GetDockedBorderSize: Integer;
++begin
++  Result := PPIScale(_DockedBorderSize);
++end;
++
+ function TTBDock.GetHighestRow(const HighestEffective: Boolean): Integer;
+ { Returns highest used row number, or -1 if no rows are used }
+ var
+@@ -1323,7 +1366,7 @@
+           PosData[I].MinimumSize := 0;
+           T.GetMinShrinkSize(PosData[I].MinimumSize);
+           if PosData[I].MinimumSize > PosData[I].FullSize then
+-            { don't allow minimum shrink size to be less than full size } 
++            { don't allow minimum shrink size to be less than full size }
+             PosData[I].MinimumSize := PosData[I].FullSize;
+           if PosData[I].ShrinkMode = tbsmChevron then
+             Inc(MinRealPos, PosData[I].MinimumSize)
+@@ -1565,7 +1608,7 @@
+         end;
+       end;
+       if CurRowSize <> -1 then
+-        Inc(CurRowSize, DockedBorderSize2)
++        Inc(CurRowSize, 2 * DockedBorderSize)
+       else
+         CurRowSize := 0;
+       for I := 0 to NewDockList.Count-1 do begin
+@@ -1643,6 +1686,16 @@
+   ToolbarVisibilityChanged(Bar, False);
+ end;
+ 
++procedure TTBDock.ChangeScale(M, D: Integer{$if CompilerVersion >= 31}; isDpiChange: Boolean{$ifend});
++begin
++  BeginUpdate;
++  try
++    inherited;
++  finally
++    EndUpdate;
++  end;
++end;
++
+ procedure TTBDock.ToolbarVisibilityChanged(const Bar: TTBCustomDockableWindow;
+   const ForceRemove: Boolean);
+ var
+@@ -2069,8 +2122,160 @@
+ end;*)
+ 
+ 
++{$IF CompilerVersion >= 33}
++constructor TTBVirtualImageList.Create(AOwner: TComponent);
++begin
++  inherited;
++  HandleNeeded;
++  FDPIChangedMessageID := TMessageManager.DefaultManager.SubscribeToMessage(TChangeScaleMessage, DPIChangedMessageHandler);
++end;
++
++destructor TTBVirtualImageList.Destroy;
++begin
++  TMessageManager.DefaultManager.Unsubscribe(TChangeScaleMessage, FDPIChangedMessageID);
++  inherited;
++end;
++
++procedure TTBVirtualImageList.DPIChangedMessageHandler(const Sender: TObject; const Msg: System.Messaging.TMessage);
++var
++  W, H: Integer;
++  ApplyChange: Boolean;
++  C: TComponent;
++begin
++  ApplyChange := False;
++  C := Owner;
++  while Assigned(C) do
++  begin
++    if C = TChangeScaleMessage(Msg).Sender then
++    begin
++      ApplyChange := True;
++      Break;
++    end;
++    C := C.Owner;
++  end;
++
++  if ApplyChange then
++  begin
++    W := MulDiv(Width, TChangeScaleMessage(Msg).M, TChangeScaleMessage(Msg).D);
++    H := MulDiv(Height, TChangeScaleMessage(Msg).M, TChangeScaleMessage(Msg).D);
++    SetSize(W, H);
++    Change;
++  end;
++end;
++
++function TTBVirtualImageList.GetCount: Integer;
++begin
++  if Assigned(FSourceImageList) then
++    Result := FSourceImageList.Count
++  else
++    Result := 0;
++end;
++
++procedure TTBVirtualImageList.Notification(AComponent: TComponent;
++  Operation: TOperation);
++begin
++  inherited;
++  if (Operation = opRemove) and (AComponent = FSourceImageList) then
++    FSourceImageList := nil;
++end;
++
++procedure TTBVirtualImageList.SetSourceImageList(Value: TCustomImageList);
++begin
++  if Assigned(FSourceImageList) and (Value <> FSourceImageList) then
++     FSourceImageList.RemoveFreeNotification(Self);
++  if Assigned(Value) and (Value <> FSourceImageList) then
++  begin
++    SetSize(Value.Width, Value.Height);
++    ColorDepth := Value.ColorDepth;
++    BkColor := Value.BkColor;
++    BlendColor := Value.BlendColor;
++    DrawingStyle := Value.DrawingStyle;
++    Value.FreeNotification(Self);
++  end;
++  FSourceImageList := Value;
++end;
++
++type
++  PColorRecArray = ^TColorRecArray;
++  TColorRecArray = array [0..0] of TColorRec;
++
++procedure InitAlpha(ABitmap: TBitmap);
++var
++  I: Integer;
++  Src: Pointer;
++begin
++  Src := ABitmap.Scanline[ABitmap.Height - 1];
++  for I := 0 to ABitmap.Width * ABitmap.Height - 1 do
++    PColorRecArray(Src)[I].A := 0;
++end;
++
++type
++  TAccessCustomImageList = class(TCustomImageList)
++  end;
++
++procedure ResizeBitmap(Bitmap: TBitmap; const NewWidth, NewHeight: Integer);
++var
++  Factory: IWICImagingFactory;
++  Scaler: IWICBitmapScaler;
++  Source : TWICImage;
++begin
++  Bitmap.AlphaFormat := afDefined;
++  Source := TWICImage.Create;
++  try
++    Source.Assign(Bitmap);
++    Factory := TWICImage.ImagingFactory;
++    Factory.CreateBitmapScaler(Scaler);
++    try
++      Scaler.Initialize(Source.Handle, NewWidth, NewHeight,
++        WICBitmapInterpolationModeHighQualityCubic);
++      Source.Handle := IWICBitmap(Scaler);
++    finally
++      Scaler := nil;
++      Factory := nil;
++    end;
++    Bitmap.Assign(Source);
++  finally
++    Source.Free;
++  end;
++end;
++
++procedure TTBVirtualImageList.DoDraw(Index: Integer; Canvas: TCanvas; X, Y: Integer;
++  Style: Cardinal; Enabled: Boolean = True);
++var
++  B: TBitmap;
++begin
++  if not Assigned (FSourceImageList) or (Index < 0) or (Index >= FSourceImageList.Count) then
++    Exit;
++  if (Width = FSourceImageList.Width) and (Height =  FSourceImageList.Height) then begin
++    TAccessCustomImageList(FSourceImageList).DoDraw(Index, Canvas, X, Y, Style, Enabled);
++    Exit;
++  end;
++
++  B := TBitmap.Create;
++  try
++    B.PixelFormat := pf32bit;
++    B.SetSize(FSourceImageList.Width, FSourceImageList.Height);
++    InitAlpha(B);
++    TAccessCustomImageList(FSourceImageList).DoDraw(Index, B.Canvas, 0, 0, Style, Enabled);
++    ResizeBitmap(B, Width, Height);
++    Canvas.Draw(X, Y, B);
++    //Canvas.StretchDraw(Rect(X, Y, X + Width, Y + Height), B);
++  finally
++    B.Free;
++  end;
++end;
++
++
+ { TTBFloatingWindowParent - Internal }
+ 
++constructor TTBFloatingWindowParent.CreateNew(AOwner: TComponent; Dummy: Integer = 0);
++begin
++  inherited;
++  FVirtualImageList := TTBVirtualImageList.Create(Self);
++end;
++
++{$IFEND}
++
+ procedure TTBFloatingWindowParent.CreateParams(var Params: TCreateParams);
+ const
+   ThickFrames: array[Boolean] of DWORD = (0, WS_THICKFRAME);
+@@ -2089,7 +2294,7 @@
+       thick frame or border is not drawn by Windows; TCustomToolWindow97
+       handles all border drawing by itself. }
+     if not(csDesigning in ComponentState) then
+-      Style := WS_POPUP or WS_BORDER or ThickFrames[FDockableWindow.FResizable]
++      Style := WS_POPUP or WS_DLGFRAME //WS_BORDER or ThickFrames[FDockableWindow.FResizable]
+     else
+       Style := Style or WS_BORDER or ThickFrames[FDockableWindow.FResizable];
+     { The WS_EX_TOOLWINDOW style is needed so there isn't a taskbar button
+@@ -2195,6 +2400,11 @@
+   Result.Left := Result.Right - (GetSmallCaptionHeight-1);
+ end;
+ 
++function TTBFloatingWindowParent.GetSmallCaptionHeight: Integer;
++begin
++  Result := GetSystemMetrics(SM_CYSMCAPTION);
++end;
++
+ procedure TTBFloatingWindowParent.WMNCCalcSize(var Message: TWMNCCalcSize);
+ 
+   procedure ApplyToRect(var R: TRect);
+@@ -2445,6 +2655,15 @@
+   FDockableWindow.Moved;
+ end;
+ 
++procedure TTBFloatingWindowParent.DoAfterMonitorDpiChanged(OldDPI,
++  NewDPI: Integer);
++begin
++  inherited;
++  if Assigned(FDockableWindow) then
++    // This takes care for the fact that the Border size is not scaled
++    FDockableWindow.ChangeSize(FDockableWindow.Width, FDockableWindow.Height);
++end;
++
+ procedure TTBFloatingWindowParent.DrawNCArea(const DrawToDC: Boolean;
+   const ADC: HDC; const Clip: HRGN; RedrawWhat: TTBToolWindowNCRedrawWhat);
+ { Redraws all the non-client area (the border, title bar, and close button) of
+@@ -2517,7 +2736,7 @@
+         if twrdCaption in RedrawWhat then begin
+           R := GetCaptionRect(True, FDockableWindow.FCloseButton);
+           DrawSmallWindowCaption(Handle, DC, R, Caption,
+-            not FDockableWindow.FInactiveCaption);
++            not FDockableWindow.FInactiveCaption, CurrentPPI);
+ 
+           { Line below caption }
+           R := GetCaptionRect(True, False);
+@@ -2535,8 +2754,8 @@
        if FDockableWindow.FCloseButton then begin
          R := GetCloseButtonRect(True);
          R2 := R;
 -        InflateRect(R2, 0, -2);
 -        Dec(R2.Right, 2);
-+        InflateRect(R2, 0, -DPIScale(2));
-+        Dec(R2.Right, DPIScale(2));
++        InflateRect(R2, 0, -PPIScale(2));
++        Dec(R2.Right, PPIScale(2));
          if twrdCaption in RedrawWhat then begin
            SaveIndex := SaveDC(DC);
            ExcludeClipRect(DC, R2.Left, R2.Top, R2.Right, R2.Bottom);
-@@ -2663,7 +2674,7 @@
+@@ -2545,7 +2764,7 @@
+           RestoreDC(DC, SaveIndex);
+         end;
+         if twrdCloseButton in RedrawWhat then
+-          DrawFrameControl(DC, R2, DFC_CAPTION, DFCS_CAPTIONCLOSE or
++          DrawFrameControl(DC, R2, DFC_CAPTION, DFCS_CAPTIONCLOSE or DFCS_FLAT or
+             CloseButtonState[FCloseButtonDown]);
+       end;
+     end;
+@@ -2663,7 +2882,7 @@
        Bmp := CreateCompatibleBitmap(DC, CR.Right, CR.Bottom);
        SelectObject(BmpDC, Bmp);
        SendMessage(W, WM_NCPAINT, 0, 0);
@@ -139,152 +601,218 @@
        SendMessage(W, WM_PAINT, WPARAM(BmpDC), 0);
        BitBlt(DC, 0, 0, CR.Right, CR.Bottom, BmpDC, 0, 0, SRCCOPY);
      finally
-@@ -3353,12 +3364,12 @@
+@@ -3185,6 +3404,7 @@
+   OldCurrentDock, NewCurrentDock: TTBDock;
+   NewFloating: Boolean;
+   SaveHandle: HWND;
++  NewPPI: Integer;
+ begin
+   OldCurrentDock := ParentToCurrentDock(Parent);
+   NewCurrentDock := ParentToCurrentDock(AParent);
+@@ -3256,6 +3476,20 @@
+               SetWindowPos(SaveHandle, 0, 0, 0, 0, 0, SWP_FRAMECHANGED or
+                 SWP_NOACTIVATE or SWP_NOMOVE or SWP_NOSIZE or SWP_NOZORDER);
+             end;
++            {$IF CompilerVersion > 31}
++            // Normally, setting the Parent scales the Form but here it doesn't because
++            // CustomDocakbleWindow has a FreeNotification (see TControl.SetParent)
++            if Assigned(AParent) and not(csLoading in ComponentState)
++              and (csFreeNotification in ComponentState)
++            then begin
++              if AParent is TTBFloatingWindowParent then
++                NewPPI := Screen.MonitorFromPoint(Point(FloatingPosition.X,
++                  FloatingPosition.Y)).PixelsPerInch
++              else
++                NewPPI := AParent.CurrentPPI;
++              ScaleForPPI(NewPPI);
++            end;
++            {$IFEND}
+             inherited;
+           except
+             { Failure is rare, but just in case, restore these back. }
+@@ -3353,12 +3587,12 @@
    BottomRight.X := Z;
    BottomRight.Y := Z;
    if not LeftRight then begin
 -    Inc(TopLeft.X, DragHandleSizes[CloseButtonWhenDocked, DragHandleStyle]);
-+    Inc(TopLeft.X, DragHandleSizes(CloseButtonWhenDocked, DragHandleStyle));
++    Inc(TopLeft.X, DragHandleSize);
      //if FShowChevron then
      //  Inc(BottomRight.X, tbChevronSize);
    end
    else begin
 -    Inc(TopLeft.Y, DragHandleSizes[CloseButtonWhenDocked, DragHandleStyle]);
-+    Inc(TopLeft.Y, DragHandleSizes(CloseButtonWhenDocked, DragHandleStyle));
++    Inc(TopLeft.Y, DragHandleSize);
      //if FShowChevron then
      //  Inc(BottomRight.Y, tbChevronSize);
    end;
-@@ -3392,14 +3403,14 @@
+@@ -3372,8 +3606,8 @@
+   XMetrics: array[Boolean] of Integer = (SM_CXDLGFRAME, SM_CXFRAME);
+   YMetrics: array[Boolean] of Integer = (SM_CYDLGFRAME, SM_CYFRAME);
+ begin
+-  Result.X := GetSystemMetrics(XMetrics[Resizable]);
+-  Result.Y := GetSystemMetrics(YMetrics[Resizable]);
++  Result.X := Windows.GetSystemMetrics(XMetrics[False]);    //was Resizable instead of False
++  Result.Y := Windows.GetSystemMetrics(YMetrics[False]);
+ end;
+ 
+ procedure TTBCustomDockableWindow.GetFloatingNCArea(var TopLeft, BottomRight: TPoint);
+@@ -3382,24 +3616,29 @@
+     TopLeft.X := X;
+     TopLeft.Y := Y;
+     if ShowCaption then
+-      Inc(TopLeft.Y, GetSmallCaptionHeight);
++      Inc(TopLeft.Y, GetSystemMetrics(SM_CYSMCAPTION));
+     BottomRight.X := X;
+     BottomRight.Y := Y;
+   end;
+ end;
+ 
++function TTBCustomDockableWindow.GetDockedBorderSize: Integer;
++begin
++  Result := PPIScale(_DockedBorderSize);
++end;
++
+ function TTBCustomDockableWindow.GetDockedCloseButtonRect(LeftRight: Boolean): TRect;
  var
    X, Y, Z: Integer;
  begin
 -  Z := DragHandleSizes[CloseButtonWhenDocked, FDragHandleStyle] - 3;
-+  Z := DragHandleSizes(CloseButtonWhenDocked, FDragHandleStyle) - 3;
++  Z := DragHandleSize - 3;
    if not LeftRight then begin
 -    X := DockedBorderSize+1;
-+    X := DockedBorderSize+DPIScale(1);
++    X := DockedBorderSize+PPIScale(1);
      Y := DockedBorderSize;
    end
    else begin
      X := (ClientWidth + DockedBorderSize) - Z;
 -    Y := DockedBorderSize+1;
-+    Y := DockedBorderSize+DPIScale(1);
++    Y := DockedBorderSize+PPIScale(1);
    end;
    Result := Bounds(X, Y, Z, Z);
  end;
-@@ -3416,7 +3427,7 @@
-     Result.X := DockedBorderSize2;
-     Result.Y := DockedBorderSize2;
+@@ -3413,10 +3652,10 @@
+     Result.Y := 0;
+   end
+   else begin
+-    Result.X := DockedBorderSize2;
+-    Result.Y := DockedBorderSize2;
++    Result.X := 2 * DockedBorderSize;
++    Result.Y := 2 * DockedBorderSize;
      if CurrentDock.FAllowDrag then begin
 -      Z := DragHandleSizes[FCloseButtonWhenDocked, FDragHandleStyle];
-+      Z := DragHandleSizes(FCloseButtonWhenDocked, FDragHandleStyle);
++      Z := DragHandleSize;
        if not(CurrentDock.Position in PositionLeftOrRight) then
          Inc(Result.X, Z)
        else
-@@ -3433,7 +3444,7 @@
+@@ -3433,7 +3672,7 @@
    begin
      InflateRect(R, -DockedBorderSize, -DockedBorderSize);
      if CurrentDock.FAllowDrag then begin
 -      Z := DragHandleSizes[FCloseButtonWhenDocked, FDragHandleStyle];
-+      Z := DragHandleSizes(FCloseButtonWhenDocked, FDragHandleStyle);
++      Z := DragHandleSize;
        if not(CurrentDock.Position in PositionLeftOrRight) then
          Inc(R.Left, Z)
        else
-@@ -3475,7 +3486,7 @@
+@@ -3475,7 +3714,7 @@
        I := P.X - R.Left
      else
        I := P.Y - R.Top;
 -    if I < DockedBorderSize + DragHandleSizes[CloseButtonWhenDocked, DragHandleStyle] then begin
-+    if I < DockedBorderSize + DragHandleSizes(CloseButtonWhenDocked, DragHandleStyle) then begin
++    if I < DockedBorderSize + DragHandleSize then begin
        SetCursor(LoadCursor(0, IDC_SIZEALL));
        Message.Result := 1;
        Exit;
-@@ -3560,7 +3571,7 @@
-     else
-       FrameRect(DC, R, Brush);
-     R2 := R;
--    InflateRect(R2, -1, -1);
-+    InflateRect(R2, -DPIScale(1), -DPIScale(1));
-     if not UsingBackground then
-       FrameRect(DC, R2, Brush);
- 
-@@ -3571,7 +3582,7 @@
-       P2 := CurrentDock.Parent.ClientToScreen(CurrentDock.BoundsRect.TopLeft);
-       Dec(R2.Left, Left + CurrentDock.Left + (P1.X-P2.X));
-       Dec(R2.Top, Top + CurrentDock.Top + (P1.Y-P2.Y));
--      InflateRect(R, -1, -1);
-+      InflateRect(R, -DPIScale(1), -DPIScale(1));
-       GetWindowRect(Handle, R4);
-       R3 := ClientRect;
-       with ClientToScreen(Point(0, 0)) do
-@@ -3591,31 +3602,32 @@
+@@ -3591,31 +3830,32 @@
        else
          Y2 := ClientWidth;
        Inc(Y2, DockedBorderSize);
 -      S := DragHandleSizes[FCloseButtonWhenDocked, FDragHandleStyle];
-+      S := DragHandleSizes(FCloseButtonWhenDocked, FDragHandleStyle);
++      S := DragHandleSize;
        if FDragHandleStyle <> dhNone then begin
          Y3 := Y2;
 -        X := DockedBorderSize + DragHandleXOffsets[FCloseButtonWhenDocked, FDragHandleStyle];
 +
-+        X := DockedBorderSize + DragHandleXOffsets(FCloseButtonWhenDocked, FDragHandleStyle);
++        X := DockedBorderSize + DragHandleXOffset;
          Y := DockedBorderSize;
          YO := Ord(FDragHandleStyle = dhSingle);
          if FCloseButtonWhenDocked then begin
            if not VerticalDock then
 -            Inc(Y, S - 2)
-+            Inc(Y, S - DPIScale(2))
++            Inc(Y, S - PPIScale(2))
            else
 -            Dec(Y3, S - 2);
-+            Dec(Y3, S - DPIScale(2));
++            Dec(Y3, S - PPIScale(2));
          end;
          Clr := GetSysColor(COLOR_BTNHIGHLIGHT);
          for B := False to (FDragHandleStyle = dhDouble) do begin
            if not VerticalDock then
 -            R2 := Rect(X, Y+YO, X+3, Y2-YO)
-+            R2 := Rect(X, Y+YO, X+DPIScale(3), Y2-YO)
++            R2 := Rect(X, Y+YO, X+PPIScale(3), Y2-YO)
            else
 -            R2 := Rect(Y+YO, X, Y3-YO, X+3);
-+            R2 := Rect(Y+YO, X, Y3-YO, X+DPIScale(3));
++            R2 := Rect(Y+YO, X, Y3-YO, X+PPIScale(3));
            DrawRaisedEdge(R2, True);
            if not VerticalDock then
 -            SetPixelV(DC, X, Y2-1-YO, Clr)
-+            SetPixelV(DC, X, Y2-DPIScale(1)-YO, Clr)
++            SetPixelV(DC, X, Y2-PPIScale(1)-YO, Clr)
            else
              SetPixelV(DC, Y3-1-YO, X, Clr);
            ExcludeClipRect(DC, R2.Left, R2.Top, R2.Right, R2.Bottom);
 -          Inc(X, 3);
-+          Inc(X, DPIScale(3));
++          Inc(X, PPIScale(3));
          end;
        end;
        if not UsingBackground then begin
-@@ -3635,9 +3647,9 @@
+@@ -3635,9 +3875,9 @@
            DrawEdge(DC, R2, BDR_SUNKENOUTER, BF_RECT)
          else if FCloseButtonHover then
            DrawRaisedEdge(R2, False);
 -        InflateRect(R2, -2, -2);
-+        InflateRect(R2, -DPIScale(2), -DPIScale(2));
++        InflateRect(R2, -PPIScale(2), -PPIScale(2));
          if FCloseButtonDown then
 -          OffsetRect(R2, 1, 1);
-+          OffsetRect(R2, DPIScale(1), DPIScale(1));
++          OffsetRect(R2, PPIScale(1), PPIScale(1));
          DrawButtonBitmap(CreateCloseButtonBitmap);
        end;
      end;
-@@ -3874,7 +3886,7 @@
+@@ -3727,6 +3967,22 @@
+   end;
+ end;
+ 
++function TTBCustomDockableWindow.GetDragHandleSize: Integer;
++ const
++   Sizes: array[Boolean, TTBDragHandleStyle] of Integer = ((9, 0, 6), (14, 14, 14));
++ begin
++  Result := 0;
++  if Assigned(CurrentDock) and CurrentDock.AllowDrag then
++   Result := PPIScale(Sizes[CloseButtonWhenDocked, DragHandleStyle]);
++end;
++
++function TTBCustomDockableWindow.GetDragHandleXOffset: Integer;
++ const
++   Offsets: array[Boolean, TTBDragHandleStyle] of Integer = ((2, 0, 1), (3, 0, 5));
++ begin
++   Result := PPIScale(Offsets[CloseButtonWhenDocked, DragHandleStyle]);
++end;
++
+ procedure TTBCustomDockableWindow.DrawDraggingOutline(const DC: HDC;
+   const NewRect, OldRect: TRect; const NewDocking, OldDocking: Boolean);
+ var
+@@ -3874,7 +4130,7 @@
              C := FirstPos.X - LastPos.X
            else
              C := FirstPos.Y - LastPos.Y;
 -          if Abs(C) >= 10 then begin
-+          if Abs(C) >= DPIScale(10) then begin
++          if Abs(C) >= PPIScale(10) then begin
              WatchForSplit := False;
              FDragSplitting := True;
              SetCursor(LoadCursor(0, SplitCursors[SplitVertical]));
-@@ -3941,15 +3953,15 @@
+@@ -3941,15 +4197,15 @@
        with Control do begin
          Result := False;
  
 -        InflateRect(R, 3, 3);
-+        InflateRect(R, DPIScale(3), DPIScale(3));
++        InflateRect(R, PPIScale(3), PPIScale(3));
          S := GetDockRect(Control);
  
          { Like Office, distribute ~25 pixels of extra dock detection area
@@ -293,56 +821,72 @@
            toolbar was grabbed at the right. If outside, don't try to dock. }
 -        Sens := MulDiv(DockSensX, NPoint.X, DPoint.X);
 -        if (Pos.X < R.Left-(DockSensX-Sens)) or (Pos.X >= R.Right+Sens) then
-+        Sens := MulDiv(DPIScale(DockSensX), NPoint.X, DPoint.X);
-+        if (Pos.X < R.Left-(DPIScale(DockSensX)-Sens)) or (Pos.X >= R.Right+Sens) then
++        Sens := MulDiv(PPIScale(DockSensX), NPoint.X, DPoint.X);
++        if (Pos.X < R.Left-(PPIScale(DockSensX)-Sens)) or (Pos.X >= R.Right+Sens) then
            Exit;
  
          { Don't try to dock to the left or right if pointer is above or below
-@@ -3960,8 +3972,8 @@
+@@ -3960,8 +4216,8 @@
  
          { And also distribute ~25 pixels of extra dock detection area to
            the top or bottom side }
 -        Sens := MulDiv(DockSensY, NPoint.Y, DPoint.Y);
 -        if (Pos.Y < R.Top-(DockSensY-Sens)) or (Pos.Y >= R.Bottom+Sens) then
-+        Sens := MulDiv(DPIScale(DockSensY), NPoint.Y, DPoint.Y);
-+        if (Pos.Y < R.Top-(DPIScale(DockSensY)-Sens)) or (Pos.Y >= R.Bottom+Sens) then
++        Sens := MulDiv(PPIScale(DockSensY), NPoint.Y, DPoint.Y);
++        if (Pos.Y < R.Top-(PPIScale(DockSensY)-Sens)) or (Pos.Y >= R.Bottom+Sens) then
            Exit;
  
          Result := IntersectRect(Temp, R, S);
-@@ -4022,7 +4034,7 @@
+@@ -4022,7 +4278,7 @@
        R2 := GetRectOfMonitorContainingPoint(Pos, True);
        R := R2;
        with GetFloatingBorderSize do
 -        InflateRect(R, -(X+4), -(Y+4));
-+        InflateRect(R, -(X+DPIScale(4)), -(Y+DPIScale(4)));
++        InflateRect(R, -(X+PPIScale(4)), -(Y+PPIScale(4)));
        if MoveRect.Bottom < R.Top then
          OffsetRect(MoveRect, 0, R.Top-MoveRect.Bottom);
        if MoveRect.Top > R.Bottom then
-@@ -4033,7 +4045,7 @@
+@@ -4033,7 +4289,7 @@
          OffsetRect(MoveRect, R.Right-MoveRect.Left, 0);
  
        GetFloatingNCArea(TL, BR);
 -      I := R2.Top + 4 - TL.Y;
-+      I := R2.Top + DPIScale(4) - TL.Y;
++      I := R2.Top + PPIScale(4) - TL.Y;
        if MoveRect.Top < I then
          OffsetRect(MoveRect, 0, I-MoveRect.Top);
      end;
-@@ -4151,12 +4163,12 @@
-       if not(Parent is TTBFloatingWindowParent) then begin
-         GetWindowRect(Handle, R);
-         R.BottomRight := ClientToScreen(Point(0, 0));
--        DPoint := Point(Width-1, Height-1);
-+        DPoint := Point(Width-DPIScale(1), Height-DPIScale(1));
-       end
-       else begin
-         GetWindowRect(Parent.Handle, R);
-         R.BottomRight := Parent.ClientToScreen(Point(0, 0));
--        DPoint := Point(Parent.Width-1, Parent.Height-1);
-+        DPoint := Point(Parent.Width-DPIScale(1), Parent.Height-DPIScale(1));
-       end;
-       Dec(NPoint.X, R.Left-R.Right);
-       Dec(NPoint.Y, R.Top-R.Bottom);
-@@ -5215,8 +5227,7 @@
+@@ -4394,7 +4650,7 @@
+   else
+   if Assigned(DefaultDock) then begin
+     FDockRow := ForceDockAtTopRow;
+-    FDockPos := ForceDockAtLeftPos;
++    FDockPos := -PPIScale(-_ForceDockAtLeftPos);
+     Parent := DefaultDock;
+   end;
+ end;
+@@ -5037,6 +5293,7 @@
+             BorderStyle := bsToolWindow;
+             ShowHint := True;
+             Visible := True;
++            ParentFont := False;
+             { Note: The above line doesn't actually make it visible at this
+               point since FShouldShow is still False. }
+           end;
+@@ -5049,8 +5306,13 @@
+       ParentFrm.FreeNotification(FFloatParent);
+       FFloatParent.FParentForm := ParentFrm;
+       FFloatParent.Caption := Caption;
++//      {$IF CompilerVersion > 31}
++//      FFloatParent.Font.Height := MulDiv(FFloatParent.Font.Height,
++//        FFloatParent.FCurrentPPI, FFloatParent.Font.PixelsPerInch);
++//      {$IFEND}
+       Parent := FFloatParent;
+       SetBounds(0, 0, Width, Height);
++      FFloatParent.ScaleForCurrentDpi;
+     end
+     else
+       Parent := TBValidToolWindowParentForm(Self);
+@@ -5215,8 +5477,7 @@
    if FBitmapCache = nil then begin
      FBitmapCache := TBitmap.Create;
      FBitmapCache.Palette := CopyPalette(FBitmap.Palette);
@@ -353,7 +897,7 @@
        { Copy from a possible DIB to our DDB }
        BitBlt(FBitmapCache.Canvas.Handle, 0, 0, FBitmapCache.Width,
 --- TB2DsgnItemEditor.pas	Thu Sep 25 13:49:32 2008
-+++ TB2DsgnItemEditor.pas	Mon Sep 03 09:30:04 2018
++++ TB2DsgnItemEditor.pas	Fri May 29 05:32:50 2020
 @@ -207,7 +207,8 @@
    can't be unloaded. When a design-time package is uninstalled, it remains
    loaded until the IDE is restarted. }
@@ -365,30 +909,37 @@
    I: Integer;
    Info: TItemClassInfo;
 --- TB2ExtItems.pas	Thu Apr 10 16:51:12 2008
-+++ TB2ExtItems.pas	Mon Sep 03 09:30:04 2018
-@@ -214,9 +214,9 @@
- uses
++++ TB2ExtItems.pas	Fri Feb 28 18:45:54 2020
+@@ -157,6 +157,8 @@
+     function EditLoop(const CapHandle: HWND): Boolean;
+     procedure EditWndProc(var Message: TMessage);
+     procedure MouseBeginEdit;
++    function GetEditMenuTextMargin: Integer;
++    function GetEditMenuMidWidth: Integer;
+   protected
+     procedure CalcSize(const Canvas: TCanvas; var AWidth, AHeight: Integer);
+       override;
+@@ -173,6 +175,8 @@
+     procedure Paint(const Canvas: TCanvas; const ClientAreaRect: TRect;
+       IsSelected, IsPushed, UseDisabledShadow: Boolean); override;
+     function UsesSameWidth: Boolean; override;
++    property EditMenuTextMargin: Integer read GetEditMenuTextMargin;
++    property EditMenuMidWidth: Integer Read GetEditMenuMidWidth;
+   public
+     property EditControl: TEdit read FEditControl;
+   end;
+@@ -215,8 +219,8 @@
    TB2Common, TB2Consts;
  
--const
+ const
 -  EditMenuTextMargin = 3;
 -  EditMenuMidWidth = 4;
-+
-+  function EditMenuTextMargin: integer; begin Result := DPIScale(3) end;
-+  function EditMenuMidWidth: integer; begin Result := DPIScale(4) end;
++  _EditMenuTextMargin = 3;
++  _EditMenuMidWidth = 4;
  
  type
    TControlAccess = class(TControl);
-@@ -229,7 +229,7 @@
- begin
-   inherited;
-   FEditOptions := EditItemDefaultEditOptions;
--  FEditWidth := EditItemDefaultEditWidth;
-+  FEditWidth := DPIScale(EditItemDefaultEditWidth);
-   DisableIfNoHandler := False;
- end;
- 
-@@ -238,9 +238,16 @@
+@@ -238,9 +242,16 @@
    I: Integer;
  begin
    if FEditCaption <> Value then begin
@@ -405,7 +956,7 @@
      FEditCaption := Value;
      Change;
    end;
-@@ -251,9 +258,16 @@
+@@ -251,9 +262,16 @@
    I: Integer;
  begin
    if FEditOptions <> Value then begin
@@ -422,7 +973,7 @@
      FEditOptions := Value;
      Change;
    end;
-@@ -264,9 +278,16 @@
+@@ -264,9 +282,16 @@
    I: Integer;
  begin
    if FEditWidth <> Value then begin
@@ -439,7 +990,7 @@
      FEditWidth := Value;
      Change;
    end;
-@@ -281,9 +302,16 @@
+@@ -281,9 +306,16 @@
    {$ELSE}
    if @FOnAcceptText <> @Value then begin
    {$ENDIF}
@@ -456,7 +1007,7 @@
      FOnAcceptText := Value;
      Change;
    end;
-@@ -294,9 +322,16 @@
+@@ -294,9 +326,16 @@
    I: Integer;
  begin
    if FText <> Value then begin
@@ -473,91 +1024,146 @@
      FText := Value;
      Change;
    end;
-@@ -387,7 +422,7 @@
- begin
-   inherited;
-   FEditOptions := EditItemDefaultEditOptions;
--  FEditWidth := EditItemDefaultEditWidth;
-+  FEditWidth := DPIScale(EditItemDefaultEditWidth);
+@@ -569,6 +608,16 @@
+   end;
  end;
  
- procedure TTBEditItem.ActionChange(Sender: TObject; CheckDefaults: Boolean);
-@@ -457,7 +492,7 @@
- 
- function TTBEditItem.IsEditWidthStored: Boolean;
++function TTBEditItemViewer.GetEditMenuMidWidth: Integer;
++begin
++  Result := PPIScale(_EditMenuMidWidth);
++end;
++
++function TTBEditItemViewer.GetEditMenuTextMargin: Integer;
++begin
++  Result := PPIScale(_EditMenuTextMargin);
++end;
++
+ procedure TTBEditItemViewer.GetEditRect(var R: TRect);
+ var
+   Item: TTBEditItem;
+@@ -596,8 +645,8 @@
  begin
--  Result := (EditWidth <> EditItemDefaultEditWidth) and
-+  Result := (EditWidth <> DPIScale(EditItemDefaultEditWidth)) and
-     ((ActionLink = nil) or not(ActionLink is TTBEditItemActionLink) or
-      not TTBEditItemActionLink(ActionLink).IsEditWidthLinked);
- end;
-@@ -597,7 +632,7 @@
    Item := TTBEditItem(Self.Item);
    DC := Canvas.Handle;
-   AWidth := Item.FEditWidth;
+-  AWidth := Item.FEditWidth;
 -  AHeight := GetTextHeight(DC) + (EditMenuTextMargin * 2) + 1;
-+  AHeight := GetTextHeight(DC) + (EditMenuTextMargin * 2) + DPIScale(1);
++  AWidth := PPIScale(Item.FEditWidth);
++  AHeight := GetTextHeight(DC) + (EditMenuTextMargin * 2) + PPIScale(1);
    if not IsToolbarStyle and (Item.EditCaption <> '') then begin
      Inc(AWidth, GetTextWidth(DC, Item.EditCaption, True) + EditMenuMidWidth +
        EditMenuTextMargin * 2);
-@@ -649,15 +684,15 @@
-   { Border }
-   if IsSelected and Item.Enabled then
-     DrawEdge(Canvas.Handle, R, BDR_SUNKENOUTER, BF_RECT);
--  InflateRect(R, -1, -1);
-+  InflateRect(R, -DPIScale(1), -DPIScale(1));
-   Canvas.Brush.Color := FillColors[not Item.Enabled];
-   Canvas.FrameRect(R);
--  InflateRect(R, -1, -1);
-+  InflateRect(R, -DPIScale(1), -DPIScale(1));
- 
-   { Fill }
-   Canvas.Brush.Color := FillColors[Item.Enabled];
-   Canvas.FillRect(R);
--  InflateRect(R, -1, -1);
-+  InflateRect(R, -DPIScale(1), -DPIScale(1));
- 
-   { Text }
-   if Item.Text <> '' then begin
-@@ -676,7 +711,7 @@
+@@ -676,7 +725,7 @@
      Exit;
    GetEditRect(R);
    OffsetRect(R, -BoundsRect.Left, -BoundsRect.Top);
 -  InflateRect(R, -2, -2);
-+  InflateRect(R, -DPIScale(2), -DPIScale(2));
++  InflateRect(R, -PPIScale(2), -PPIScale(2));
    if PtInRect(R, Pt) then
      ACursor := LoadCursor(0, IDC_IBEAM);
  end;
-@@ -823,7 +858,7 @@
+@@ -823,7 +872,7 @@
    FocusWnd := GetFocus;
  
    { Create the edit control }
 -  InflateRect(R, -3, -3);
-+  InflateRect(R, -DPIScale(3), -DPIScale(3));
++  InflateRect(R, -PPIScale(3), -PPIScale(3));
    //View.FreeNotification(Self);
    FEditControl := TEdit.Create(nil);
    try
 --- TB2Item.pas	Fri Sep 19 11:35:48 2008
-+++ TB2Item.pas	Thu Nov 15 11:15:32 2018
++++ TB2Item.pas	Sun Sep 20 17:50:50 2020
 @@ -40,7 +40,11 @@
  uses
    Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
    {$IFDEF CLR} TB2OleMarshal, {$ENDIF}
 -  StdCtrls, CommCtrl, Menus, ActnList, ImgList, TB2Anim;
 +  StdCtrls, CommCtrl, Menus, ActnList, ImgList, TB2Anim,
-+  {$IF CompilerVersion >= 25} 
++  {$IF CompilerVersion >= 25}
 +  System.UITypes, // Robert XE4
 +  {$IFEND}
 +  Types;
  
  type
    TTBCustomItem = class;
-@@ -800,26 +804,26 @@
+@@ -323,6 +327,14 @@
+     FView: TTBView;
+     procedure AccSelect(const AExecute: Boolean);
+     function GetIndex: Integer;
++    function GetMenuImageTextSpace: Integer;
++    function GetMenuLeftTextMargin: Integer;
++    function GetMenuRightTextMargin: Integer;
++    function GetMenuVerticalMargin: Integer;
++    function GetDropdownArrowMargin: Integer;
++    function GetDropdownArrowWidth: Integer;
++    function GetDropdownComboArrowWidth: Integer;
++    function GetDropdownComboMargin: Integer;
+   protected
+     FAccObjectInstance: TTBBaseAccObject;
+     procedure CalcSize(const Canvas: TCanvas; var AWidth, AHeight: Integer);
+@@ -353,7 +365,18 @@
+       IsSelected, IsPushed, UseDisabledShadow: Boolean); virtual;
+     procedure PostAccSelect(const AExecute: Boolean);
+     function UsesSameWidth: Boolean; virtual;
+-  public
++    function PPIScale(Value: Integer): Integer;
++
++    property tbMenuVerticalMargin: Integer read GetMenuVerticalMargin;
++    property tbMenuImageTextSpace: Integer read GetMenuImageTextSpace;
++    property tbMenuLeftTextMargin: Integer read GetMenuLeftTextMargin;
++    property tbMenuRightTextMargin: Integer read GetMenuRightTextMargin;
++    property tbDropdownArrowWidth: Integer read GetDropdownArrowWidth;
++    property tbDropdownArrowMargin:  Integer read GetDropdownArrowMargin;
++    property tbDropdownComboArrowWidth: Integer read GetDropdownComboArrowWidth;
++    property tbDropdownComboMargin: Integer read GetDropdownComboMargin;
++
++ public
+     State: set of (tbisInvalidated, tbisLineSep);
+     property BoundsRect: TRect read FBoundsRect;
+     property Clipped: Boolean read FClipped;
+@@ -444,6 +467,8 @@
+     procedure StopAllTimers;
+     procedure StopTimer(const ATimer: TTBViewTimerID);
+     procedure UpdateCurParentItem;
++    function GetLineSpacing: Integer;
++    function GetMenuScrollArrowHeight: Integer;
+   protected
+     FAccObjectInstance: TTBBaseAccObject;
+     procedure AutoSize(AWidth, AHeight: Integer); virtual;
+@@ -465,6 +490,9 @@
+     procedure KeyDown(var Key: Word; Shift: TShiftState); virtual;
+     procedure Notification(AComponent: TComponent; Operation: TOperation); override;
+     procedure SetAccelsVisibility(AShowAccels: Boolean);
++    function PPIScale(Value: Integer): Integer;
++    property tbMenuScrollArrowHeight: Integer read GetMenuScrollArrowHeight;
++    property tbLineSpacing: Integer read GetLineSpacing;
+   public
+     constructor Create(AOwner: TComponent; AParentView: TTBView;
+       AParentItem: TTBCustomItem; AWindow: TWinControl;
+@@ -626,12 +654,19 @@
+   end;
+ 
+   TTBSeparatorItemViewer = class(TTBItemViewer)
++  private
++    function GetMenuSeparatorOffset: Integer;
++    function GetLineSepOffset: Integer;
++    function GetDockedLineSepOffset: Integer;
+   protected
+     procedure CalcSize(const Canvas: TCanvas;
+       var AWidth, AHeight: Integer); override;
+     procedure Paint(const Canvas: TCanvas; const ClientAreaRect: TRect;
+       IsSelected, IsPushed, UseDisabledShadow: Boolean); override;
+     function UsesSameWidth: Boolean; override;
++    property tbMenuSeparatorOffset: Integer read GetMenuSeparatorOffset;
++    property tbLineSepOffset: Integer read GetLineSepOffset;
++    property tbDockedLineSepOffset: Integer read GetDockedLineSepOffset;
+   end;
+ 
+   TTBControlItem = class(TTBCustomItem)
+@@ -800,25 +835,6 @@
    tbMenuBkColor = clBtnFace;
    tbMenuTextColor = clBtnText;
    {$ENDIF}
-+  WM_TB2K_CLICKITEM = WM_USER + $100;
- 
+-
 -  tbMenuVerticalMargin = 4;
 -  tbMenuImageTextSpace = 1;
 -  tbMenuLeftTextMargin = 2;
@@ -575,111 +1181,197 @@
 -  tbLineSpacing = 6;
 -  tbLineSepOffset = 1;
 -  tbDockedLineSepOffset = 4;
-+  function tbMenuVerticalMargin : integer;
-+  function tbMenuImageTextSpace  : integer;
-+  function tbMenuLeftTextMargin  : integer;
-+  function tbMenuRightTextMargin  : integer;
-+
-+  function tbMenuSeparatorOffset  : integer;
-+
-+  function tbMenuScrollArrowHeight  : integer;
-+
-+  function tbDropdownArrowWidth  : integer;
-+  function tbDropdownArrowMargin  : integer;
-+  function tbDropdownComboArrowWidth  : integer;
-+  function tbDropdownComboMargin  : integer;
-+
-+  function tbLineSpacing  : integer;
-+  function tbLineSepOffset  : integer;
-+  function tbDockedLineSepOffset  : integer;
- 
--  WM_TB2K_CLICKITEM = WM_USER + $100;
+-
+   WM_TB2K_CLICKITEM = WM_USER + $100;
  
  function TBGetItems(const AObject: TObject): TTBCustomItem;
- procedure TBInitToolbarSystemFont;
-@@ -842,6 +846,24 @@
+@@ -833,6 +849,9 @@
+ uses
+   {$IFDEF CLR} System.Runtime.InteropServices, System.Text, System.Threading,
+     Types, WinUtils, {$ENDIF}
++  {$IF CompilerVersion >= 33}
++  TB2DocK,
++  {$IFEND}
+   TB2Consts, TB2Common, IMM, TB2Acc;
+ 
+ {$UNDEF ALLOCHWND_CLASSES}
+@@ -841,6 +860,22 @@
+     {$DEFINE ALLOCHWND_CLASSES}
    {$ENDIF}
  {$ENDIF}
++const
++  _tbMenuVerticalMargin = 4;
++  _tbMenuImageTextSpace = 1;
++  _tbMenuLeftTextMargin = 2;
++  _tbMenuRightTextMargin = 3;
++  _tbDropdownArrowWidth = 8;
++  _tbDropdownArrowMargin = 3;
++  _tbDropdownComboArrowWidth = 11;
++  _tbDropdownComboMargin = 2;
++
++  _tbMenuSeparatorOffset = 12;
++  _tbLineSepOffset = 1;
++  _tbDockedLineSepOffset = 4;
++
++  _tbMenuScrollArrowHeight = 19;
++  _tbLineSpacing = 6;
  
-+  function tbMenuVerticalMargin: integer; begin Result := DPIScale(4) end;
-+  function tbMenuImageTextSpace : integer; begin Result := DPIScale(1) end;
-+  function tbMenuLeftTextMargin : integer; begin Result := DPIScale(2) end;
-+  function tbMenuRightTextMargin : integer; begin Result := DPIScale(3) end;
-+
-+  function tbMenuSeparatorOffset : integer; begin Result := DPIScale(12) end;
-+
-+  function tbMenuScrollArrowHeight: integer; begin Result := DPIScale(19) end;
-+
-+  function tbDropdownArrowWidth : integer; begin Result := DPIScale(8) end;
-+  function tbDropdownArrowMargin : integer; begin Result := DPIScale(3) end;
-+  function tbDropdownComboArrowWidth : integer; begin Result := DPIScale(11) end;
-+  function tbDropdownComboMargin : integer; begin Result := DPIScale(2) end;
-+
-+  function tbLineSpacing : integer; begin Result := DPIScale(6) end;
-+  function tbLineSepOffset : integer; begin Result := DPIScale(1) end;
-+  function tbDockedLineSepOffset : integer; begin Result := DPIScale(4) end;
-+
  var
    LastPos: TPoint;
- 
-@@ -2511,10 +2533,10 @@
+@@ -1772,6 +1807,12 @@
+   Opposite := Assigned(ParentView) and (vsOppositePopup in ParentView.FState);
+   Result := GetPopupWindowClass.CreatePopupWindow(nil, ParentView, ParentItem,
+     Customizing);
++  {$IF CompilerVersion >= 33}
++  if Assigned(ParentView) then
++    Result.FCurrentPPI := ParentView.Window.CurrentPPI
++  else
++    Result.FCurrentPPI := Screen.MonitorFromPoint(APopupPoint).PixelsPerInch;
++  {$IFEND}
+   try
+     if Assigned(ChevronParentView) then begin
+       ChevronParentView.FreeNotification(Result.View);
+@@ -2511,13 +2552,28 @@
  begin
    if not IsToolbarStyle then
      { Office 2000's menu separators have a hard-coded height of 10 }
 -    AHeight := 10
-+    AHeight := DPIScale(10)
++    AHeight := PPIScale(10)
    else begin
 -    AWidth := 6;
 -    AHeight := 6;
-+    AWidth := DPIScale(6);
-+    AHeight := DPIScale(6);
++    AWidth := PPIScale(6);
++    AHeight := PPIScale(6);
    end;
  end;
  
-@@ -2536,7 +2558,7 @@
++function TTBSeparatorItemViewer.GetLineSepOffset: Integer;
++begin
++  Result := PPIScale(_tbLineSepOffset);
++end;
++
++function TTBSeparatorItemViewer.GetDockedLineSepOffset: Integer;
++begin
++  Result := PPIScale(_tbDockedLineSepOffset);
++end;
++
++function TTBSeparatorItemViewer.GetMenuSeparatorOffset: Integer;
++begin
++  Result := PPIScale(_tbMenuSeparatorOffset);
++end;
++
+ procedure TTBSeparatorItemViewer.Paint(const Canvas: TCanvas;
+   const ClientAreaRect: TRect; IsSelected, IsPushed, UseDisabledShadow: Boolean);
+ var
+@@ -2536,7 +2592,7 @@
    if LineSep then
      Horiz := not Horiz;
    if Horiz then begin
 -    R.Top := R.Bottom div 2 - 1;
-+    R.Top := R.Bottom div 2 - DPIScale(1);
++    R.Top := R.Bottom div 2 - PPIScale(1);
      if not ToolbarStyle then
        InflateRect(R, -tbMenuSeparatorOffset, 0)
      else if LineSep then begin
-@@ -2548,7 +2570,7 @@
+@@ -2548,7 +2604,7 @@
      DrawEdge(DC, R, EDGE_ETCHED, BF_TOP);
    end
    else begin
 -    R.Left := R.Right div 2 - 1;
-+    R.Left := R.Right div 2 - DPIScale(1);
++    R.Left := R.Right div 2 - PPIScale(1);
      if LineSep then
        InflateRect(R, 0, -tbDockedLineSepOffset);
      DrawEdge(DC, R, EDGE_ETCHED, BF_LEFT);
-@@ -2756,8 +2778,8 @@
+@@ -2651,6 +2707,11 @@
+   QueueClick(Self, Ord(AExecute));
+ end;
+ 
++function TTBItemViewer.PPIScale(Value: Integer): Integer;
++begin
++  Result := FView.PPIScale(Value);
++end;
++
+ function TTBItemViewer.IsAccessible: Boolean;
+ { Returns True if MSAA clients should know about the viewer, specifically
+   if it's either shown, off-edge, or clipped (in other words, not completely
+@@ -2712,24 +2773,37 @@
+ function TTBItemViewer.GetImageList: TCustomImageList;
+ var
+   V: TTBView;
++  FloatingParent : TTBFloatingWindowParent;
+ begin
+   Result := Item.Images;
+-  if Assigned(Result) then
+-    Exit;
+-  V := View;
+-  repeat
+-    if Assigned(V.FCurParentItem) then begin
+-      Result := V.FCurParentItem.SubMenuImages;
+-      if Assigned(Result) then
+-        Break;
+-    end;
+-    if Assigned(V.FParentItem) then begin
+-      Result := V.FParentItem.SubMenuImages;
+-      if Assigned(Result) then
+-        Break;
++  if not Assigned(Result) then begin
++    V := View;
++    repeat
++      if Assigned(V.FCurParentItem) then begin
++        Result := V.FCurParentItem.SubMenuImages;
++        if Assigned(Result) then
++          Break;
++      end;
++      if Assigned(V.FParentItem) then begin
++        Result := V.FParentItem.SubMenuImages;
++        if Assigned(Result) then
++          Break;
++      end;
++      V := V.FParentView;
++    until V = nil;
++  end;
++  {$IF CompilerVersion >= 33}
++  if Assigned(Result) and (View.Window.Parent is TTBFloatingWindowParent) then begin
++    FloatingParent := TTBFloatingWindowParent(View.Window.Parent);
++    if FloatingParent.CurrentPPI <> FloatingParent.ParentForm.CurrentPPI then begin
++      FloatingParent.FVirtualImageList.SourceImageList := Result;
++      FloatingParent.FVirtualImageList.SetSize(
++        MulDiv(Result.Width, FloatingParent.CurrentPPI, FloatingParent.ParentForm.CurrentPPI),
++        MulDiv(Result.Height, FloatingParent.CurrentPPI, FloatingParent.ParentForm.CurrentPPI));
++      Result := FloatingParent.FVirtualImageList;
+     end;
+-    V := V.FParentView;
+-  until V = nil;
++  end;
++  {$IFEND}
+ end;
+ 
+ function TTBItemViewer.IsRotated: Boolean;
+@@ -2756,8 +2830,8 @@
    DC := Canvas.Handle;
    ImgList := GetImageList;
    if ToolbarStyle then begin
 -    AWidth := 6;
 -    AHeight := 6;
-+    AWidth := DPIScale(6);
-+    AHeight := DPIScale(6);
++    AWidth := PPIScale(6);
++    AHeight := PPIScale(6);
    end
    else begin
      AWidth := 0;
-@@ -2769,7 +2791,7 @@
+@@ -2769,7 +2843,7 @@
        Inc(AHeight, TextMetrics.tmHeight);
        Inc(AWidth, GetTextWidth(DC, GetCaptionText, True));
        if ToolbarStyle then
 -        Inc(AWidth, 6);
-+        Inc(AWidth, DPIScale(6));
++        Inc(AWidth, PPIScale(6));
      end
      else begin
        { Vertical text isn't always the same size as horizontal text, so we have
-@@ -2780,21 +2802,21 @@
+@@ -2780,21 +2854,21 @@
        Inc(AWidth, TextMetrics.tmHeight);
        Inc(AHeight, GetTextWidth(DC, GetCaptionText, True));
        if ToolbarStyle then
 -        Inc(AHeight, 6);
-+        Inc(AHeight, DPIScale(6));
++        Inc(AHeight, PPIScale(6));
        SelectObject(DC, SaveFont);
        DeleteObject(RotatedFont);
      end;
@@ -689,55 +1381,64 @@
 -      Inc(AWidth, ImgList.Width + 1);
 -      if AHeight < ImgList.Height + 6 then
 -        AHeight := ImgList.Height + 6;
-+      Inc(AWidth, ImgList.Width + DPIScale(1));
-+      if AHeight < ImgList.Height + DPIScale(6) then
-+        AHeight := ImgList.Height + DPIScale(6);
++      Inc(AWidth, ImgList.Width + PPIScale(1));
++      if AHeight < ImgList.Height + PPIScale(6) then
++        AHeight := ImgList.Height + PPIScale(6);
      end
      else begin
        Inc(AHeight, ImgList.Height);
 -      if AWidth < ImgList.Width + 7 then
 -        AWidth := ImgList.Width + 7;
-+      if AWidth < ImgList.Width + DPIScale(7) then
-+        AWidth := ImgList.Width + DPIScale(7);
++      if AWidth < ImgList.Width + PPIScale(7) then
++        AWidth := ImgList.Width + PPIScale(7);
      end;
    end;
    if ToolbarStyle and (tbisSubmenu in Item.ItemStyle) then begin
-@@ -2811,10 +2833,10 @@
+@@ -2811,10 +2885,10 @@
    if not ToolbarStyle then begin
      Inc(AHeight, TextMetrics.tmExternalLeading + tbMenuVerticalMargin);
      if Assigned(ImgList) then begin
 -      H := ImgList.Height + 3;
-+      H := ImgList.Height + DPIScale(3);
++      H := ImgList.Height + PPIScale(3);
        if H > AHeight then
          AHeight := H;
 -      LeftMargin := MulDiv(ImgList.Width + 3, AHeight, H);
-+      LeftMargin := MulDiv(ImgList.Width + DPIScale(3), AHeight, H);
++      LeftMargin := MulDiv(ImgList.Width + PPIScale(3), AHeight, H);
      end
      else
        LeftMargin := AHeight;
-@@ -2822,7 +2844,7 @@
+@@ -2822,7 +2896,7 @@
        tbMenuRightTextMargin);
      S := Item.GetShortCutText;
      if S <> '' then
 -      Inc(AWidth, (AHeight - 6) + GetTextWidth(DC, S, True));
-+      Inc(AWidth, (AHeight - DPIScale(6)) + GetTextWidth(DC, S, True));
++      Inc(AWidth, (AHeight - PPIScale(6)) + GetTextWidth(DC, S, True));
      Inc(AWidth, AHeight);
    end;
  end;
-@@ -2849,10 +2871,10 @@
+@@ -2837,7 +2911,7 @@
+     if not IsRotated then
+       DrawTextStr(DC, ACaption, ARect, AFormat)
+     else
+-      DrawRotatedText(DC, ACaption, ARect, AFormat);
++      DrawRotatedText(DC, ACaption, ARect, AFormat, PPIScale);
+   end;
+ 
+ var
+@@ -2849,10 +2923,10 @@
    else begin
      ShadowColor := GetSysColor(COLOR_BTNSHADOW);
      HighlightColor := GetSysColor(COLOR_BTNHIGHLIGHT);
 -    OffsetRect(ARect, 1, 1);
-+    OffsetRect(ARect, DPIScale(1), DPIScale(1));
++    OffsetRect(ARect, PPIScale(1), PPIScale(1));
      SaveTextColor := SetTextColor(DC, HighlightColor);
      Draw;
 -    OffsetRect(ARect, -1, -1);
-+    OffsetRect(ARect, -DPIScale(1), -DPIScale(1));
++    OffsetRect(ARect, -PPIScale(1), -PPIScale(1));
      SetTextColor(DC, ShadowColor);
      Draw;
      SetTextColor(DC, SaveTextColor);
-@@ -2900,24 +2922,23 @@
+@@ -2900,24 +2974,23 @@
      Bmp := TBitmap.Create;
      try
        Bmp.Monochrome := True;
@@ -751,7 +1452,7 @@
        if not UseDisabledShadow then begin
          if ShowEnabled and (tbisCombo in Item.ItemStyle) and IsSelected then begin
 -          OffsetRect(BR, 1, 1);
-+          OffsetRect(BR, DPIScale(1), DPIScale(1));
++          OffsetRect(BR, PPIScale(1), PPIScale(1));
            DrawWithColor(clBtnText);
          end
          else
@@ -759,138 +1460,147 @@
        end
        else begin
 -        OffsetRect(BR, 1, 1);
-+        OffsetRect(BR, DPIScale(1), DPIScale(1));
++        OffsetRect(BR, PPIScale(1), PPIScale(1));
          DrawWithColor(clBtnHighlight);
 -        OffsetRect(BR, -1, -1);
-+        OffsetRect(BR, -DPIScale(1), -DPIScale(1));
++        OffsetRect(BR, -PPIScale(1), -PPIScale(1));
          DrawWithColor(clBtnShadow);
        end;
      finally
-@@ -2935,21 +2956,21 @@
+@@ -2935,21 +3008,21 @@
        X := (R.Left + R.Right) div 2;
        Y := (R.Top + R.Bottom) div 2;
        if not Rotated then begin
 -        Dec(Y);
 -        P[0].X := X-2;
-+        Dec(Y, DPIScale(1));
-+        P[0].X := X-DPIScale(2);
++        Dec(Y, PPIScale(1));
++        P[0].X := X-PPIScale(2);
          P[0].Y := Y;
 -        P[1].X := X+2;
-+        P[1].X := X+DPIScale(2);
++        P[1].X := X+PPIScale(2);
          P[1].Y := Y;
          P[2].X := X;
 -        P[2].Y := Y+2;
-+        P[2].Y := Y+DPIScale(2);
++        P[2].Y := Y+PPIScale(2);
        end
        else begin
 -        Dec(X);
-+        Dec(X, DPIScale(1));
++        Dec(X, PPIScale(1));
          P[0].X := X;
 -        P[0].Y := Y+2;
-+        P[0].Y := Y+DPIScale(2);
++        P[0].Y := Y+PPIScale(2);
          P[1].X := X;
 -        P[1].Y := Y-2;
 -        P[2].X := X-2;
-+        P[1].Y := Y-DPIScale(2);
-+        P[2].X := X-DPIScale(2);
++        P[1].Y := Y-PPIScale(2);
++        P[2].X := X-PPIScale(2);
          P[2].Y := Y;
        end;
        Canvas.Pen.Color := AColor;
-@@ -2961,9 +2982,9 @@
+@@ -2961,9 +3034,9 @@
      if not UseDisabledShadow then
        DrawWithColor(Canvas.Font.Color)
      else begin
 -      OffsetRect(R, 1, 1);
-+      OffsetRect(R, DPIScale(1), DPIScale(1));
++      OffsetRect(R, PPIScale(1), PPIScale(1));
        DrawWithColor(clBtnHighlight);
 -      OffsetRect(R, -1, -1);
-+      OffsetRect(R, -DPIScale(1), -DPIScale(1));
++      OffsetRect(R, -PPIScale(1), -PPIScale(1));
        DrawWithColor(clBtnShadow);
      end;
    end;
-@@ -3006,7 +3027,7 @@
+@@ -2999,14 +3072,14 @@
+   ShowEnabled := Item.Enabled or View.Customizing;
+   HasArrow := (tbisSubmenu in Item.ItemStyle) and
+     ((tbisCombo in Item.ItemStyle) or (tboDropdownArrow in Item.EffectiveOptions));
+-  MenuCheckWidth := GetSystemMetrics(SM_CXMENUCHECK);
+-  MenuCheckHeight := GetSystemMetrics(SM_CYMENUCHECK);
++  MenuCheckWidth := {$IF CompilerVersion>= 33}FView.Window.{$IFEND}GetSystemMetrics(SM_CXMENUCHECK);
++  MenuCheckHeight := {$IF CompilerVersion>= 33}FView.Window.{$IFEND}GetSystemMetrics(SM_CYMENUCHECK);
+   ImgList := GetImageList;
+   ImageIsShown := ImageShown and Assigned(ImgList);
    LeftMargin := 0;
    if not ToolbarStyle then begin
      if Assigned(ImgList) then
 -      LeftMargin := MulDiv(ImgList.Width + 3, ClientAreaRect.Bottom, ImgList.Height + 3)
-+      LeftMargin := MulDiv(ImgList.Width + DPIScale(3), ClientAreaRect.Bottom, ImgList.Height + DPIScale(3))
++      LeftMargin := MulDiv(ImgList.Width + PPIScale(3), ClientAreaRect.Bottom, ImgList.Height + PPIScale(3))
      else
        LeftMargin := ClientAreaRect.Bottom;
    end;
-@@ -3045,21 +3066,21 @@
+@@ -3045,21 +3118,21 @@
      end;
      if HasArrow then begin
        if not(tbisCombo in Item.ItemStyle) and IsPushed then
 -        OffsetRect(RD, 1, 1);
-+        OffsetRect(RD, DPIScale(1), DPIScale(1));
++        OffsetRect(RD, PPIScale(1), PPIScale(1));
        DrawDropdownArrow(RD, not(tbisCombo in Item.ItemStyle) and
          (View.Orientation = tbvoVertical));
      end;
 -    InflateRect(RC, -1, -1);
-+    InflateRect(RC, -DPIScale(1), -DPIScale(1));
++    InflateRect(RC, -PPIScale(1), -PPIScale(1));
      if Item.Checked and not (IsSelected and ShowEnabled) then begin
        Canvas.Brush.Bitmap := GetDitherBitmap;
        Canvas.FillRect(RC);
        Canvas.Brush.Style := bsClear;
      end;
 -    InflateRect(RC, -1, -1);
-+    InflateRect(RC, -DPIScale(1), -DPIScale(1));
++    InflateRect(RC, -PPIScale(1), -PPIScale(1));
      if Item.Checked or
         ((IsSelected and IsPushed) and
          (not(tbisCombo in Item.ItemStyle) or View.FCapture)) then
 -      OffsetRect(RC, 1, 1);
-+      OffsetRect(RC, DPIScale(1), DPIScale(1));
++      OffsetRect(RC, PPIScale(1), PPIScale(1));
      if HasArrow and not(tbisCombo in Item.ItemStyle) then begin
        if View.Orientation <> tbvoVertical then
          Dec(RC.Right, tbDropdownArrowWidth)
-@@ -3095,9 +3116,9 @@
+@@ -3095,9 +3168,9 @@
      if ToolbarStyle then begin
        if ImageIsShown then begin
          if not IsRotated and not(tboImageAboveCaption in Item.EffectiveOptions) then
 -          Inc(R.Left, ImgList.Width + 1)
-+          Inc(R.Left, ImgList.Width + DPIScale(1))
++          Inc(R.Left, ImgList.Width + PPIScale(1))
          else
 -          Inc(R.Top, ImgList.Height + 1);
-+          Inc(R.Top, ImgList.Height + DPIScale(1));
++          Inc(R.Top, ImgList.Height + PPIScale(1));
        end;
        DrawItemCaption(Canvas, R, S, UseDisabledShadow,
          DT_SINGLELINE or DT_CENTER or DT_VCENTER or DrawTextFlags)
-@@ -3108,7 +3129,7 @@
+@@ -3108,7 +3181,7 @@
          is 4 pixels less than the total item height. This is done so underlined
          characters aren't displayed too low. }
        if (R.Bottom - R.Top) - (TextMetrics.tmHeight + TextMetrics.tmExternalLeading) = tbMenuVerticalMargin then
 -        Dec(R.Bottom);
-+        Dec(R.Bottom, DPIScale(1));
++        Dec(R.Bottom, PPIScale(1));
        Inc(R.Top, TextMetrics.tmExternalLeading);
        DrawItemCaption(Canvas, R, S, UseDisabledShadow,
          DT_SINGLELINE or DT_LEFT or DT_VCENTER or DrawTextFlags);
-@@ -3125,7 +3146,7 @@
+@@ -3125,7 +3198,7 @@
          is 4 pixels less than the total item height. This is done so underlined
          characters aren't displayed too low. }
        if (R.Bottom - R.Top) - (TextMetrics.tmHeight + TextMetrics.tmExternalLeading) = tbMenuVerticalMargin then
 -        Dec(R.Bottom);
-+        Dec(R.Bottom, DPIScale(1));
++        Dec(R.Bottom, PPIScale(1));
        Inc(R.Top, TextMetrics.tmExternalLeading);
        DrawItemCaption(Canvas, R, S, UseDisabledShadow,
          DT_SINGLELINE or DT_LEFT or DT_VCENTER or DT_NOPREFIX);
-@@ -3137,7 +3158,7 @@
+@@ -3137,7 +3210,7 @@
          if IsSelected and ShowEnabled then
            DrawEdge(Canvas.Handle, R, BDR_SUNKENOUTER, BF_RECT or BF_MIDDLE)
          else begin
 -          Dec(R.Left);
-+          Dec(R.Left, DPIScale(1));
++          Dec(R.Left, PPIScale(1));
            if not IsSelected then
              DrawEdge(Canvas.Handle, R, EDGE_ETCHED, BF_LEFT)
            else
-@@ -3153,23 +3174,23 @@
+@@ -3153,23 +3226,23 @@
      R := RC;
      if ToolbarStyle then begin
        if not IsRotated and not(tboImageAboveCaption in Item.EffectiveOptions) then
 -        R.Right := R.Left + ImgList.Width + 2
-+        R.Right := R.Left + ImgList.Width + DPIScale(2)
++        R.Right := R.Left + ImgList.Width + PPIScale(2)
        else
 -        R.Bottom := R.Top + ImgList.Height + 2;
-+        R.Bottom := R.Top + ImgList.Height + DPIScale(2);
++        R.Bottom := R.Top + ImgList.Height + PPIScale(2);
      end
      else begin
        R.Right := R.Left + LeftMargin;
@@ -898,50 +1608,123 @@
          DrawEdge(Canvas.Handle, R, EdgeStyles[Item.Checked], BF_RECT or BF_MIDDLE);
        if Item.Checked and not IsSelected then begin
 -        InflateRect(R, -1, -1);
-+        InflateRect(R, -DPIScale(1), -DPIScale(1));
++        InflateRect(R, -PPIScale(1), -PPIScale(1));
          Canvas.Brush.Bitmap := GetDitherBitmap;
          Canvas.FillRect(R);
          Canvas.Brush.Style := bsClear;
 -        InflateRect(R, 1, 1);
-+        InflateRect(R, DPIScale(1), DPIScale(1));
++        InflateRect(R, PPIScale(1), PPIScale(1));
        end;
        if Item.Checked then
 -        OffsetRect(R, 1, 1);
-+        OffsetRect(R, DPIScale(1), DPIScale(1));
++        OffsetRect(R, PPIScale(1), PPIScale(1));
      end;
      if ImageIsShown then begin
        X := R.Left + ((R.Right - R.Left) - ImgList.Width) div 2;
-@@ -3189,21 +3210,21 @@
+@@ -3189,21 +3262,21 @@
          if Item.RadioItem then begin
            Canvas.Pen.Color := clBtnText;
            Canvas.Brush.Color := clBtnText;
 -          Canvas.RoundRect(X-3, Y-3, X+2, Y+2, 2, 2);
-+          Canvas.RoundRect(X-DPIScale(3), Y-DPIScale(3), X+DPIScale(2), Y+DPIScale(2), DPIScale(2), DPIScale(2));
++          Canvas.RoundRect(X-PPIScale(3), Y-PPIScale(3), X+PPIScale(2), Y+PPIScale(2), PPIScale(2), PPIScale(2));
            Canvas.Pen.Color := clBtnHighlight;
            Canvas.Brush.Style := bsClear;
 -          Canvas.RoundRect(X-4, Y-4, X+3, Y+3, 6, 6);
-+          Canvas.RoundRect(X-DPIScale(4), Y-DPIScale(4), X+DPIScale(3), Y+DPIScale(3), DPIScale(6), DPIScale(6));
++          Canvas.RoundRect(X-PPIScale(4), Y-PPIScale(4), X+PPIScale(3), Y+PPIScale(3), PPIScale(6), PPIScale(6));
          end
          else begin
 -          Dec(X, 2);
 -          Inc(Y);
-+          Dec(X, DPIScale(2));
-+          Inc(Y, DPIScale(1));
++          Dec(X, PPIScale(2));
++          Inc(Y, PPIScale(1));
            for I := Low(BlackPoints) to High(BlackPoints) do begin
 -            BlackPoints[I].X := X + BlackCheckMarkPoints[I].X;
 -            BlackPoints[I].Y := Y + BlackCheckMarkPoints[I].Y;
-+            BlackPoints[I].X := X + DPIScale(BlackCheckMarkPoints[I].X);
-+            BlackPoints[I].Y := Y + DPIScale(BlackCheckMarkPoints[I].Y);
++            BlackPoints[I].X := X + PPIScale(BlackCheckMarkPoints[I].X);
++            BlackPoints[I].Y := Y + PPIScale(BlackCheckMarkPoints[I].Y);
            end;
            for I := Low(WhitePoints) to High(WhitePoints) do begin
 -            WhitePoints[I].X := X + WhiteCheckMarkPoints[I].X;
 -            WhitePoints[I].Y := Y + WhiteCheckMarkPoints[I].Y;
-+            WhitePoints[I].X := X + DPIScale(WhiteCheckMarkPoints[I].X);
-+            WhitePoints[I].Y := Y + DPIScale(WhiteCheckMarkPoints[I].Y);
++            WhitePoints[I].X := X + PPIScale(WhiteCheckMarkPoints[I].X);
++            WhitePoints[I].Y := Y + PPIScale(WhiteCheckMarkPoints[I].Y);
            end;
            Canvas.Pen.Color := clBtnText;
            Polyline(Canvas.Handle, BlackPoints, Length(BlackPoints));
-@@ -4624,7 +4645,6 @@
+@@ -3218,11 +3291,51 @@
+ begin
+ end;
+ 
++function TTBItemViewer.GetDropdownArrowMargin: Integer;
++begin
++  Result := PPIScale(_tbDropdownArrowMargin);
++end;
++
++function TTBItemViewer.GetDropdownArrowWidth: Integer;
++begin
++  Result := PPIScale(_tbDropdownArrowWidth);
++end;
++
++function TTBItemViewer.GetDropdownComboArrowWidth: Integer;
++begin
++  Result := PPIScale(_tbDropdownComboArrowWidth);
++end;
++
++function TTBItemViewer.GetDropdownComboMargin: Integer;
++begin
++  Result := PPIScale(_tbDropdownComboMargin);
++end;
++
+ function TTBItemViewer.GetIndex: Integer;
+ begin
+   Result := View.IndexOf(Self);
+ end;
+ 
++function TTBItemViewer.GetMenuImageTextSpace: Integer;
++begin
++  Result := PPIScale(_tbMenuImageTextSpace);
++end;
++
++function TTBItemViewer.GetMenuLeftTextMargin: Integer;
++begin
++  Result := PPIScale(_tbMenuLeftTextMargin);
++end;
++
++function TTBItemViewer.GetMenuRightTextMargin: Integer;
++begin
++  Result := PPIScale(_tbMenuRightTextMargin);
++end;
++
++function TTBItemViewer.GetMenuVerticalMargin: Integer;
++begin
++  Result := PPIScale(_tbMenuVerticalMargin);
++end;
++
+ function TTBItemViewer.IsToolbarSize: Boolean;
+ begin
+   Result := View.FIsToolbar or (tboToolbarSize in Item.FEffectiveOptions);
+@@ -3242,7 +3355,7 @@
+     if IsToolbarStyle then
+       W := tbDropdownComboArrowWidth
+     else
+-      W := GetSystemMetrics(SM_CXMENUCHECK);
++      W := {$IF CompilerVersion>= 33}FView.Window.{$IFEND}GetSystemMetrics(SM_CXMENUCHECK);
+     Result := X < (BoundsRect.Right - BoundsRect.Left) - W;
+   end;
+ end;
+@@ -4007,6 +4120,11 @@
+   Result := Assigned(FOpenViewer);
+ end;
+ 
++function TTBView.PPIScale(Value: Integer): Integer;
++begin
++  Result := FWindow.PPIScale(Value);
++end;
++
+ procedure TTBView.CloseChildPopups;
+ begin
+   if Assigned(FOpenViewerView) then
+@@ -4624,7 +4742,6 @@
    Ctl: TControl;
    ChangedBold: Boolean;
    I, HighestSameWidthViewerWidth, Total, J, TotalVisibleItems: Integer;
@@ -949,16 +1732,25 @@
    Viewer: TTBItemViewer;
    UseChevron, NonControlsOffEdge, TempViewerCreated: Boolean;
    Margins: TRect;
-@@ -4902,7 +4922,7 @@
+@@ -4642,6 +4759,8 @@
+     DC := GetDC(0);
+     CalcCanvas.Handle := DC;
+     CalcCanvas.Font.Assign(GetFont);
++    CalcCanvas.Font.Height :=
++      MulDiv(CalcCanvas.Font.Height, Window.CurrentPPI, CalcCanvas.Font.PixelsPerInch);
+ 
+     SetLength(NewPositions, FViewers.Count);
+ 
+@@ -4902,7 +5021,7 @@
      TopY := Margins.Top;
      if AWrapOffset > 0 then begin
        Dec(AWrapOffset, Margins.Right);
 -      if AWrapOffset < 1 then AWrapOffset := 1;
-+      if AWrapOffset < DPIScale(1) then AWrapOffset := DPIScale(1);
++      if AWrapOffset < PPIScale(1) then AWrapOffset := PPIScale(1);
      end;
      CurX := LeftX;
      CurY := TopY;
-@@ -5026,10 +5046,10 @@
+@@ -5026,10 +5145,10 @@
    if (ABaseSize.X = 0) or (ABaseSize.Y = 0) then begin
      { If there are no visible items... }
      {}{scale this?}
@@ -966,14 +1758,14 @@
 -    ABaseSize.Y := 22;
 -    if TotalSize.X < 23 then TotalSize.X := 23;
 -    if TotalSize.Y < 22 then TotalSize.Y := 22;
-+    ABaseSize.X := DPIScale(23);
-+    ABaseSize.Y := DPIScale(22);
-+    if TotalSize.X < DPIScale(23) then TotalSize.X := DPIScale(23);
-+    if TotalSize.Y < DPIScale(22) then TotalSize.Y := DPIScale(22);
++    ABaseSize.X := PPIScale(23);
++    ABaseSize.Y := PPIScale(22);
++    if TotalSize.X < PPIScale(23) then TotalSize.X := PPIScale(23);
++    if TotalSize.Y < PPIScale(22) then TotalSize.Y := PPIScale(22);
    end;
  end;
  
-@@ -5076,10 +5096,10 @@
+@@ -5076,10 +5195,10 @@
    var Margins: TRect);
  begin
    if AOrientation = tbvoFloating then begin
@@ -981,14 +1773,31 @@
 -    Margins.Top := 2;
 -    Margins.Right := 4;
 -    Margins.Bottom := 1;
-+    Margins.Left := DPIScale(4);
-+    Margins.Top := DPIScale(2);
-+    Margins.Right := DPIScale(4);
-+    Margins.Bottom := DPIScale(1);
++    Margins.Left := PPIScale(4);
++    Margins.Top := PPIScale(2);
++    Margins.Right := PPIScale(4);
++    Margins.Bottom := PPIScale(1);
    end
    else begin
      Margins.Left := 0;
-@@ -5180,7 +5200,7 @@
+@@ -5099,6 +5218,16 @@
+   Result := nil;
+ end;
+ 
++function TTBView.GetLineSpacing: Integer;
++begin
++  Result := PPIScale(_tbLineSpacing);
++end;
++
++function TTBView.GetMenuScrollArrowHeight: Integer;
++begin
++ Result := PPIScale(_tbMenuScrollArrowHeight);
++end;
++
+ function TTBView.GetFont: TFont;
+ begin
+   if Assigned(ToolbarFont) then
+@@ -5180,7 +5309,7 @@
        BmpDC := DrawCanvas.Handle;
        SaveIndex2 := SaveDC(BmpDC);
        SetWindowOrgEx(BmpDC, R1.Left, R1.Top, nil);
@@ -997,7 +1806,17 @@
        RestoreDC(BmpDC, SaveIndex2);
      end;
  
-@@ -5669,9 +5689,9 @@
+@@ -5200,6 +5329,9 @@
+ 
+     { Initialize font }
+     DrawCanvas.Font.Assign(GetFont);
++    DrawCanvas.Font.Height :=
++      MulDiv(DrawCanvas.Font.Height, Window.CurrentPPI, GetFont.PixelsPerInch);
++
+     if Viewer.Item.Enabled then begin
+       if not ToolbarStyle and IsSelected then
+         DrawCanvas.Font.Color := clHighlightText
+@@ -5669,9 +5801,9 @@
    end
    else
      EndModal;
@@ -1010,54 +1829,64 @@
  end;
  
  procedure TTBView.Scroll(ADown: Boolean);
-@@ -6336,7 +6356,7 @@
+@@ -6336,7 +6468,7 @@
  begin
    inherited Create(AOwner);
    Visible := False;
 -  SetBounds(0, 0, 320, 240);
-+  SetBounds(0, 0, DPIScale(320), DPIScale(240));
++  SetBounds(0, 0, PPIScale(320), PPIScale(240));
    ControlStyle := ControlStyle - [csCaptureMouse];
    ShowHint := True;
    Color := tbMenuBkColor;
-@@ -6518,18 +6538,18 @@
+@@ -6518,18 +6650,18 @@
    begin
      X := (R.Left + R.Right) div 2;
      Y := (R.Top + R.Bottom) div 2;
 -    Dec(Y);
 -    P[0].X := X-3;
-+    Dec(Y, DPIScale(1));
-+    P[0].X := X-DPIScale(3);
++    Dec(Y, PPIScale(1));
++    P[0].X := X-PPIScale(3);
      P[0].Y := Y;
 -    P[1].X := X+3;
-+    P[1].X := X+DPIScale(3);
++    P[1].X := X+PPIScale(3);
      P[1].Y := Y;
      P[2].X := X;
      P[2].Y := Y;
      if ADown then
 -      Inc(P[2].Y, 3)
-+      Inc(P[2].Y, DPIScale(3))
++      Inc(P[2].Y, PPIScale(3))
      else begin
 -      Inc(P[0].Y, 3);
 -      Inc(P[1].Y, 3);
-+      Inc(P[0].Y, DPIScale(3));
-+      Inc(P[1].Y, DPIScale(3));
++      Inc(P[0].Y, PPIScale(3));
++      Inc(P[1].Y, PPIScale(3));
      end;
      Canvas.Pen.Color := tbMenuTextColor;
      Canvas.Brush.Color := tbMenuTextColor;
-@@ -6589,9 +6609,9 @@
-   else begin
-     FrameRect(DC, R, GetSysColorBrush(COLOR_BTNSHADOW));
-     Brush := CreateSolidBrush(ColorToRGB(TTBPopupWindow(AppData).Color));
--    InflateRect(R, -1, -1);
-+    InflateRect(R, -DPIScale(1), -DPIScale(1));
-     FrameRect(DC, R, Brush);
--    InflateRect(R, -1, -1);
-+    InflateRect(R, -DPIScale(1), -DPIScale(1));
-     FrameRect(DC, R, Brush);
-     DeleteObject(Brush);
+@@ -6538,10 +6670,10 @@
+ 
+ begin
+   if FView.FShowUpArrow then
+-    DrawArrow(Rect(0, 0, ClientWidth, tbMenuScrollArrowHeight), False);
++    DrawArrow(Rect(0, 0, ClientWidth, FView.tbMenuScrollArrowHeight), False);
+   if FView.FShowDownArrow then
+-    DrawArrow(Bounds(0, ClientHeight - tbMenuScrollArrowHeight,
+-      ClientWidth, tbMenuScrollArrowHeight), True);
++    DrawArrow(Bounds(0, ClientHeight - FView.tbMenuScrollArrowHeight,
++      ClientWidth, FView.tbMenuScrollArrowHeight), True);
+ end;
+ 
+ procedure TTBPopupWindow.WMClose(var Message: TWMClose);
+@@ -6926,7 +7058,6 @@
+     ImagesBitmapChanged(nil);
    end;
+ end;
+-
+ 
+ { TTBBaseAccObject }
+ 
 --- TB2Reg.pas	Thu Sep 18 14:08:40 2008
-+++ TB2Reg.pas	Mon Sep 03 09:30:04 2018
++++ TB2Reg.pas	Fri May 29 05:32:50 2020
 @@ -65,10 +65,15 @@
  
  uses
@@ -1076,19 +1905,8 @@
  
  { Unfortunately TComponentImageIndexPropertyEditor seems to be gone in
 --- TB2Toolbar.pas	Mon Jun 23 13:05:48 2008
-+++ TB2Toolbar.pas	Mon Sep 03 09:30:04 2018
-@@ -288,9 +288,7 @@
-       IsSelected, IsPushed, UseDisabledShadow: Boolean); override;
-   end;
- 
--const
--  tbChevronSize = 12;
--
-+ function tbChevronSize: integer;
- 
- implementation
- 
-@@ -298,6 +296,27 @@
++++ TB2Toolbar.pas	Sun Sep 20 18:16:36 2020
+@@ -298,6 +298,23 @@
    {$IFDEF CLR} System.Runtime.InteropServices, System.Text, {$ENDIF}
    TB2Consts, TB2Common, TB2Hook;
  
@@ -1109,46 +1927,69 @@
 +end;
 +{$ENDIF WIN64}
 +
-+
-+  function tbChevronSize: integer; begin Result := DPIScale(12) end;
-+
-+
  const
    { Constants for TTBCustomToolbar-specific registry values. Do not localize! }
    rvFloatRightX = 'FloatRightX';
-@@ -558,7 +577,7 @@
+@@ -558,7 +575,7 @@
    FShrinkMode := tbsmChevron;
    FSystemFont := True;
    Color := clBtnFace;
 -  SetBounds(Left, Top, 23, 22);{}
-+  SetBounds(Left, Top, DPIScale(23), DPIScale(22));{}
++  SetBounds(Left, Top, PPIScale(23), PPIScale(22));{}
  end;
  
  destructor TTBCustomToolbar.Destroy;
-@@ -1439,8 +1458,8 @@
+@@ -1246,7 +1263,7 @@
+ begin
+   DT := TBGetDockTypeOf(CurrentDock, Floating);
+   FView.Orientation := DockTypeToOrientation[DT];
+-  FView.ChevronSize := tbChevronSize;
++  FView.ChevronSize := PPIScale(tbChevronSize);
+   if Assigned(CurrentDock) or Floating then begin
+     FView.ChevronOffset := CalcChevronOffset(CurrentDock, FView.Orientation);
+     FView.WrapOffset := CalcWrapOffset(CurrentDock);
+@@ -1319,7 +1336,7 @@
+     Result.X := 0;
+     Result.Y := 0;
+     FView.CalculatePositions(False, O, CalcWrapOffset(NewDock),
+-      CalcChevronOffset(NewDock, O), tbChevronSize, TempBaseSize, Result,
++      CalcChevronOffset(NewDock, O), PPIScale(tbChevronSize), TempBaseSize, Result,
+       FLastWrappedLines);
+   end;
+ end;
+@@ -1439,8 +1456,8 @@
              NewSize := N.X - S.X
            else
              NewSize := N.Y - S.Y;
 -          if NewSize > MaxDistance then
 -            NewSize := MaxDistance;
-+          if NewSize > DPIScale(MaxDistance) then
-+            NewSize := DPIScale(MaxDistance);
++          if NewSize > PPIScale(MaxDistance) then
++            NewSize := PPIScale(MaxDistance);
            DistanceToLargerSize := NewSize;
          end;
          if I < NewSizes.Count-1 then begin
-@@ -1449,8 +1468,8 @@
+@@ -1449,8 +1466,8 @@
              NewSize := S.X - N.X
            else
              NewSize := S.Y - N.Y;
 -          if NewSize > MaxDistance then
 -            NewSize := MaxDistance;
-+          if NewSize > DPIScale(MaxDistance) then
-+            NewSize := DPIScale(MaxDistance);
++          if NewSize > PPIScale(MaxDistance) then
++            NewSize := PPIScale(MaxDistance);
            DistanceToSmallerSize := NewSize;
          end;
          Break;
---- TB2ToolWindow.pas	Wed Jan 05 20:56:50 2005
-+++ TB2ToolWindow.pas	Mon Sep 03 09:30:04 2018
+@@ -1582,7 +1599,7 @@
+     Inc(AMinimumSize, NonClientWidth)
+   else
+     Inc(AMinimumSize, NonClientHeight);
+-  Inc(AMinimumSize, tbChevronSize);
++  Inc(AMinimumSize, PPIScale(tbChevronSize));
+ end;
+ 
+ procedure TTBCustomToolbar.BeginUpdate;
+--- TB2ToolWindow.pas	Wed Jan  5 19:56:50 2005
++++ TB2ToolWindow.pas	Sun Mar  1 12:31:14 2020
 @@ -120,6 +120,8 @@
    end;
  
@@ -1158,22 +1999,23 @@
  
  const
    { Constants for TTBToolWindow-specific registry values. Do not localize! }
-@@ -132,10 +134,10 @@
- constructor TTBToolWindow.Create(AOwner: TComponent);
+@@ -177,10 +179,10 @@
+ procedure TTBToolWindow.GetMinMaxSize(var AMinClientWidth, AMinClientHeight,
+   AMaxClientWidth, AMaxClientHeight: Integer);
  begin
-   inherited;
--  FMinClientWidth := 32;
--  FMinClientHeight := 32;
-+  FMinClientWidth := DPIScale(32);
-+  FMinClientHeight := DPIScale(32);
-   { Initialize the client size to 32x32 }
--  SetBounds(Left, Top, 32, 32);
-+  SetBounds(Left, Top, DPIScale(32), DPIScale(32));
+-  AMinClientWidth := FMinClientWidth;
+-  AMinClientHeight := FMinClientHeight;
+-  AMaxClientWidth := FMaxClientWidth;
+-  AMaxClientHeight := FMaxClientHeight;
++  AMinClientWidth := PPIScale(FMinClientWidth);
++  AMinClientHeight := PPIScale(FMinClientHeight);
++  AMaxClientWidth := PPIScale(FMaxClientWidth);
++  AMaxClientHeight := PPIScale(FMaxClientHeight);
  end;
  
- procedure TTBToolWindow.Paint;
+ procedure TTBToolWindow.SizeChanging(const AWidth, AHeight: Integer);
 --- TB2Ver.inc	Sat Sep 13 16:06:46 2008
-+++ TB2Ver.inc	Mon Nov 26 10:45:10 2018
++++ TB2Ver.inc	Fri May 29 05:32:50 2020
 @@ -50,7 +50,7 @@
      {$DEFINE JR_WIDESTR}  { defined if String type = WideString }
    {$IFEND}
