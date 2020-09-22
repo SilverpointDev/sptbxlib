@@ -6,10 +6,11 @@ uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   ExtCtrls, StdCtrls, Actions, ActnList, ImgList, ExtDlgs, ComCtrls,
   // TB2K
-  TB2Item, TB2Toolbar, TB2Dock, TB2ExtItems,
+  TB2Common, TB2Item, TB2Toolbar, TB2Dock, TB2ExtItems,
   // SpTBXLib
   SpTBXSkins, SpTBXItem, SpTBXDkPanels, SpTBXTabs, SpTBXEditors, SpTBXControls,
-  SpTBXExtEditors, System.ImageList, Vcl.Samples.Spin;
+  SpTBXExtEditors, System.ImageList, Vcl.VirtualImageList,
+  Vcl.BaseImageCollection, Vcl.ImageCollection;
 
 type
   TForm1 = class(TForm)
@@ -46,7 +47,6 @@ type
     SpTBXSeparatorItem2: TSpTBXSeparatorItem;
     hintLabel: TSpTBXLabelItem;
     SpTBXSeparatorItem3: TSpTBXSeparatorItem;
-    ImageList1: TImageList;
     SpTBXLabelItem6: TSpTBXLabelItem;
     SpTBXSeparatorItem4: TSpTBXSeparatorItem;
     subLang2: TSpTBXSubmenuItem;
@@ -72,7 +72,6 @@ type
     DP2: TSpTBXDockablePanel;
     DP3: TSpTBXDockablePanel;
     SpTBXLabel1: TSpTBXLabel;
-    SpTBXLabel8: TSpTBXLabel;
     SpTBXLabel9: TSpTBXLabel;
     SpTBXLabel10: TSpTBXLabel;
     SpTBXLabel11: TSpTBXLabel;
@@ -124,14 +123,9 @@ type
     radiobuttonSkin1: TSpTBXRadioButton;
     radiobuttonSkin2: TSpTBXRadioButton;
     radiobuttonSkin3: TSpTBXRadioButton;
-    SpTBXSubmenuItem3: TSpTBXSubmenuItem;
-    SpTBXItem6: TSpTBXItem;
-    SpTBXItem8: TSpTBXItem;
-    SpTBXSubmenuItem4: TSpTBXSubmenuItem;
-    SpTBXItem9: TSpTBXItem;
-    SpTBXItem10: TSpTBXItem;
-    SpTBXEditItem1: TSpTBXEditItem;
-    SpTBXRightAlignSpacerItem2: TSpTBXRightAlignSpacerItem;
+    ImageCollection1: TImageCollection;
+    VirtualImageList1: TVirtualImageList;
+    SpTBXLabel8: TSpTBXLabel;
     procedure FormShow(Sender: TObject);
     procedure tabCloseClick(Sender: TObject);
     procedure ActionList1Update(Action: TBasicAction;
@@ -157,6 +151,10 @@ type
       var PaintDefault: Boolean);
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
+    procedure FormBeforeMonitorDpiChanged(Sender: TObject; OldDPI,
+      NewDPI: Integer);
+    procedure FormAfterMonitorDpiChanged(Sender: TObject; OldDPI,
+      NewDPI: Integer);
   private
     { Private declarations }
     FLastSkin: WideString;
@@ -172,7 +170,7 @@ var
 implementation
 
 uses
-  Themes, Registry, ShlObj, VCL.Styles.DPIAware;
+  Themes, Registry, ShlObj;
 
 {$R *.dfm}
 
@@ -258,18 +256,28 @@ end;
 //WMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWM
 { Form }
 
-procedure TForm1.FormCreate(Sender: TObject);
-Var
-  StyleDPIAwareness : TStyleDPIAwareness;
+procedure TForm1.FormAfterMonitorDpiChanged(Sender: TObject; OldDPI,
+  NewDPI: Integer);
 begin
-  StyleDPIAwareness := TStyleDPIAwareness.Create(Self);
-  StyleDPIAwareness.Parent := Self;
+  //EnableAlign;
+  //SpTBXTabControl1.Toolbar.EndUpdate;
+  //SpTBXTabControl2.Toolbar.EndUpdate;
+  LockWindowUpdate(0);
+end;
+
+procedure TForm1.FormBeforeMonitorDpiChanged(Sender: TObject; OldDPI,
+  NewDPI: Integer);
+begin
+  //DisableAlign;
+  //SpTBXTabControl1.Toolbar.BeginUpdate;
+  //SpTBXTabControl2.Toolbar.BeginUpdate;
+  LockWindowUpdate(GetDesktopWindow);
+end;
+
+procedure TForm1.FormCreate(Sender: TObject);
+begin
   FLastSkin := 'Aluminum';
   SkinManager.AddSkinNotification(Self);
-  SpTBXSpinEditItem1.CustomWidth := SpDPIScale(SpTBXSpinEditItem1.CustomWidth);
-  SpTBXEditItem1.CustomWidth := SpDPIScale(SpTBXEditItem1.CustomWidth);
-  SpTBXDockablePanel2.DockPos := SpDPIScale(SpTBXDockablePanel2.DockPos);
-  SpDPIScaleImageList(ImageList1);
 end;
 
 procedure TForm1.FormDestroy(Sender: TObject);
@@ -423,7 +431,7 @@ begin
       // Load the skin file and add it to the SkinList
       S := SkinManager.AddSkinFromFile(OpenDialog1.FileName);
       if S <> '' then begin
-         // Set the new skin
+        // Set the new skin
         FLastSkin := S;
         SkinManager.SetSkin(FLastSkin);
         // Recreate the SkinGroupItem

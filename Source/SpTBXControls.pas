@@ -532,6 +532,7 @@ type
     property State: TCheckBoxState read FState write SetState default cbUnchecked;
   public
     constructor Create(AOwner: TComponent); override;
+    function GetGlyphSize: TSize; override;
     procedure Click; override;
   end;
 
@@ -594,13 +595,14 @@ type
     procedure CMFocusChanged(var Message: TCMFocusChanged); message CM_FOCUSCHANGED;
   protected
     procedure AdjustFont(AFont: TFont); override;
-    function CanUpdateExclusive: Boolean; override;    
+    function CanUpdateExclusive: Boolean; override;
     procedure DoInternalGlyphDraw(ACanvas: TCanvas; AGlyphRect: TRect); override;
     procedure SetChecked(Value: Boolean); override;
     procedure Toggle; override;
     property TabStop default False;
   public
     constructor Create(AOwner: TComponent); override;
+    function GetGlyphSize: TSize; override;
     procedure Click; override;
   end;
 
@@ -1088,7 +1090,7 @@ implementation
 
 uses
   Types, Themes, UxTheme,
-  CommCtrl, ShellAPI;
+  CommCtrl, ShellAPI, TB2Common;
 type
   TWinControlAccess = class(TWinControl);
 
@@ -1513,7 +1515,7 @@ procedure TSpTBXCustomPanel.AdjustClientRect(var Rect: TRect);
 begin
   inherited AdjustClientRect(Rect);
   if Borders then
-    InflateRect(Rect, -SpDPIScale(2), -SpDPIScale(2));
+    InflateRect(Rect, -PPIScale(2), -PPIScale(2));
 end;
 
 procedure TSpTBXCustomPanel.SetBorders(const Value: Boolean);
@@ -1544,7 +1546,7 @@ end;
 procedure TSpTBXCustomPanel.DrawBackground(ACanvas: TCanvas; ARect: TRect);
 begin
   if not Borders then
-    InflateRect(ARect, SpDPIScale(3), SpDPIScale(3));
+    InflateRect(ARect, PPIScale(3), PPIScale(3));
   SpDrawXPPanel(ACanvas, ARect, True, FTBXStyleBackground, FBorderType);
 end;
 
@@ -1569,7 +1571,7 @@ var
   {$IFEND}
 begin
   if not Borders then
-    InflateRect(ARect, SpDPIScale(3), SpDPIScale(3));
+    InflateRect(ARect, PPIScale(3), PPIScale(3));
 
   if not TBXStyleBackground and FHotTrack then begin
     if SkinManager.GetSkinType = sknNone then
@@ -1712,7 +1714,7 @@ var
   Flags: Cardinal;
 begin
   if not Borders then
-    InflateRect(ARect, SpDPIScale(3), SpDPIScale(3));
+    InflateRect(ARect, PPIScale(3), PPIScale(3));
 
   Flags := DT_SINGLELINE;
   if UseRightToLeftAlignment then
@@ -1927,7 +1929,9 @@ begin
       DummyRightGlyphSize.cx := 0;
       DummyRightGlyphSize.cy := 0;
       DummyRightGlyphRect := Rect(0, 0, 0, 0);
-      SpCalcXPText(ACanvas, ARect, WS, GetRealAlignment(Self), TextFlags, GlyphSize, DummyRightGlyphSize, FGlyphLayout, DrawPushedCaption and Pushed, R1, R2, DummyRightGlyphRect, FCaptionRoatationAngle);
+      SpCalcXPText(ACanvas, ARect, WS, GetRealAlignment(Self), TextFlags,
+        GlyphSize, DummyRightGlyphSize, FGlyphLayout, DrawPushedCaption and Pushed,
+        R1, R2, DummyRightGlyphRect, PPIScale, FCaptionRoatationAngle);
 
       // Paint the text
       if IsGlassPainting then
@@ -1935,10 +1939,10 @@ begin
       else begin
         if not Enabled then
           if SkinManager.GetSkinType = sknNone then begin
-            OffsetRect(R1, SpDPIScale(1), SpDPIScale(1));
+            OffsetRect(R1, PPIScale(1), PPIScale(1));
             ACanvas.Font.Color := clBtnHighlight;
             SpDrawXPText(ACanvas, WS, R1, TextFlags, FCaptionGlow, FCaptionGlowColor, FCaptionRoatationAngle);
-            OffsetRect(R1, -SpDPIScale(1), -SpDPIScale(1));
+            OffsetRect(R1, -PPIScale(1), -PPIScale(1));
             ACanvas.Font.Color := clGrayText;
           end;
         SpDrawXPText(ACanvas, WS, R1, TextFlags, FCaptionGlow, FCaptionGlowColor, FCaptionRoatationAngle);
@@ -2042,7 +2046,7 @@ begin
   if Caption = '' then
     Result := Rect(0, 0, 0, 0)
   else begin
-    InflateRect(TextR, SpDPIScale(1), SpDPIScale(1));
+    InflateRect(TextR, PPIScale(1), PPIScale(1));
     Result := TextR;
   end;
 end;
@@ -2092,7 +2096,7 @@ begin
   Canvas.Font.Assign(Font);
   AdjustFont(Canvas.Font);
   SpCalcXPText(Canvas, R, Caption, GetRealAlignment(Self), GetTextFlags, GlyphSize, DummyRightGlyphSize,
-    FGlyphLayout, DrawPushedCaption and Pushed, TextR, GlyphR, DummyRightGlyphRect);
+    FGlyphLayout, DrawPushedCaption and Pushed, TextR, GlyphR, DummyRightGlyphRect, PPIScale);
 
   UnionRect(TotalR, TextR, GlyphR);
 
@@ -2361,6 +2365,8 @@ begin
 
   // Prepare the HintBitmap
   SpStockHintBitmap.Canvas.Font.Assign(Screen.HintFont);
+  SpStockHintBitmap.Canvas.Font.Height :=
+    MulDiv(SpStockHintBitmap.Canvas.Font.Height, CurrentPPI, Screen.PixelsPerInch);
   SpStockHintBitmap.Canvas.Font.Color := clInfoText;
   {$IF CompilerVersion >= 23} //for Delphi XE2 and up
   if SkinManager.GetSkinType = sknDelphiStyle then begin
@@ -2527,7 +2533,7 @@ procedure TSpTBXCustomLabel.GetSize(out TotalR, TextR, GlyphR: TRect);
 begin
   inherited GetSize(TotalR, TextR, GlyphR);
   if FUnderline then
-    Inc(TotalR.Bottom, SpDPIScale(1));
+    Inc(TotalR.Bottom, PPIScale(1));
 end;
 
 function TSpTBXCustomLabel.IsGlassPainting: Boolean;
@@ -2684,8 +2690,8 @@ function TSpTBXCustomCheckButton.GetGlyphSize: TSize;
 begin
   Result := inherited GetGlyphSize;
   if (Result.cx = 0) or (Result.cy = 0) then begin
-    Result.cx := SpDPIScale(13);
-    Result.cy := SpDPIScale(13);
+    Result.cx := PPIScale(13);
+    Result.cy := PPIScale(13);
   end;
 end;
 
@@ -2694,8 +2700,8 @@ begin
   inherited GetSize(TotalR, TextR, GlyphR);
   // Inc TotalR for the FocusRect
   if Autosize then begin
-    Inc(TotalR.Right, SpDPIScale(1));
-    Inc(TotalR.Bottom, SpDPIScale(2));
+    Inc(TotalR.Right, PPIScale(1));
+    Inc(TotalR.Bottom, PPIScale(2));
   end;
 end;
 
@@ -2726,7 +2732,7 @@ begin
   if IsImageIndexValid then
     inherited
   else
-    SpDrawXPCheckBoxGlyph(ACanvas, AGlyphRect, Enabled, State, MouseInControl, Pushed);
+    SpDrawXPCheckBoxGlyph(ACanvas, AGlyphRect, Enabled, State, MouseInControl, Pushed, PPIScale);
 end;
 
 procedure TSpTBXCustomCheckBox.AdjustFont(AFont: TFont);
@@ -2753,6 +2759,20 @@ end;
 function TSpTBXCustomCheckBox.GetChecked: Boolean;
 begin
   Result := FState = cbChecked;
+end;
+
+function TSpTBXCustomCheckBox.GetGlyphSize: TSize;
+Var
+  Details: TThemedElementDetails;
+begin
+  if (SkinManager.GetSkinType = sknDelphiStyle) and HandleAllocated and
+    CurrentSkin.GetThemedElementDetails(skncCheckBox, Enabled, Pushed, MouseInControl, State = cbChecked, False, False, State = cbGrayed, Details)
+  then begin
+    Result := CurrentSkin.GetThemedElementSize(Canvas, Details);
+    Result.cx := PPIScale(Result.cx);
+    Result.cy := PPIScale(Result.cy);
+  end else
+    Result := inherited GetGlyphSize;
 end;
 
 procedure TSpTBXCustomCheckBox.SetChecked(Value: Boolean);
@@ -2804,7 +2824,21 @@ begin
   if IsImageIndexValid then
     inherited
   else
-    SpDrawXPRadioButtonGlyph(ACanvas, AGlyphRect, Enabled, Checked, MouseInControl, Pushed);
+    SpDrawXPRadioButtonGlyph(ACanvas, AGlyphRect, Enabled, Checked, MouseInControl, Pushed, PPIScale);
+end;
+
+function TSpTBXCustomRadioButton.GetGlyphSize: TSize;
+Var
+  Details: TThemedElementDetails;
+begin
+  if (SkinManager.GetSkinType = sknDelphiStyle) and HandleAllocated and
+    CurrentSkin.GetThemedElementDetails(skncRadioButton, Enabled, Pushed, MouseInControl, Checked, False, False, False, Details)
+  then begin
+    Result := CurrentSkin.GetThemedElementSize(Canvas, Details);
+    Result.cx := PPIScale(Result.cx);
+    Result.cy := PPIScale(Result.cy);
+  end else
+    Result := inherited GetGlyphSize;
 end;
 
 procedure TSpTBXCustomRadioButton.AdjustFont(AFont: TFont);
@@ -3254,9 +3288,9 @@ begin
     R := ARect;
     R.Left := R.Right - GetTextMargins.Right;
 
-    P.X := (R.Left + R.Right) div 2 - SpDPIScale(1);
-    P.Y := (R.Top + R.Bottom) div 2 - SpDPIScale(1);
-    SpDrawArrow(ACanvas, P.X, P.Y, ACanvas.Font.Color, True, False, SpDPIScale(2));
+    P.X := (R.Left + R.Right) div 2 - PPIScale(1);
+    P.Y := (R.Top + R.Bottom) div 2 - PPIScale(1);
+    SpDrawArrow(ACanvas, P.X, P.Y, ACanvas.Font.Color, True, False, PPIScale(2));
   end;
 end;
 
@@ -3333,9 +3367,9 @@ function TSpTBXCustomButton.GetTextMargins: TRect;
 const
   ArrowWidth = 5;
 begin
-  Result := Rect(SpDPIScale(8), SpDPIScale(2), SpDPIScale(8), SpDPIScale(2));
+  Result := Rect(PPIScale(8), PPIScale(2), PPIScale(8), PPIScale(2));
   if FDropDownArrow and Assigned(FDropdownMenu) then
-    Inc(Result.Right, SpDPIScale(ArrowWidth+4));
+    Inc(Result.Right, PPIScale(ArrowWidth+4));
 end;
 
 function TSpTBXCustomButton.IsDroppedDown: Boolean;
@@ -3590,7 +3624,7 @@ end;
 
 function TSpTBXCustomProgressBar.GetTextMargins: TRect;
 begin
-  Result := Rect(SpDPIScale(8), SpDPIScale(2), SpDPIScale(8), SpDPIScale(2));
+  Result := Rect(PPIScale(8), PPIScale(2), PPIScale(8), PPIScale(2));
 end;
 
 procedure TSpTBXCustomProgressBar.SetCaptionType(const Value: TSpTBXProgressCaption);
@@ -3767,8 +3801,8 @@ begin
 
   SendMessage(Self.Handle, TBM_GETTHUMBRECT, 0, LPARAM(@ThumbR));
   ChannelR := ChannelRect;
-  FirstTickSize := SpDPIScale(4);
-  TickSize := SpDPIScale(3);
+  FirstTickSize := PPIScale(4);
+  TickSize := PPIScale(3);
   Y := 0;
 
   if Orientation = trHorizontal then begin
@@ -3778,27 +3812,27 @@ begin
     case TickMarks of
       tmxBottomRight:
         begin
-          Y := ThumbR.Bottom + SpDPIScale(1);
-          FirstTickSize := SpDPIScale(4);
-          TickSize := SpDPIScale(3);
+          Y := ThumbR.Bottom + PPIScale(1);
+          FirstTickSize := PPIScale(4);
+          TickSize := PPIScale(3);
         end;
       tmxTopLeft:
         begin
-          Y := ThumbR.Top - SpDPIScale(2);
-          FirstTickSize := -SpDPIScale(4);
-          TickSize := -SpDPIScale(3);
+          Y := ThumbR.Top - PPIScale(2);
+          FirstTickSize := -PPIScale(4);
+          TickSize := -PPIScale(3);
         end;
       tmxBoth:
         begin
-          Y := ThumbR.Top - SpDPIScale(2);
-          FirstTickSize := -SpDPIScale(4);
-          TickSize := -SpDPIScale(3);
+          Y := ThumbR.Top - PPIScale(2);
+          FirstTickSize := -PPIScale(4);
+          TickSize := -PPIScale(3);
         end;
       tmxCenter:
         begin
           Y := ChannelR.Top + (ChannelR.Bottom - ChannelR.Top) div 2;
-          FirstTickSize := SpDPIScale(2);
-          TickSize := SpDPIScale(2);
+          FirstTickSize := PPIScale(2);
+          TickSize := PPIScale(2);
         end;
     end;
     for I := 0 to Count - 1 do
@@ -3826,27 +3860,27 @@ begin
     case TickMarks of
       tmxBottomRight:
         begin
-          Y := ThumbR.Right + SpDPIScale(1);
-          FirstTickSize := SpDPIScale(4);
-          TickSize := SpDPIScale(3);
+          Y := ThumbR.Right + PPIScale(1);
+          FirstTickSize := PPIScale(4);
+          TickSize := PPIScale(3);
         end;
       tmxTopLeft:
         begin
-          Y := ThumbR.Left - SpDPIScale(2);
-          FirstTickSize := -SpDPIScale(4);
-          TickSize := -SpDPIScale(3);
+          Y := ThumbR.Left - PPIScale(2);
+          FirstTickSize := -PPIScale(4);
+          TickSize := -PPIScale(3);
         end;
       tmxBoth:
         begin
-          Y := ThumbR.Left - SpDPIScale(2);
-          FirstTickSize := -SpDPIScale(4);
-          TickSize := -SpDPIScale(3);
+          Y := ThumbR.Left - PPIScale(2);
+          FirstTickSize := -PPIScale(4);
+          TickSize := -PPIScale(3);
         end;
       tmxCenter:
         begin
           Y := ChannelR.Left + (ChannelR.Right - ChannelR.Left) div 2;
-          FirstTickSize := SpDPIScale(2);
-          TickSize := SpDPIScale(2);
+          FirstTickSize := PPIScale(2);
+          TickSize := PPIScale(2);
         end;
     end;
     for I := 0 to Count - 1 do
@@ -3983,7 +4017,7 @@ begin
                   SendMessage(Handle, TBM_GETTHUMBRECT, 0, LPARAM(@R));
                   Offset := 0;
                   if Focused then
-                    Offset := SpDPIScale(1);
+                    Offset := PPIScale(1);
                   if Orientation = trHorizontal then begin
                     R.Left := ClientRect.Left + Offset;
                     R.Right := ClientRect.Right - Offset;

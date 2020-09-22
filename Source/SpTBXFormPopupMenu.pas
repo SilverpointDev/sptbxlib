@@ -238,7 +238,7 @@ begin
   if Assigned(AOwner) and (AOwner is TSpTBXCustomWrapperPopupForm) then
     FPopupForm := AOwner as TSpTBXCustomWrapperPopupForm;
   Align := alBottom;
-  Height := SpDPIScale(10);
+  Height := 10;
 end;
 
 procedure TSpTBXPopupSizeGrip.DoDrawBackground(ACanvas: TCanvas; ARect: TRect;
@@ -275,13 +275,13 @@ begin
       pbsSizeableBottom:
         begin
           Result := ClientRect;
-          Result.Left := (Result.Right + Result.Left - SpDPIScale(20)) div 2;
-          Result.Right := Result.Left + SpDPIScale(20);
+          Result.Left := (Result.Right + Result.Left - PPIScale(20)) div 2;
+          Result.Right := Result.Left + PPIScale(20);
         end;
       pbsSizeableRightBottom:
         begin
           Result := ClientRect;
-          Result.Left := Result.Right - SpDPIScale(14);
+          Result.Left := Result.Right - PPIScale(14);
         end;
     end;
   end;
@@ -344,7 +344,7 @@ begin
     DoDrawBackground(ACanvas, R, pstPrePaint, PaintDefault);
     if PaintDefault then begin
       GR := Rect(0, 0, 0, 0);
-      SpDrawXPStatusBar(ACanvas, R, GR);
+      SpDrawXPStatusBar(ACanvas, R, GR, PPIScale);
     end;
 
     // Draw the grip
@@ -361,21 +361,21 @@ begin
       case FPopupForm.BorderStyle of
         pbsSizeableBottom:
           begin
-            CellR.Top := (CellR.Top + CellR.Bottom - SpDPIScale(4)) div 2 + SpDPIScale(1);
-            CellR.Bottom := CellR.Top + SpDPIScale(3);
-            SpDrawXPGrip(ACanvas, CellR, C1, C2);
+            CellR.Top := (CellR.Top + CellR.Bottom - PPIScale(4)) div 2 + PPIScale(1);
+            CellR.Bottom := CellR.Top + PPIScale(3);
+            SpDrawXPGrip(ACanvas, CellR, C1, C2, PPIScale);
           end;
         pbsSizeableRightBottom:
           begin
             // Draw 2 cells at the bottom
-            CellR.Left := GR.Right - SpDPIScale(4) * 2;
-            CellR.Top := CellR.Bottom - SpDPIScale(4);
-            SpDrawXPGrip(ACanvas, CellR, C1, C2);
+            CellR.Left := GR.Right - PPIScale(4) * 2;
+            CellR.Top := CellR.Bottom - PPIScale(4);
+            SpDrawXPGrip(ACanvas, CellR, C1, C2, PPIScale);
             // Draw 1 cell at the top
             CellR.Bottom := CellR.Top;
-            CellR.Top := CellR.Bottom - SpDPIScale(4);
-            CellR.Left := CellR.Left + SpDPIScale(4);
-            SpDrawXPGrip(ACanvas, CellR, C1, C2);
+            CellR.Top := CellR.Bottom - PPIScale(4);
+            CellR.Left := CellR.Left + PPIScale(4);
+            SpDrawXPGrip(ACanvas, CellR, C1, C2, PPIScale);
           end;
       end;
     end;
@@ -862,7 +862,7 @@ end;
 
 procedure TSpTBXWrapperPopupForm.PaintBackground(ACanvas: TCanvas; ARect: TRect);
 begin
-  SpDrawXPMenuPopupWindow(ACanvas, ARect, Rect(0, 0, 0, 0), False, 0);
+  SpDrawXPMenuPopupWindow(ACanvas, ARect, Rect(0, 0, 0, 0), False, 0, PPIScale);
 end;
 
 //WMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWM
@@ -972,6 +972,8 @@ function TSpTBXFormPopupMenu.InternalPopup(X, Y: Integer; ForceFocus: Boolean;
 var
   ClientR: TRect;
   FC: TCustomFormClass;
+  PPI: Integer;
+
 begin
   Result := False;
   SetPopupPoint(Point(X, Y));
@@ -986,6 +988,16 @@ begin
 
   // Use the WrapperForm to show the PopupForm
   if Assigned(FPopupForm) then begin
+    {$IF CompilerVersion > 32}
+    // Normally, setting the Parent scales the Form but here it doesn't because
+    // FPopupForm has a FreeNotification (see TControl.SetParent)
+    if Assigned(PopupControl) then
+      PPI := PopupControl.CurrentPPI
+    else
+      PPI := Screen.MonitorFromPoint(Point(X, Y)).PixelsPerInch;
+    TCustomFormAccess(FPopupForm).ScaleForPPI(PPI);
+    FWrapperForm.ScaleForPPI(PPI);
+    {$IFEND}
     FPopupFormState.PopupForm := FPopupForm;
     FPopupFormState.BorderStyle := FPopupForm.BorderStyle;
     FPopupFormState.BoundsRect := FPopupForm.BoundsRect;
@@ -995,7 +1007,6 @@ begin
       ClientR.Right := FPopupFormPrevSize.cx;
       ClientR.Bottom := FPopupFormPrevSize.cy;
     end;
-
     FPopupForm.Parent := FWrapperForm;
     FPopupForm.Align := alClient;
     FPopupForm.BorderStyle := bsNone;

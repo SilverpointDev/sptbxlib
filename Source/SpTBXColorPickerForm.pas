@@ -46,9 +46,9 @@ interface
 uses
   Windows, Messages, Classes, SysUtils, Controls, Graphics, Forms,
   Menus, StdCtrls, ExtCtrls, ActnList, Dialogs, ImgList,
-  TB2Dock, TB2Toolbar, TB2Item, TB2ExtItems,
+  TB2Common, TB2Dock, TB2Toolbar, TB2Item, TB2ExtItems,
   SpTBXSkins, SpTBXItem, SpTBXControls, SpTBXEditors, SpTBXFormPopupMenu,
-  SpTBXExtEditors, SpTBXTabs;
+  SpTBXExtEditors, SpTBXTabs, System.ImageList;
   // Delphi XE8 and up will automatically add System.ImageList, make sure to delete it
   // Adding a compiler conditional doesn't work
 
@@ -246,8 +246,6 @@ procedure TSpTBXColorPickerForm.FormCreate(Sender: TObject);
 begin
   btnColorPicker.Caption := SSpTBXClickAndDrag;
   imgPalette.Cursor := crSpTBXEyeDropper;
-
-  SpDPIScaleImageList(ImageList1);
 end;
 
 procedure TSpTBXColorPickerForm.FormDestroy(Sender: TObject);
@@ -264,10 +262,11 @@ procedure TSpTBXColorPickerForm.FormShow(Sender: TObject);
 Var
   Bitmap : TBitmap;
 begin
+  SpDPIScaleImageList(ImageList1, PPIScale(96), 96);
   Bitmap := TBitmap.Create;
   try
     Bitmap.Assign(imgPalette.Picture.Bitmap);
-    SpDPIResizeBitmap(Bitmap, SpDPIScale(ImgPalette.Width), SpDPIScale(ImgPalette.Height));
+    SpDPIResizeBitmap(Bitmap, PPIScale(ImgPalette.Width), PPIScale(ImgPalette.Height));
     imgPalette.Picture.Assign(Bitmap);
   finally
     Bitmap.Free;
@@ -296,7 +295,7 @@ procedure TSpTBXColorPickerForm.btnColorDraw(Sender: TObject;
 begin
   if PaintStage = pstPrePaint then begin
     PaintDefault := False;
-    InflateRect(ARect, -SpDPIScale(3), -SpDPIScale(3));
+    InflateRect(ARect, -PPIScale(3), -PPIScale(3));
     if btnColor.CaptionGlowColor = clNone then
       SpDrawCheckeredBackground(ACanvas, ARect)
     else begin
