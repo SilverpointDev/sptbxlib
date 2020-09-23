@@ -259,19 +259,13 @@ end;
 procedure TForm1.FormAfterMonitorDpiChanged(Sender: TObject; OldDPI,
   NewDPI: Integer);
 begin
-  //EnableAlign;
-  //SpTBXTabControl1.Toolbar.EndUpdate;
-  //SpTBXTabControl2.Toolbar.EndUpdate;
   LockWindowUpdate(0);
 end;
 
 procedure TForm1.FormBeforeMonitorDpiChanged(Sender: TObject; OldDPI,
   NewDPI: Integer);
 begin
-  //DisableAlign;
-  //SpTBXTabControl1.Toolbar.BeginUpdate;
-  //SpTBXTabControl2.Toolbar.BeginUpdate;
-  LockWindowUpdate(GetDesktopWindow);
+  LockWindowUpdate(Handle);
 end;
 
 procedure TForm1.FormCreate(Sender: TObject);
