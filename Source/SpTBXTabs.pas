@@ -1607,11 +1607,12 @@ begin
     end;
 
     // Get TabsArea
+    // CustomWidth is stored unscaled
     if TabsCount > 0 then begin
       TabsArea := CurrentDock.ClientWidth - PPIScale(4) - NonTabsArea - RightAlignWidth;
-      TabsWidth := TabsArea div TabsCount;
-      if TabsWidth > PPIScale(FTabAutofitMaxSize) then
-        TabsWidth := PPIScale(FTabAutofitMaxSize);
+      TabsWidth := PPIUnScale(TabsArea div TabsCount);
+      if TabsWidth > FTabAutofitMaxSize then
+        TabsWidth := FTabAutofitMaxSize;
     end;
 
     // Get RightAlignWidth
