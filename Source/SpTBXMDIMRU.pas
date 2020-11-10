@@ -280,7 +280,7 @@ constructor TSpTBXMDIButtonsItem.Create(AOwner: TComponent);
     A.ItemStyle := A.ItemStyle + [tbisRightAlign];
     Result.Images := MDIButtonsImgList;
     Result.ImageIndex := ImageIndex;
-    Result.CustomWidth := SpDPIScale(17);
+    Result.CustomWidth := 17;
     Result.OnClick := ItemClick;
     Result.OnDrawItem := DrawItem;
     Result.OnDrawImage := DrawItemImage;
@@ -333,7 +333,17 @@ const
    NoneFlags: array[TSpTBXSkinStatesType] of Integer = (0, DFCS_INACTIVE, 0, DFCS_PUSHED, DFCS_PUSHED, DFCS_PUSHED);
    XPPart: array [0..3] of Integer = (WP_MDICLOSEBUTTON, WP_MAXBUTTON, WP_MDIMINBUTTON, WP_MDIRESTOREBUTTON);
    XPFlags: array[TSpTBXSkinStatesType] of Integer = (CBS_NORMAL, CBS_DISABLED, CBS_HOT, CBS_PUSHED, CBS_PUSHED, CBS_PUSHED);
+var
+  PPI : Integer;
+
+  function PPIScale(Value: Integer): Integer;
+  begin
+    Result := MulDiv(Value, PPI, 96);
+  end;
+
 begin
+  PPI := Screen.MonitorFromRect(ARect).PixelsPerInch;
+
   if (PaintStage = pstPrePaint) and (AImageList = MDIButtonsImgList) and
     (AImageIndex >= 0) and (AImageIndex <= 3) then
   begin
@@ -341,13 +351,13 @@ begin
       sknNone:
         begin
           PaintDefault := False;
-          ARect := SpCenterRect(ARect, SpDPIScale(16), SpDPIScale(16));
+          ARect := SpCenterRect(ARect, PPIScale(16), PPIScale(16));
           DrawFrameControl(ACanvas.Handle, ARect, DFC_CAPTION, ButtonIndexFlags[AImageIndex] or NoneFlags[State]);
         end;
       sknWindows:
         begin
           PaintDefault := False;
-          ARect := SpCenterRect(ARect, SpDPIScale(16), SpDPIScale(16));
+          ARect := SpCenterRect(ARect, PPIScale(16), PPIScale(16));
           DrawThemeBackground(SpTBXThemeServices.Theme[teWindow], ACanvas.Handle, XPPart[AImageIndex], XPFlags[State], ARect, nil);
         end;
     end;

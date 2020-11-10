@@ -121,6 +121,7 @@ type
     FPreviewWindow: TSpTBXFontComboBoxPreview;
     FSelectedFont: TFontName;
     FOnFontPreview: TSpTBXEditGetTextEvent;
+    FScaledFontGlyphImgList : TImageList;
     procedure UpdateSelectedFont(AddMRU: Boolean);
     procedure SetFontNamePreview(const Value: Boolean);
     procedure SetSelectedFont(const Value: TFontName);
@@ -133,6 +134,7 @@ type
     procedure DoDrawItem(ACanvas: TCanvas; var ARect: TRect; Index: Integer; const State: TOwnerDrawState;
       const PaintStage: TSpTBXPaintStage; var PaintDefault: Boolean); override;
     procedure DropDown; override;
+    procedure ChangeScale(M, D: Integer{$if CompilerVersion >= 31}; isDpiChange: Boolean{$ifend}); override;
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
@@ -190,10 +192,7 @@ procedure SpFillFontNames(ADest: TStrings);
 
 { Painting helpers }
 procedure SpDrawCheckeredBackground(ACanvas: TCanvas; ARect: TRect);
-procedure SpDrawColorDropDownButton(ACanvas: TCanvas; ARect: TRect; Pushed: Boolean; AColor: TColor; CheckeredBkgndWhenTransparent: Boolean = True);
-
-var
-  FontGlyphImgList: TImageList = nil;
+procedure SpDrawColorDropDownButton(ACanvas: TCanvas; ARect: TRect; Pushed: Boolean; AColor: TColor; PPIScale: TPPIScale; CheckeredBkgndWhenTransparent: Boolean = True);
 
 implementation
 
@@ -289,7 +288,8 @@ begin
 end;
 
 procedure SpDrawColorDropDownButton(ACanvas: TCanvas; ARect: TRect;
-  Pushed: Boolean; AColor: TColor; CheckeredBkgndWhenTransparent: Boolean);
+  Pushed: Boolean; AColor: TColor;  PPIScale: TPPIScale;
+  CheckeredBkgndWhenTransparent: Boolean);
 // Draws a button used for color editboxes
 var
   R: TRect;
@@ -301,7 +301,7 @@ begin
   if not Pushed then
     SpDrawRectangle(ACanvas, R, 0, clBtnHighlight, clBtnShadow);
 
-  InflateRect(R, -SpDPIScale(2), -SpDPIScale(2));
+  InflateRect(R, -PPIScale(2), -PPIScale(2));
   if (AColor = clNone) and CheckeredBkgndWhenTransparent then begin
     // Draw a checkered background when clNone is used
     SpDrawCheckeredBackground(ACanvas, R);
@@ -313,18 +313,18 @@ begin
   SpDrawRectangle(ACanvas, R, 0, clBtnShadow, clBtnHighlight);
 
   R := ARect;
-  R.Left := R.Right - SpDPIScale(9);
-  R.Top := R.Bottom - SpDPIScale(7);
+  R.Left := R.Right - PPIScale(9);
+  R.Top := R.Bottom - PPIScale(7);
   ACanvas.Brush.Color := clBtnFace;
   ACanvas.FillRect(R);
   if Pushed then
     SpDrawRectangle(ACanvas, R, 0, clBtnHighlight, clBtnFace)
   else
     SpDrawRectangle(ACanvas, R, 0, clBtnHighlight, clBtnShadow);
-  SpDrawArrow(ACanvas, R.Left + (R.Right - R.Left) div 2, R.Top + (R.Bottom - R.Top) div 2 - SpDPIScale(1), clBlack, True, False, SpDPIScale(2));
+  SpDrawArrow(ACanvas, R.Left + (R.Right - R.Left) div 2, R.Top + (R.Bottom - R.Top) div 2 - PPIScale(1), clBlack, True, False, PPIScale(2));
 
   R := ARect;
-  InflateRect(R, -SpDPIScale(1), -SpDPIScale(1));
+  InflateRect(R, -PPIScale(1), -PPIScale(1));
   SpDrawRectangle(ACanvas, R, 0, clBtnFace, clBtnFace);
 end;
 
@@ -338,7 +338,7 @@ begin
     Result := True;
     if Assigned(OnDraw) then OnDraw(Self, ACanvas, ARect, PaintStage, Result);
     if Result then
-      SpDrawColorDropDownButton(ACanvas, ARect, Pushed, FSelectedColor);
+      SpDrawColorDropDownButton(ACanvas, ARect, Pushed, FSelectedColor, PPIScale);
   end
   else
     Result := inherited DoDrawItem(ACanvas, ARect, PaintStage);
@@ -505,20 +505,30 @@ end;
 constructor TSpTBXFontComboBox.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
-  FAutoDropDownWidthRightMargin := SpDPIScale(60);
+  FAutoDropDownWidthRightMargin := 60; // scaled on DoCalcMaxDropDownWidth
   FFontNamePreview := True;
   FFontPreview := True;
   FMaxMRUItems := 5;
   FMRUCount := 0;
   AutoItemHeight := False;
   AutoDropDownWidth := True;
+  FScaledFontGlyphImgList := TImageList.CreateSize(12, 12);
+  FScaledFontGlyphImgList.ResInstLoad(HInstance, rtBitmap, 'SPTBXTRUETYPE', clFuchsia);
+  FScaledFontGlyphImgList.ResInstLoad(HInstance, rtBitmap, 'SPTBXOPENTYPE', clFuchsia);
   ItemHeight := 23;
 end;
 
 destructor TSpTBXFontComboBox.Destroy;
 begin
+  FreeAndNil(FScaledFontGlyphImgList);
   FreeAndNil(FPreviewWindow);
   inherited;
+end;
+
+procedure TSpTBXFontComboBox.ChangeScale(M, D: Integer{$if CompilerVersion >= 31}; isDpiChange: Boolean{$ifend});
+begin
+  inherited;
+  SpDPIScaleImageList(FScaledFontGlyphImgList, M, D);
 end;
 
 procedure TSpTBXFontComboBox.Click;
@@ -553,8 +563,8 @@ begin
 
     FPreviewWindow.PreviewPanel.Caption := S;
     Sz := SpGetControlTextSize(FPreviewWindow.PreviewPanel, FPreviewWindow.PreviewPanel.Font, S);
-    Inc(Sz.cx, SpDPIScale(100));
-    Inc(Sz.cy, SpDPIScale(20));
+    Inc(Sz.cx, PPIScale(100));
+    Inc(Sz.cy, PPIScale(20));
 
     W := SendMessage(Handle, CB_GETDROPPEDWIDTH, 0, 0);
     P := Parent.ClientToScreen(Point(Left, Top));
@@ -597,14 +607,14 @@ begin
     // Draw the item glyph if the font is TrueType/OpenType
     R := ARect;
     R.Left := Spacing;
-    R.Top := R.Top + ((R.Bottom - R.Top) - FontGlyphImgList.Height) div 2;
+    R.Top := R.Top + ((R.Bottom - R.Top) - FScaledFontGlyphImgList.Height) div 2;
     ImageIndex := Integer(Items.Objects[Index]) - 1;
     if ImageIndex > -1 then
-      FontGlyphImgList.Draw(ACanvas, R.Left, R.Top, ImageIndex);
+      FScaledFontGlyphImgList.Draw(ACanvas, R.Left, R.Top, ImageIndex);
 
     // Draw the item text
     R := ARect;
-    R.Left := Spacing + FontGlyphImgList.Width + Spacing;
+    R.Left := Spacing + FScaledFontGlyphImgList.Width + Spacing;
     if FFontNamePreview then
       ACanvas.Font.Name := Items[Index];
     Flags := DrawTextBiDiModeFlags(DT_SINGLELINE or DT_VCENTER or DT_NOPREFIX);
@@ -804,13 +814,13 @@ begin
   if PaintStage = pstPrePaint then begin
     // Paint the color glyphs
     R := ARect;
-    R.Right := R.Left + SpDPIScale(16 + 5);
-    ARect.Left := R.Right + SpDPIScale(1);
+    R.Right := R.Left + PPIScale(16 + 5);
+    ARect.Left := R.Right + PPIScale(1);
     inherited DoDrawItem(ACanvas, ARect, Index, State, PaintStage, PaintDefault);
     if PaintDefault then begin
       SavedBrushColor := ACanvas.Brush.Color;
       try
-        InflateRect(R, -SpDPIScale(1), -SpDPIScale(1));
+        InflateRect(R, -PPIScale(1), -PPIScale(1));
 
         ACanvas.Brush.Color := Colors[Index];
         if (ACanvas.Brush.Color = clNone) and (clbsNoneAsTransparent in Style) then
@@ -989,17 +999,11 @@ end;
 procedure InitializeStock;
 begin
   Screen.Cursors[crSpTBXEyeDropper] := LoadCursor(HInstance, 'CZEYEDROPPER');
-
-  FontGlyphImgList := TImageList.CreateSize(SpDPIScale(12), SpDPIScale(12));
-  FontGlyphImgList.ResInstLoad(HInstance, rtBitmap, 'SPTBXTRUETYPE', clFuchsia);
-  FontGlyphImgList.ResInstLoad(HInstance, rtBitmap, 'SPTBXOPENTYPE', clFuchsia);
-
   DefaultColorPickerDropDownMenu := TSpTBXColorEditPopupMenu.Create(nil);
 end;
 
 procedure FinalizeStock;
 begin
-  FreeAndNil(FontGlyphImgList);
   FreeAndNil(DefaultColorPickerDropDownMenu);
 end;
 

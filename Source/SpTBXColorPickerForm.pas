@@ -46,9 +46,9 @@ interface
 uses
   Windows, Messages, Classes, SysUtils, Controls, Graphics, Forms,
   Menus, StdCtrls, ExtCtrls, ActnList, Dialogs, ImgList,
-  TB2Dock, TB2Toolbar, TB2Item, TB2ExtItems,
+  TB2Common, TB2Dock, TB2Toolbar, TB2Item, TB2ExtItems,
   SpTBXSkins, SpTBXItem, SpTBXControls, SpTBXEditors, SpTBXFormPopupMenu,
-  SpTBXExtEditors, SpTBXTabs;
+  SpTBXExtEditors, SpTBXTabs, System.ImageList;
   // Delphi XE8 and up will automatically add System.ImageList, make sure to delete it
   // Adding a compiler conditional doesn't work
 
@@ -126,6 +126,7 @@ type
     FPrevLabelColor: TColor;
     FColorPickerDragObject: TSpTBXColorPickerDragObject;
     procedure CenterImages;
+    procedure ChangeScale(M, D: Integer{$if CompilerVersion >= 31}; isDpiChange: Boolean{$ifend}); override;
   public
     function GetSelectedColor: TColor;
     procedure SetSelectedColor(AColor: TColor);
@@ -246,8 +247,6 @@ procedure TSpTBXColorPickerForm.FormCreate(Sender: TObject);
 begin
   btnColorPicker.Caption := SSpTBXClickAndDrag;
   imgPalette.Cursor := crSpTBXEyeDropper;
-
-  SpDPIScaleImageList(ImageList1);
 end;
 
 procedure TSpTBXColorPickerForm.FormDestroy(Sender: TObject);
@@ -267,7 +266,7 @@ begin
   Bitmap := TBitmap.Create;
   try
     Bitmap.Assign(imgPalette.Picture.Bitmap);
-    SpDPIResizeBitmap(Bitmap, SpDPIScale(ImgPalette.Width), SpDPIScale(ImgPalette.Height));
+    SpDPIResizeBitmap(Bitmap, PPIScale(ImgPalette.Width), PPIScale(ImgPalette.Height), CurrentPPI);
     imgPalette.Picture.Assign(Bitmap);
   finally
     Bitmap.Free;
@@ -290,13 +289,19 @@ begin
   end;
 end;
 
+procedure TSpTBXColorPickerForm.ChangeScale(M, D: Integer{$if CompilerVersion >= 31}; isDpiChange: Boolean{$ifend});
+begin
+  inherited;
+  SpDPIScaleImageList(ImageList1, M, D);
+end;
+
 procedure TSpTBXColorPickerForm.btnColorDraw(Sender: TObject;
   ACanvas: TCanvas; ARect: TRect; const PaintStage: TSpTBXPaintStage;
   var PaintDefault: Boolean);
 begin
   if PaintStage = pstPrePaint then begin
     PaintDefault := False;
-    InflateRect(ARect, -SpDPIScale(3), -SpDPIScale(3));
+    InflateRect(ARect, -PPIScale(3), -PPIScale(3));
     if btnColor.CaptionGlowColor = clNone then
       SpDrawCheckeredBackground(ACanvas, ARect)
     else begin

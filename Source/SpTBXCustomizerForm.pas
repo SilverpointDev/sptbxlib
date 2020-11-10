@@ -117,7 +117,7 @@ type
 implementation
 
 uses
-  ActnList, Themes;
+  ActnList, Themes, TB2Common;
 
 {$R *.dfm}
 
@@ -139,7 +139,7 @@ begin
   ACanvas := L.Canvas;
 
   // Draw the icon image
-  Inc(ARect.Left, SpDPIScale(2));  // Apply margins
+  Inc(ARect.Left, L.PPIScale(2));  // Apply margins
   if Item.ImageIndex > -1 then begin
     IL := Item.Images;
     if not Assigned(IL) then
@@ -149,9 +149,9 @@ begin
       ILRect := Bounds(ARect.Left, ARect.Top + Y, IL.Width, IL.Height);
       // Draw icon shadow
       if odSelected in State then begin
-        OffsetRect(ILRect, SpDPIScale(1), SpDPIScale(1));
+        OffsetRect(ILRect, L.PPIScale(1), L.PPIScale(1));
         SpDrawImageList(ACanvas, ILRect, IL, Item.ImageIndex, False, True);
-        OffsetRect(ILRect, SpDPIScale(-2), SpDPIScale(-2));
+        OffsetRect(ILRect, L.PPIScale(-2), L.PPIScale(-2));
       end;
       SpDrawImageList(ACanvas, ILRect, IL, Item.ImageIndex, True, True);
     end;
@@ -184,7 +184,7 @@ begin
 
   // Setup the listboxes
   if Assigned(Customizer.Images) then begin
-    lbCommands.ItemHeight := Customizer.Images.Height + SpDPIScale(4);
+    lbCommands.ItemHeight := Customizer.Images.Height + PPIScale(4);
     lbShortcuts.ItemHeight := lbCommands.ItemHeight;
   end;
   // Hide the Icon Options combobox if necessary
