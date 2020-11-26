@@ -454,7 +454,7 @@ procedure TSpTBXColorPickerForm.SpTBXPanel1DrawBackground(Sender: TObject;
 begin
   if PaintStage = pstPrePaint then begin
     PaintDefault := False;
-    SpDrawXPDock(ACanvas, ARect);
+    SpDrawXPDock(ACanvas, ARect, False, CurrentPPI);
     SpDrawXPToolbar(ACanvas, ARect, True, False, False, True, False);
   end;
 end;

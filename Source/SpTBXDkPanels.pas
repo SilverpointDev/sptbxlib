@@ -443,7 +443,7 @@ type
   end;
 
 { Painting helpers }
-procedure SpDrawXPDockablePanelTitleBar(ACanvas: TCanvas; ARect: TRect; IsActive, Vertical: Boolean);
+procedure SpDrawXPDockablePanelTitleBar(ACanvas: TCanvas; ARect: TRect; IsActive, Vertical: Boolean; DPI: Integer);
 procedure SpDrawXPDockablePanelBody(ACanvas: TCanvas; ARect: TRect; IsActive, IsFloating: Boolean; PPIScale: TPPIScale);
 
 { Toolbar Load/Save Position helpers }
@@ -1044,7 +1044,7 @@ end;
 //WMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWM
 { Painting helpers }
 
-procedure SpDrawXPDockablePanelTitleBar(ACanvas: TCanvas; ARect: TRect; IsActive, Vertical: Boolean);
+procedure SpDrawXPDockablePanelTitleBar(ACanvas: TCanvas; ARect: TRect; IsActive, Vertical: Boolean; DPI: Integer);
 var
   Details: TThemedElementDetails;
 begin
@@ -1058,7 +1058,7 @@ begin
       end;
     sknDelphiStyle:
       if CurrentSkin.GetThemedElementDetails(skncDockablePanelTitleBar, sknsNormal, Details) then
-        CurrentSkin.PaintThemedElementBackground(ACanvas, ARect, Details);
+        CurrentSkin.PaintThemedElementBackground(ACanvas, ARect, Details, DPI);
     sknSkin:
       CurrentSkin.PaintBackground(ACanvas, ARect, skncDockablePanelTitleBar, sknsNormal, True, True, Vertical);
   end;
@@ -1678,7 +1678,7 @@ begin
   inherited;
   Maximize := False;
   Minimize := False;
-  // Do not use SpDPIScale, scaled on TSpTBXCustomDockablePanel.ChangeScale
+  // Do not use PPIScale, scaled on TSpTBXCustomDockablePanel.ChangeScale
   TitleBarMaxSize := 19;
 end;
 
@@ -1709,7 +1709,7 @@ end;
 procedure TSpTBXDockablePanelButtonOptions.SetupButton(B: TSpTBXCustomItem);
 begin
   inherited;
-  // Do not use SpDPIScale, scaled on TSpTBXCustomDockablePanel.ChangeScale
+  // Do not use PPIScale, scaled on TSpTBXCustomDockablePanel.ChangeScale
   TSpTBXCustomItemAccess(B).CustomWidth := 15;
 end;
 
@@ -2474,7 +2474,7 @@ begin
     DefaultPainting := True;
     DoDrawCaptionPanel(ACanvas, ARect, pstPrePaint, DefaultPainting);
     if DefaultPainting then
-      SpDrawXPDockablePanelTitleBar(ACanvas, ARect, True, IsVerticalTitleBar);
+      SpDrawXPDockablePanelTitleBar(ACanvas, ARect, True, IsVerticalTitleBar, CurrentPPI);
     DefaultPainting := True;
     DoDrawCaptionPanel(ACanvas, ARect, pstPostPaint, DefaultPainting);
   end;
@@ -2652,7 +2652,7 @@ begin
     DefaultPainting := True;
     DoDrawCaptionPanel(ACanvas, ARect, pstPrePaint, DefaultPainting);
     if DefaultPainting then
-      SpDrawXPDockablePanelTitleBar(ACanvas, ARect, True, IsVerticalTitleBar);
+      SpDrawXPDockablePanelTitleBar(ACanvas, ARect, True, IsVerticalTitleBar, CurrentPPI);
     DefaultPainting := True;
     DoDrawCaptionPanel(ACanvas, ARect, pstPostPaint, DefaultPainting);
   end;
@@ -3525,12 +3525,12 @@ begin
         CurrentSkin.PaintBackground(Canvas, R, skncButton, sknsNormal, True, True, False, [akLeft, akTop, akRight, akBottom]);
       C1 := SkinManager.CurrentSkin.Options(skncToolbarGrip).Body.Color1;
       C2 := SkinManager.CurrentSkin.Options(skncToolbarGrip).Body.Color2;
-      SpDrawXPGrip(Canvas, DragHandleR, C1, C2, PPIScale);
+      SpDrawXPGrip(Canvas, DragHandleR, C1, C2, CurrentPPI);
     end
     else begin
       C1 := CurrentSkin.GetThemedSystemColor(clBtnShadow);
       C2 := CurrentSkin.GetThemedSystemColor(clWindow);
-      SpDrawXPGrip(Canvas, DragHandleR, C1, C2, PPIScale);
+      SpDrawXPGrip(Canvas, DragHandleR, C1, C2, CurrentPPI);
     end;
   end;
 

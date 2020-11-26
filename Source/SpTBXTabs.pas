@@ -554,7 +554,7 @@ type
   end;
 
 function SpGetNextTabItemViewer(View: TTBView; IV: TTBItemViewer; GoForward: Boolean; SearchType: TSpTBXSearchItemViewerType): TTBItemViewer;
-procedure SpDrawXPTab(ACanvas: TCanvas; ARect: TRect; Enabled, Checked, HotTrack, Focused: Boolean; Position: TSpTBXTabPosition; Edge: TSpTBXTabEdge = tedNone);
+procedure SpDrawXPTab(ACanvas: TCanvas; ARect: TRect; Enabled, Checked, HotTrack, Focused: Boolean; Position: TSpTBXTabPosition; Edge: TSpTBXTabEdge; DPI: Integer);
 procedure SpDrawXPTabControlBackground(ACanvas: TCanvas; ARect: TRect; AColor: TColor; BottomTabs: Boolean);
 
 implementation
@@ -606,7 +606,7 @@ end;
 
 procedure SpDrawXPTab(ACanvas: TCanvas; ARect: TRect;
   Enabled, Checked, HotTrack, Focused: Boolean; Position: TSpTBXTabPosition;
-  Edge: TSpTBXTabEdge = tedNone);
+  Edge: TSpTBXTabEdge; DPI: Integer);
 var
   B: TBitmap;
   R, FlippedR: TRect;
@@ -658,7 +658,7 @@ begin
               if HotTrack then DrawState := TThemedTab(Ord(DrawState) + 1);
 
           Details := SpTBXThemeServices.GetElementDetails(DrawState);
-          CurrentSkin.PaintThemedElementBackground(B.Canvas, R, Details);
+          CurrentSkin.PaintThemedElementBackground(B.Canvas, R, Details, DPI);
         end;
       sknSkin:
         begin
@@ -1169,7 +1169,7 @@ begin
     PaintDefault := True;
     if ImgList = MDIButtonsImgList then begin
       PatternColor := GetTextColor(ItemInfo.State);
-      SpDrawGlyphPattern(ACanvas, ARect, TSpTBXGlyphPattern(ImgIndex), PatternColor, PPIScale);
+      SpDrawGlyphPattern(ACanvas, ARect, TSpTBXGlyphPattern(ImgIndex), PatternColor, View.Window.CurrentPPI);
     end
     else
       DoDrawTabCloseButton(ACanvas, ItemInfo.State, pstPostPaint, ImgList, ImgIndex, ARect, PaintDefault);
@@ -1184,11 +1184,11 @@ procedure TSpTBXTabItemViewer.DrawTab(ACanvas: TCanvas; ARect: TRect; AEnabled,
 begin
   if ASeparator then begin
     ARect.Left := ARect.Right - PPIScale(2);
-    SpDrawXPMenuSeparator(ACanvas, ARect, False, True)
+    SpDrawXPMenuSeparator(ACanvas, ARect, False, True, View.Window.CurrentPPI);
   end
   else begin
     ACanvas.Brush.Color := Item.TabColor;
-    SpDrawXPTab(ACanvas, ARect, AEnabled, AChecked, AHoverItem, False, Position, AEdge);
+    SpDrawXPTab(ACanvas, ARect, AEnabled, AChecked, AHoverItem, False, Position, AEdge, View.Window.CurrentPPI);
   end;
 end;
 
@@ -2003,12 +2003,7 @@ begin
       MakeVisible(ATab);
     end;
     FOwnerTabControl.DoActiveTabChange(FActiveTabIndex);
-    // To avoid flicker don't call InvalidateNC, use the following instead
-    if not IsUpdating then begin
-      View.InvalidatePositions;
-      SetWindowPos(Handle, 0, 0, 0, 0, 0, SWP_NOZORDER or SWP_NOSIZE or
-        SWP_NOMOVE or SWP_DRAWFRAME or SWP_SHOWWINDOW);
-    end;
+    InvalidateNC;
   end;
 end;
 
