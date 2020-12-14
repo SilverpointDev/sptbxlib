@@ -78,6 +78,7 @@ uses
 const
   C_SpTBXRadioGroupIndex = 8888;      // Default GroupItem of TSpTBXRadioGroupItem
   CM_SPPOPUPCLOSE = CM_BASE + 1111;   // Message sent to the PopupControl to update its state after the Popup is closed
+  rvDPI = 'DPI';                      // Constant used to save the Toolbar CurrentPPI with the Customizer. Do not localize!
   rvSpTBXDisplayMode = 'DisplayMode'; // Constant used to save the Toolbar DisplayMode with the Customizer. Do not localize!
   CPDefaultCols = 8;                  // ColorPalette constant
   CPDefaultRows = 5;                  // ColorPalette constant
@@ -924,7 +925,7 @@ type
     function CanItemClick(Item: TTBCustomItem; Button: TMouseButton; Shift: TShiftState; X, Y: Integer): Boolean; virtual;
     procedure DoItemClick(Item: TTBCustomItem; Button: TMouseButton; Shift: TShiftState; X, Y: Integer); virtual;
     procedure DoItemNotification(Ancestor: TTBCustomItem; Relayed: Boolean; Action: TTBItemChangedAction; Index: Integer; Item: TTBCustomItem); virtual;
-    procedure ChangeScale(M, D: Integer{$if CompilerVersion >= 31}; isDpiChange: Boolean{$ifend}); override;
+    procedure ChangeScale(M, D: Integer{$IF CompilerVersion >= 31}; isDpiChange: Boolean{$IFEND}); override;
 
     property CompoundToolbar: Boolean read FCompoundToolbar write FCompoundToolbar;
   public
@@ -2493,7 +2494,7 @@ begin
       else
         C :=  CurrentSkin.GetThemedSystemColor(clBtnShadow);
       R := ARect;
-      R.Left := ARect.Right - 10 - 4;
+      R.Left := ARect.Right - SpPPIScale(14, ItemInfo.CurrentPPI);
       SpDrawLine(ACanvas, R.Left, R.Top + 1, R.Left, R.Bottom - 1, C);
     end;
   end;
@@ -5270,8 +5271,17 @@ end;
 procedure TSpTBXSkinGroupItem.DoFillStrings;
 begin
   SkinManager.GetSkinsAndDelphiStyles(FStrings);
+
   inherited;
+
+  {$IF CompilerVersion >= 23} // for Delphi XE2 and up
+  if TStyleManager.IsCustomStyleActive then
+    FDefaultIndex := FStrings.IndexOf(TStyleManager.ActiveStyle.Name)
+  else
+    FDefaultIndex := FStrings.IndexOf(SkinManager.CurrentSkinName);
+  {$ELSE}
   FDefaultIndex := FStrings.IndexOf(SkinManager.CurrentSkinName);
+  {$IFEND}
 end;
 
 procedure TSpTBXSkinGroupItem.WMSpSkinChange(var Message: TMessage);
@@ -6845,7 +6855,9 @@ begin
   Result := True;
 end;
 
-procedure TSpTBXToolbar.ChangeScale(M, D: Integer{$if CompilerVersion >= 31}; isDpiChange: Boolean{$ifend});
+procedure TSpTBXToolbar.ChangeScale(M, D: Integer{$IF CompilerVersion >= 31}; isDpiChange: Boolean{$IFEND});
+var
+  I: Integer;
 begin
   BeginUpdate;
   try
@@ -6853,6 +6865,17 @@ begin
   finally
     EndUpdate;
   end;
+
+  if D > M then begin
+    if Assigned(CurrentDock) then begin
+      for I := 0 to CurrentDock.ToolbarCount - 1 do
+        if CurrentDock.Toolbars[I] = Self then
+          Break;
+      DockPos := MulDiv(DockPos, M, D) - MulDiv(I * 14, M, D)
+    end;
+  end
+  else
+    DockPos := MulDiv(DockPos, M, D);
 end;
 
 procedure TSpTBXToolbar.MouseMove(Shift: TShiftState; X, Y: Integer);
@@ -6995,17 +7018,36 @@ begin
 end;
 
 procedure TSpTBXToolbar.ReadPositionData(const Data: TTBReadPositionData);
+var
+  DPI: Integer;
+  P: TPoint;
 begin
   inherited;
-  with Data do
+  with Data do begin
+    // Read DisplayMode
     DisplayMode := TSpTBXToolbarDisplayMode(ReadIntProc(Name, rvSpTBXDisplayMode, 0, ExtraData));
+    // Read the saved DPI and scale the position
+    DPI := ReadIntProc(Name, 'DPI', 96, ExtraData);
+    DockPos := MulDiv(ReadIntProc(Name, 'DockPos', DockPos, ExtraData), CurrentPPI, DPI);
+    // FloatingPosition is reset after ReadPositionData is called, this is a
+    // TB2K bug, I've changed TB2K sources for this to work, see
+    // TB2Dock.TBCustomLoadPositions
+    P.X := MulDiv(ReadIntProc(Name, 'FloatLeft', 0, ExtraData), CurrentPPI, DPI);
+    P.Y := MulDiv(ReadIntProc(Name, 'FloatTop', 0, ExtraData), CurrentPPI, DPI);
+    FloatingPosition := P;
+    FloatingWidth := MulDiv(ReadIntProc(Name, 'FloatRightX', 0, ExtraData), CurrentPPI, DPI);
+  end;
 end;
 
 procedure TSpTBXToolbar.WritePositionData(const Data: TTBWritePositionData);
 begin
   inherited;
-  with Data do
+  with Data do begin
+    // Save DisplayMode
     WriteIntProc(Name, rvSpTBXDisplayMode, Integer(DisplayMode), ExtraData);
+    // Save the current dpi
+    WriteIntProc(Name, rvDPI, CurrentPPI, ExtraData);
+  end;
 end;
 
 //WMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWM
@@ -7175,25 +7217,38 @@ end;
 
 procedure TSpTBXCustomToolWindow.ReadPositionData(const Data: TTBReadPositionData);
 var
-  W, H: Integer;
+  DPI, W, H: Integer;
+  P: TPoint;
 begin
   inherited;
-  // Load ClientAreaWidth/ClientAreaHeight
-  if Resizable then
-    with Data do begin
-      W := ReadIntProc(Name, rvClientWidth, FBarSize.cx, ExtraData);
-      H := ReadIntProc(Name, rvClientHeight, FBarSize.cy, ExtraData);
+  with Data do begin
+    // Read the saved DPI and scale the position
+    DPI := ReadIntProc(Name, 'DPI', 96, ExtraData);
+    DockPos := MulDiv(ReadIntProc(Name, 'DockPos', DockPos, ExtraData), CurrentPPI, DPI);
+    // FloatingPosition is reset after ReadPositionData is called, this is a
+    // TB2K bug, I've changed TB2K sources for this to work, see
+    // TB2Dock.TBCustomLoadPositions
+    P.X := MulDiv(ReadIntProc(Name, 'FloatLeft', 0, ExtraData), CurrentPPI, DPI);
+    P.Y := MulDiv(ReadIntProc(Name, 'FloatTop', 0, ExtraData), CurrentPPI, DPI);
+    FloatingPosition := P;
+    // Load ClientAreaWidth/ClientAreaHeight
+    if Resizable then begin
+      W := MulDiv(ReadIntProc(Name, rvClientWidth, FBarSize.cx, ExtraData), CurrentPPI, DPI);
+      H := MulDiv(ReadIntProc(Name, rvClientHeight, FBarSize.cy, ExtraData), CurrentPPI, DPI);
       SetClientAreaSize(W, H);
     end;
+  end;
 end;
 
 procedure TSpTBXCustomToolWindow.WritePositionData(const Data: TTBWritePositionData);
 begin
   inherited;
-  // Save ClientAreaWidth/ClientAreaHeight
   with Data do begin
+    // Save ClientAreaWidth/ClientAreaHeight
     WriteIntProc(Name, rvClientWidth, ClientAreaWidth, ExtraData);
     WriteIntProc(Name, rvClientHeight, ClientAreaHeight, ExtraData);
+    // Save the current dpi
+    WriteIntProc(Name, rvDPI, CurrentPPI, ExtraData);
   end;
 end;
 

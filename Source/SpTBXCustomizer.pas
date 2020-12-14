@@ -555,16 +555,31 @@ procedure SpLoadFormState(Form: TCustomForm; OptionsList: TStrings);
 var
   WState: TWindowState;
   R: TRect;
+  DPI: Integer;
 begin
   if Assigned(Form) then begin
     WState := TWindowState(GetEnumValue(TypeInfo(TWindowState), OptionsList.Values[rvMainFormWindowState]));
     if (WState < Low(WState)) or (WState > High(WState)) then
       WState := Form.WindowState; // Failed reading from string, leave the default value
 
-    if SpStringToRect(OptionsList.Values[rvMainFormBounds], R) then
-      Form.SetBounds(R.Left, R.Top, R.Right, R.Bottom);
+    // Read the saved DPI and scale
+    DPI := StrToIntDef(OptionsList.Values[rvDPI], 96);
+    if SpStringToRect(OptionsList.Values[rvMainFormBounds], R) then begin
+      Form.SetBounds(
+        MulDiv(R.Left, Form.CurrentPPI, DPI),
+        MulDiv(R.Top, Form.CurrentPPI, DPI),
+        MulDiv(R.Right, Form.CurrentPPI, DPI),
+        MulDiv(R.Bottom, Form.CurrentPPI, DPI));
+    end;
 
-    if not SpStringToRect(OptionsList.Values[rvMainFormRestoreBounds], R) then
+    if SpStringToRect(OptionsList.Values[rvMainFormRestoreBounds], R) then begin
+      R := Rect(
+        MulDiv(R.Left, Form.CurrentPPI, DPI),
+        MulDiv(R.Top, Form.CurrentPPI, DPI),
+        MulDiv(R.Right, Form.CurrentPPI, DPI),
+        MulDiv(R.Bottom, Form.CurrentPPI, DPI));
+    end
+    else
       R := Rect(Form.Left, Form.Top, Form.Width, Form.Height);  // Failed reading from string, leave the default value
 
     SpSetFormWindowState(Form, WState, R);
@@ -1028,7 +1043,7 @@ begin
     if TStyleManager.IsCustomStyleActive then
       ExtraL.Values[rvVCLStyle] := TStyleManager.ActiveStyle.Name;
     {$IFEND}
-
+    ExtraL.Values[rvDPI] := IntToStr(Application.MainForm.CurrentPPI);
     if FSaveFormState then
       SpSaveFormState(Application.MainForm, ExtraL);
     DoSave(ExtraL);

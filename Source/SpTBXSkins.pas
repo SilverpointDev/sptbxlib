@@ -67,7 +67,7 @@ uses
   {$IF CompilerVersion >= 25} // for Delphi XE4 and up
   System.UITypes,
   {$IFEND}
-  Themes, Generics.Collections;
+  Themes, Styles, Generics.Collections;
 
 resourcestring
   SSpTBXColorNone = 'None';
@@ -476,6 +476,11 @@ type
   // http://msdn2.microsoft.com/en-us/library/ms535695.aspx
   TSpPrintWindow = function(Hnd: HWND; HdcBlt: HDC; nFlags: UINT): BOOL; stdcall;
 
+{ Delphi Styles}
+function SpStyleGetElementObject(Style: TCustomStyleServices; const ControlName, ElementName: string): TObject;
+function SpStyleDrawBitmapElement(Element: TObject; State: TSpTBXSkinStatesType; DC: HDC; const R: TRect; ClipRect: PRect; DPI: Integer): Boolean;
+function SpStyleStretchDrawBitmapElement(Element: TObject; State: TSpTBXSkinStatesType; DC: HDC; const R: TRect; ClipRect: PRect; DPI: Integer): Boolean;
+
 { Themes }
 function SpTBXThemeServices: TSpTBXThemeServices;
 function SkinManager: TSpTBXSkinManager;
@@ -558,6 +563,8 @@ procedure SpPaintSkinBorders(ACanvas: TCanvas; ARect: TRect; SkinOption: TSpTBXS
 function SpIsWinVistaOrUp: Boolean;
 function SpIsWin10OrUp: Boolean;
 function SpGetDirectories(Path: string; L: TStringList): Boolean;
+
+{ DPI }
 function SpPPIScale(Value, DPI: Integer): Integer;
 function SpPPIScaleToDPI(PPIScale: TPPIScale): Integer;
 procedure SpDPIResizeBitmap(Bitmap: TBitmap; const NewWidth, NewHeight, DPI: Integer);
@@ -572,7 +579,7 @@ implementation
 
 uses
   UxTheme, Forms, Math, TypInfo,
-  SpTBXDefaultSkins, CommCtrl;
+  SpTBXDefaultSkins, CommCtrl, Rtti;
 
 const
   ROP_DSPDxax = $00E20746;
@@ -582,6 +589,115 @@ type
 
 var
   FInternalSkinManager: TSpTBXSkinManager = nil;
+
+//WMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWM
+{ Delphi Styles }
+
+function SpStyleGetElementObject(Style: TCustomStyleServices; const ControlName, ElementName: string): TObject;
+// From Vcl.Styles.GetElementObject
+// Returns a TObject that is a TSeStyleObject:
+//   TSeBitmapObject(TSeStyleObject)
+//   TSeButtonObject(TSeBitmapObject)
+//   TSeTextObject(TSeStyleObject)
+// Use Bitmap Style Designer to browse the different controls and elements
+// of a style, and the class types of such elements.
+var
+  CustomStyle: TCustomStyle;
+  SeStyle, SeStyleSource, SeStyleObject: TObject;
+begin
+  Result := nil;
+  if Style is TCustomStyle then
+    CustomStyle := Style as TCustomStyle
+  else
+    Exit;
+
+  // Use RTTI to access fields, properties and methods of structures on StyleAPI.inc
+
+  // Get Vcl.Styles.TCustomStyle.FSource which is a StyleAPI.inc.TSeStyle (actual Delphi style file)
+  SeStyle := TRttiContext.Create.GetType(CustomStyle.ClassType).GetField('FSource').GetValue(CustomStyle).AsObject;
+  // Get StyleAPI.inc.TSeStyle.FStyleSource which is a StyleAPI.inc.TSeStyleSource (structure that contains all the style options and bitmaps)
+  SeStyleSource := TRttiContext.Create.GetType(SeStyle.ClassType).GetField('FStyleSource').GetValue(SeStyle).AsObject;
+
+  // Find the control (TSeStyleObject)
+  // Call StyleAPI.inc.TSeStyleSource.GetObjectByName method that returns a StyleAPI.inc.TSeStyleObject
+  SeStyleObject := TRttiContext.Create.GetType(SeStyleSource.ClassType).GetMethod('GetObjectByName').Invoke(SeStyleSource, [ControlName]).AsObject;
+
+  // Find the element of the control (TSeStyleObject/TSeBitmapObject/TSeButtonObject)
+  // Call StyleAPI.inc.TSeStyleObject.FindObjectByName method that returns a StyleAPI.inc.TSeStyleObject
+  if SeStyleObject <> nil then begin
+    SeStyleObject := TRttiContext.Create.GetType(SeStyleObject.ClassType).GetMethod('FindObjectByName').Invoke(SeStyleObject, [ElementName]).AsObject;
+    if SeStyleObject <> nil then
+      Result := SeStyleObject;
+  end;
+end;
+
+function SpStyleDrawBitmapElement(Element: TObject; State: TSpTBXSkinStatesType;
+  DC: HDC; const R: TRect; ClipRect: PRect; DPI: Integer): Boolean;
+// From Vcl.Styles.DrawBitmapElement
+// Element should be a TSeStyleObject descendant
+var
+  V1, V2: TValue;
+  SeState: TValue; // TSeState = (ssNormal, ssDesign, ssMaximized, ssMinimized, ssRollup, ssHot, ssPressed, ssFocused, ssDisabled)
+  scTileStyle: TValue; // TscTileStyle = (tsTile, tsStretch, tsCenter, tsVertCenterStretch, tsVertCenterTile, tsHorzCenterStretch, tsHorzCenterTile);
+  I: Int64;
+begin
+  Result := False;
+  if Element <> nil then begin
+    // Use RTTI to access fields, properties and methods of structures on StyleAPI.inc
+    // Set StyleAPI.inc.TSeStyleObject.BoundsRect
+    V1 := V1.From(R);
+    TRttiContext.Create.GetType(Element.ClassType).GetProperty('BoundsRect').SetValue(Element, V1);
+
+    // Set StyleAPI.inc.TSeStyleObject.State
+    SeState := TRttiContext.Create.GetType(Element.ClassType).GetProperty('State').GetValue(Element);
+    case State of
+      sknsDisabled: I := 7; // ssDisabled
+      sknsHotTrack: I := 5; // ssHot
+      sknsPushed: I := 6;   // ssPressed
+    else
+      I := 0; // ssNormal
+    end;
+    SeState := SeState.FromOrdinal(SeState.TypeInfo, I);
+    TRttiContext.Create.GetType(Element.ClassType).GetProperty('State').SetValue(Element, SeState);
+
+    with TGDIHandleRecall.Create(DC, OBJ_FONT) do
+    try
+      // Call StyleAPI.inc.TSeStyleObject.Draw
+      V1 := V1.From(Canvas);
+      if ClipRect <> nil then
+        V2 := V2.From(ClipRect^)
+      else
+        V2 := V2.From(Rect(-1, -1, -1, -1));
+      TRttiContext.Create.GetType(Element.ClassType).GetMethod('Draw').Invoke(Element, [V1, V2, DPI]);
+    finally
+      Free;
+    end;
+    Result := True;
+  end;
+end;
+
+function SpStyleStretchDrawBitmapElement(Element: TObject; State: TSpTBXSkinStatesType;
+  DC: HDC; const R: TRect; ClipRect: PRect; DPI: Integer): Boolean;
+// From Vcl.Styles.DrawBitmapElement
+var
+  V: TValue;
+  scTileStyle: TValue; // TscTileStyle = (tsTile, tsStretch, tsCenter, tsVertCenterStretch, tsVertCenterTile, tsHorzCenterStretch, tsHorzCenterTile);
+begin
+  Result := False;
+  // Use RTTI to access fields, properties and methods of structures on StyleAPI.inc
+  // Assume SeStyleObject is TSeBitmapObject
+  // Set StyleAPI.inc.TSeBitmapObject.TileStyle to tsStretch,
+  // and after painting reset to original value
+  scTileStyle := TRttiContext.Create.GetType(Element.ClassType).GetProperty('TileStyle').GetValue(Element);
+  try
+    V := V.FromOrdinal(scTileStyle.TypeInfo, 1); // tsStretch = 1
+    TRttiContext.Create.GetType(Element.ClassType).GetProperty('TileStyle').SetValue(Element, V);
+    Result := SpStyleDrawBitmapElement(Element, State, DC, R, ClipRect, DPI);
+  finally
+    // Reset to original value
+    TRttiContext.Create.GetType(Element.ClassType).GetProperty('TileStyle').SetValue(Element, scTileStyle);
+  end;
+end;
 
 //WMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWM
 { Themes }
@@ -2673,6 +2789,9 @@ begin
     end;
   end;
 end;
+
+//WMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWM
+{ DPI }
 
 function SpPPIScale(Value, DPI: Integer): Integer;
 begin

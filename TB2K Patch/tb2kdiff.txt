@@ -1,5 +1,5 @@
 --- TB2Acc.pas	Sat Apr 19 00:31:00 2008
-+++ TB2Acc.pas	Fri May 29 05:32:49 2020
++++ TB2Acc.pas	Wed Sep 23 15:24:05 2020
 @@ -36,7 +36,8 @@
  uses
    Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
@@ -11,7 +11,7 @@
  type
    { Our declaration for IAccessible }
 --- TB2Common.pas	Wed Sep 17 14:46:30 2008
-+++ TB2Common.pas	Tue Sep 22 02:28:50 2020
++++ TB2Common.pas	Wed Sep 23 15:24:05 2020
 @@ -31,11 +31,13 @@
  {$I TB2Ver.inc}
  
@@ -147,7 +147,7 @@
  initialization
    InitGradientFillFunc;
 --- TB2Dock.pas	Wed Sep 17 15:12:26 2008
-+++ TB2Dock.pas	Tue Sep 22 06:43:58 2020
++++ TB2Dock.pas	Fri Dec 11 15:36:26 2020
 @@ -37,7 +37,12 @@
  {$I TB2Ver.inc}
  
@@ -895,8 +895,18 @@
      if not FTransparent then begin
        { Copy from a possible DIB to our DDB }
        BitBlt(FBitmapCache.Canvas.Handle, 0, 0, FBitmapCache.Width,
+@@ -5411,8 +5681,8 @@
+       Data.ReadIntProc := ReadIntProc;
+       Data.ReadStringProc := ReadStringProc;
+       Data.ExtraData := ExtraData;
++      FloatingPosition := Pos;  // Robert: set FloatingPosition before we call ReadPositionData
+       ReadPositionData(Data);
+-      FloatingPosition := Pos;
+       if Assigned(NewDock) then
+         Parent := NewDock
+       else begin
 --- TB2DsgnItemEditor.pas	Thu Sep 25 13:49:32 2008
-+++ TB2DsgnItemEditor.pas	Fri May 29 05:32:50 2020
++++ TB2DsgnItemEditor.pas	Wed Sep 23 15:24:05 2020
 @@ -207,7 +207,8 @@
    can't be unloaded. When a design-time package is uninstalled, it remains
    loaded until the IDE is restarted. }
@@ -908,7 +918,7 @@
    I: Integer;
    Info: TItemClassInfo;
 --- TB2ExtItems.pas	Thu Apr 10 16:51:12 2008
-+++ TB2ExtItems.pas	Fri Feb 28 18:45:54 2020
++++ TB2ExtItems.pas	Wed Sep 23 15:24:05 2020
 @@ -157,6 +157,8 @@
      function EditLoop(const CapHandle: HWND): Boolean;
      procedure EditWndProc(var Message: TMessage);
@@ -1070,7 +1080,7 @@
    FEditControl := TEdit.Create(nil);
    try
 --- TB2Item.pas	Fri Sep 19 11:35:48 2008
-+++ TB2Item.pas	Sun Sep 20 17:50:50 2020
++++ TB2Item.pas	Wed Sep 23 15:24:05 2020
 @@ -40,7 +40,11 @@
  uses
    Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
@@ -1885,7 +1895,7 @@
  { TTBBaseAccObject }
  
 --- TB2Reg.pas	Thu Sep 18 14:08:40 2008
-+++ TB2Reg.pas	Fri May 29 05:32:50 2020
++++ TB2Reg.pas	Wed Sep 23 15:24:05 2020
 @@ -65,10 +65,15 @@
  
  uses
@@ -1904,7 +1914,7 @@
  
  { Unfortunately TComponentImageIndexPropertyEditor seems to be gone in
 --- TB2Toolbar.pas	Mon Jun 23 13:05:48 2008
-+++ TB2Toolbar.pas	Sun Sep 20 18:16:36 2020
++++ TB2Toolbar.pas	Wed Sep 23 15:24:05 2020
 @@ -298,6 +298,23 @@
    {$IFDEF CLR} System.Runtime.InteropServices, System.Text, {$ENDIF}
    TB2Consts, TB2Common, TB2Hook;
@@ -1987,8 +1997,8 @@
  end;
  
  procedure TTBCustomToolbar.BeginUpdate;
---- TB2ToolWindow.pas	Wed Jan  5 19:56:50 2005
-+++ TB2ToolWindow.pas	Sun Mar  1 12:31:14 2020
+--- TB2ToolWindow.pas	Wed Jan  5 20:56:50 2005
++++ TB2ToolWindow.pas	Wed Sep 23 15:24:05 2020
 @@ -120,6 +120,8 @@
    end;
  
@@ -2014,7 +2024,7 @@
  
  procedure TTBToolWindow.SizeChanging(const AWidth, AHeight: Integer);
 --- TB2Ver.inc	Sat Sep 13 16:06:46 2008
-+++ TB2Ver.inc	Fri May 29 05:32:50 2020
++++ TB2Ver.inc	Wed Sep 23 15:45:25 2020
 @@ -50,7 +50,7 @@
      {$DEFINE JR_WIDESTR}  { defined if String type = WideString }
    {$IFEND}

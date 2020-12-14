@@ -134,7 +134,7 @@ type
     procedure DoDrawItem(ACanvas: TCanvas; var ARect: TRect; Index: Integer; const State: TOwnerDrawState;
       const PaintStage: TSpTBXPaintStage; var PaintDefault: Boolean); override;
     procedure DropDown; override;
-    procedure ChangeScale(M, D: Integer{$if CompilerVersion >= 31}; isDpiChange: Boolean{$ifend}); override;
+    procedure ChangeScale(M, D: Integer{$IF CompilerVersion >= 31}; isDpiChange: Boolean{$IFEND}); override;
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
@@ -525,7 +525,7 @@ begin
   inherited;
 end;
 
-procedure TSpTBXFontComboBox.ChangeScale(M, D: Integer{$if CompilerVersion >= 31}; isDpiChange: Boolean{$ifend});
+procedure TSpTBXFontComboBox.ChangeScale(M, D: Integer{$IF CompilerVersion >= 31}; isDpiChange: Boolean{$IFEND});
 begin
   inherited;
   SpDPIScaleImageList(FScaledFontGlyphImgList, M, D);

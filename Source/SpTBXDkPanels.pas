@@ -219,7 +219,7 @@ type
 
     // Component
     function DefaultScalingFlags: TScalingFlags; override;
-    procedure ChangeScale(M, D: Integer{$if CompilerVersion >= 31}; isDpiChange: Boolean{$ifend}); override;
+    procedure ChangeScale(M, D: Integer{$IF CompilerVersion >= 31}; isDpiChange: Boolean{$IFEND}); override;
     procedure CreateParams(var Params: TCreateParams); override;
     procedure Notification(AComponent: TComponent; Operation: TOperation); override;
     procedure Loaded; override;
@@ -380,7 +380,7 @@ type
     procedure WMEraseBkgnd(var Message: TWmEraseBkgnd); message WM_ERASEBKGND;
   protected
     FRestorePos: Integer;
-    procedure ChangeScale(M, D: Integer{$if CompilerVersion >= 31}; isDpiChange: Boolean{$ifend}); override;
+    procedure ChangeScale(M, D: Integer{$IF CompilerVersion >= 31}; isDpiChange: Boolean{$IFEND}); override;
     procedure DoDrawBackground(ACanvas: TCanvas; ARect: TRect; const PaintStage: TSpTBXPaintStage; var PaintDefault: Boolean); virtual;
     procedure DoMoved; virtual;
     function DoMoving(var NewSize: Integer): Boolean; virtual;
@@ -1328,7 +1328,7 @@ begin
   try
     SpTBUpdateBeforeLoadIni(OwnerComponent, IniFile, SectionNamePrefix, LockedDocks);
     TBIniLoadPositions(OwnerComponent, IniFile, SectionNamePrefix);
-    SpTBUpdateAfterLoadIni(OwnerComponent, IniFile, SectionNamePrefix, LockedDocks);  
+    SpTBUpdateAfterLoadIni(OwnerComponent, IniFile, SectionNamePrefix, LockedDocks);
   finally
     LockedDocks.Free;
   end;
@@ -1857,7 +1857,7 @@ begin
   FreeAndNil(FDockForms);  // After inherited, Notification accesses FDockForms
 end;
 
-procedure TSpTBXCustomDockablePanel.ChangeScale(M, D: Integer{$if CompilerVersion >= 31}; isDpiChange: Boolean{$ifend});
+procedure TSpTBXCustomDockablePanel.ChangeScale(M, D: Integer{$IF CompilerVersion >= 31}; isDpiChange: Boolean{$IFEND});
 begin
   BeginUpdate;
   try
@@ -1867,10 +1867,10 @@ begin
     EndUpdate;
   end;
   // newpy check if needed
-  FFloatingClientHeight := PPIScale(FFloatingClientHeight);
-  FFloatingClientWidth := PPIScale(FFloatingClientWidth);
-  MinClientHeight := PPIScale(MinClientHeight);
-  MinClientWidth := PPIScale(MinClientWidth);
+  FFloatingClientHeight := MulDiv(FFloatingClientHeight, M, D);
+  FFloatingClientWidth := MulDiv(FFloatingClientWidth, M, D);
+  MinClientHeight := MulDiv(MinClientHeight, M, D);
+  MinClientWidth := MulDiv(MinClientWidth, M, D);
 end;
 
 procedure TSpTBXCustomDockablePanel.Loaded;
@@ -2760,7 +2760,11 @@ begin
 end;
 
 procedure TSpTBXCustomDockablePanel.ReadPositionData(const Data: TTBReadPositionData);
+var
+  DPI: Integer;
 begin
+  // The ancestor class TSpTBXCustomToolWindow scales the DockPos,
+  // FloatLeft, FloatTop, ClientAreaWidth, ClientAreaHeight
   inherited;
 
   // Load FLoadedBarSize and FLoadedDockPos
@@ -2770,9 +2774,11 @@ begin
 
   // Load FloatingClientWidth/FloatingClientHeight, RestoreSize, State
   with Data do begin
-    FFloatingClientWidth := ReadIntProc(Name, rvFloatingClientWidth, 0, ExtraData);
-    FFloatingClientHeight := ReadIntProc(Name, rvFloatingClientHeight, 0, ExtraData);
-    FState.RestoreSize := ReadIntProc(Name, rvRestoreSize, 0, ExtraData);
+    // Read the saved DPI and scale
+    DPI := ReadIntProc(Name, 'DPI', 96, ExtraData);
+    FFloatingClientWidth := MulDiv(ReadIntProc(Name, rvFloatingClientWidth, 0, ExtraData), CurrentPPI, DPI);
+    FFloatingClientHeight := MulDiv(ReadIntProc(Name, rvFloatingClientHeight, 0, ExtraData), CurrentPPI, DPI);
+    FState.RestoreSize := MulDiv(ReadIntProc(Name, rvRestoreSize, 0, ExtraData), CurrentPPI, DPI);
     FState.DockedState := TWindowState(ReadIntProc(Name, rvState, 0, ExtraData));
     FLoadedState := FState.DockedState;
   end;
@@ -3277,7 +3283,7 @@ begin
   Invalidate;
 end;
 
-procedure TSpTBXCustomSplitter.ChangeScale(M, D: Integer{$if CompilerVersion >= 31}; isDpiChange: Boolean{$ifend});
+procedure TSpTBXCustomSplitter.ChangeScale(M, D: Integer{$IF CompilerVersion >= 31}; isDpiChange: Boolean{$IFEND});
 begin
   inherited;
   FGripSize := MulDiv(FGripSize, M, D);

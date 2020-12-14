@@ -209,7 +209,7 @@ var
   S: string;
 begin
   Result := '';
-  S := SpGetCommonDocumentsFolder + 'RAD Studio\' + IntToStr(RADStudioIDENumber) + '.0\Styles'; // RAD Studio\5.0
+  S := SpGetCommonDocumentsFolder + 'Embarcadero\Studio\' + IntToStr(RADStudioIDENumber) + '.0';
   if DirectoryExists(S) then
     Result := S;
 end;
@@ -221,8 +221,8 @@ var
 begin
   Result := '';
   // XE2 = 9
-  for I := 20 downto 9 do begin
-    S := SpIDEBDSCommonDir(I);
+  for I := 30 downto 9 do begin
+    S := SpIDEBDSCommonDir(I) + '\Styles'; // C:\Users\Public\Documents\Embarcadero\Studio\21.0\Styles
     if DirectoryExists(S) then begin
       Result := S;
       Exit;
@@ -372,9 +372,6 @@ begin
             FLastSkin := SkinManager.CurrentSkinName;
             SkinManager.SetSkin('Default');
           end;
-          {$IF CompilerVersion >= 23} //for Delphi XE2 and up
-          TStyleManager.SetStyle(TStyleManager.SystemStyle);
-          {$IFEND}
         end;
       sknSkin:
         SkinManager.SetSkin(FLastSkin);
@@ -387,6 +384,8 @@ begin
               SkinManager.SetToDefaultSkin;
               {$IF CompilerVersion >= 23} //for Delphi XE2 and up
               TStyleManager.SetStyle(TStyleManager.LoadFromFile(OpenDialog1.FileName));
+              // Recreate the SkinGroupItem and add the selected style
+              SpTBXSkinGroupItem1.Recreate;
               {$IFEND}
             end;
         end;
@@ -410,7 +409,7 @@ begin
         // Set the new skin
         FLastSkin := S;
         SkinManager.SetSkin(FLastSkin);
-        // Recreate the SkinGroupItem
+        // Recreate the SkinGroupItem and add the selected skin
         SpTBXSkinGroupItem1.Recreate;
         radiobuttonSkin3.Checked := True;
       end;
@@ -432,7 +431,7 @@ begin
   if PaintStage = pstPrePaint then begin
     PaintDefault := False;
     SB := TSpTBXSpeedButton(Sender);
-    SpDrawXPHeader(ACanvas, ARect, SB.MouseInControl, SB.Pushed);
+    SpDrawXPHeader(ACanvas, ARect, SB.MouseInControl, SB.Pushed, CurrentPPI);
   end;
 end;
 

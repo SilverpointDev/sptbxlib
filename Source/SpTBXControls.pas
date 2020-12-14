@@ -1054,6 +1054,10 @@ type
     procedure SetTickMarks(const Value: TSpTBXTickMark);
     procedure CMSpTBXControlsInvalidate(var Message: TMessage); message CM_SPTBXCONTROLSINVALIDATE;
     procedure CNNotify(var Message: TWMNotify); message CN_NOTIFY;
+    procedure CNHScroll(var Message: TWMHScroll); message CN_HSCROLL;
+    procedure CNVScroll(var Message: TWMVScroll); message CN_VSCROLL;
+    procedure WMLButtonUp(var Message: TWMMouse); message WM_LBUTTONUP;
+    procedure WMLButtonDown(var Message: TWMMouse); message WM_LBUTTONDOWN;
     procedure WMEraseBkGnd(var Message: TMessage); message WM_ERASEBKGND;
     procedure WMSpSkinChange(var Message: TMessage); message WM_SPSKINCHANGE;
   protected
@@ -3794,7 +3798,11 @@ begin
     sknNone:
       ACanvas.Pen.Color := clBlack;
     sknWindows, sknDelphiStyle:
+      {$IF CompilerVersion >= 23} // for Delphi XE2 and up
+      ACanvas.Pen.Color := SpTBXThemeServices.GetSystemColor(clBtnText);
+      {$ELSE}
       ACanvas.Pen.Color := clBtnShadow;
+      {$IFEND}
     sknSkin:
       if CurrentSkin.Options(skncTrackBar, sknsNormal).TextColor <> clNone then
         ACanvas.Pen.Color := CurrentSkin.Options(skncTrackBar, sknsNormal).TextColor
@@ -3997,22 +4005,11 @@ begin
               TBCD_THUMB:
                 begin
                   if SliderVisible then begin
-                    // VCL Styles doesn't stretch draw the trackbar thumb, sometimes it's
-                    // bigger than the rect we get from TBM_GETTHUMBRECT (it has a custom
-                    // size depending on the style), which causes painting issues.
-                    // We need to clip the painting region.
                     SendMessage(Handle, TBM_GETTHUMBRECT, 0, LPARAM(@R));
-                    Rgn := CreateRectRgn(R.Left, R.Top, R.Right, R.Bottom);
-                    SelectClipRgn(ACanvas.Handle, Rgn);
-                    try
-                      if DoDrawThumb(ACanvas, R, pstPrePaint) then
-                        SpDrawXPTrackBar(ACanvas, R, TBCD_THUMB, Orientation = trVertical, False, GetThumbState, FTickMarks, Min, Max, SelStart, SelEnd, CurrentPPI);
-                      DoDrawThumb(ACanvas, R, pstPostPaint);
-                      Message.Result := CDRF_SKIPDEFAULT;
-                    finally
-                      DeleteObject(Rgn);
-                      SelectClipRgn(ACanvas.Handle, 0);
-                    end;
+                    if DoDrawThumb(ACanvas, R, pstPrePaint) then
+                      SpDrawXPTrackBar(ACanvas, R, TBCD_THUMB, Orientation = trVertical, False, GetThumbState, FTickMarks, Min, Max, SelStart, SelEnd, CurrentPPI);
+                    DoDrawThumb(ACanvas, R, pstPostPaint);
+                    Message.Result := CDRF_SKIPDEFAULT;
                   end;
                 end;
               TBCD_CHANNEL:
@@ -4057,6 +4054,38 @@ begin
         end;
     end;
   end;
+end;
+
+procedure TSpTBXTrackBar.CNHScroll(var Message: TWMHScroll);
+begin
+  inherited;
+  InvalidateBackground;
+end;
+
+procedure TSpTBXTrackBar.CNVScroll(var Message: TWMVScroll);
+begin
+  inherited;
+  InvalidateBackground;
+end;
+
+procedure TSpTBXTrackBar.WMLButtonDown(var Message: TWMMouse);
+var
+  R: TRect;
+begin
+  inherited;
+  if GetWindowLong(Handle, GWL_STYLE) and TBS_NOTHUMB = 0 then
+  begin
+    SendMessage(Handle, TBM_GETTHUMBRECT, 0, IntPtr(@R));
+    if R.Contains(Point(Message.XPos, Message.YPos)) then
+      InvalidateBackground;
+  end;
+end;
+
+procedure TSpTBXTrackBar.WMLButtonUp(var Message: TWMMouse);
+begin
+  inherited;
+  if GetWindowLong(Handle, GWL_STYLE) and TBS_NOTHUMB = 0 then
+    InvalidateBackground;
 end;
 
 procedure TSpTBXTrackBar.WMEraseBkGnd(var Message: TMessage);
