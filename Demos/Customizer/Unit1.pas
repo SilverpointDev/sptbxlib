@@ -13,7 +13,7 @@ uses
   SpTBXSkins, SpTBXItem, SpTBXControls, SpTBXDkPanels, SpTBXTabs, SpTBXEditors,
   SpTBXExtEditors, SpTBXCustomizer,
   { gettext }
-  gnugettext;
+  gnugettext, System.ImageList;
 
 type
   TForm1 = class(TForm)
@@ -355,7 +355,7 @@ begin
   FillLayoutList('LastLayout');
 
   // Enable high DPI on the image list
-  SpDPIScaleImageList(ImageList1);
+  // Use TVirtualImageList! SpDPIScaleImageList(ImageList1);
 end;
 
 end.
