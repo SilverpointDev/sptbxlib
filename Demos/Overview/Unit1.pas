@@ -9,7 +9,13 @@ uses
   TB2Item, TB2Toolbar, TB2Dock, TB2ExtItems,
   // SpTBXLib
   SpTBXSkins, SpTBXItem, SpTBXDkPanels, SpTBXTabs, SpTBXEditors, SpTBXControls,
-  SpTBXExtEditors;
+  SpTBXExtEditors,
+  {$IF CompilerVersion >= 33} // for Delphi Rio and up
+  // TImageCollection and TVirtualImagelist introduced on Rio
+  Vcl.VirtualImageList, Vcl.BaseImageCollection, Vcl.ImageCollection,
+  {$IFEND}
+  System.ImageList;
+
 
 type
   TForm1 = class(TForm)
@@ -45,9 +51,6 @@ type
     SpTBXStatusBar1: TSpTBXStatusBar;
     SpTBXSeparatorItem2: TSpTBXSeparatorItem;
     hintLabel: TSpTBXLabelItem;
-    SpTBXSeparatorItem3: TSpTBXSeparatorItem;
-    ImageList1: TImageList;
-    SpTBXLabelItem6: TSpTBXLabelItem;
     SpTBXSeparatorItem4: TSpTBXSeparatorItem;
     subLang2: TSpTBXSubmenuItem;
     Image1: TImage;
@@ -59,7 +62,6 @@ type
     SpTBXLabel2: TSpTBXLabel;
     SpTBXLabel3: TSpTBXLabel;
     SpTBXLabel4: TSpTBXLabel;
-    SpTBXLabel7: TSpTBXLabel;
     SpTBXLabel5: TSpTBXLabel;
     SpTBXToolbar2: TSpTBXToolbar;
     SpTBXItem1: TSpTBXItem;
@@ -67,7 +69,6 @@ type
     SpTBXItem3: TSpTBXItem;
     SpTBXItem4: TSpTBXItem;
     SpTBXSeparatorItem7: TSpTBXSeparatorItem;
-    SpTBXLabel6: TSpTBXLabel;
     DP1: TSpTBXDockablePanel;
     DP2: TSpTBXDockablePanel;
     DP3: TSpTBXDockablePanel;
@@ -151,11 +152,16 @@ type
     procedure FormDestroy(Sender: TObject);
   private
     { Private declarations }
-    FLastSkin: WideString;
+    FLastSkin: string;
     procedure LangClick(Sender: TObject);
     procedure WMSpSkinChange(var Message: TMessage); message WM_SPSKINCHANGE;
   public
-    AppPath: String;
+    AppPath: string;
+    {$IF CompilerVersion >= 33} // for Delphi Rio and up
+    // TImageCollection and TVirtualImagelist introduced on Rio
+    IC: TImageCollection;
+    {$IFEND}
+    IL: TCustomImageList;
   end;
 
 var
@@ -164,52 +170,21 @@ var
 implementation
 
 uses
-  Themes, Registry, ShlObj;
+  Themes, Registry, IOUtils;
 
 {$R *.dfm}
 
 //WMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWM
 { Utility functions }
 
-function SpGetWindowsDir: String;
-var
-  Z: Cardinal;
-begin
-  Z := GetWindowsDirectory(nil, 0);
-  if Z > 0 then begin
-    SetLength(Result, Z);
-    GetWindowsDirectory(PChar(Result), Z);
-    Result := IncludeTrailingPathDelimiter(Result);
-  end
-  else
-    Result := '';
-end;
-
-function SpGetCommonDocumentsFolder: string;
-// Gets All Users\Documents folder.
-// Gets Public\Documents folder on Vista
-var
-  TargetPIDL: PItemIDList;
-  S: string;
-begin
-  Result := '';
-  if Succeeded(SHGetSpecialFolderLocation(Application.Handle, CSIDL_COMMON_DOCUMENTS, TargetPIDL)) then
-  begin
-    SetLength(S, MAX_PATH);
-    FillChar(PChar(S)^, MAX_PATH, #0);
-    if SHGetPathFromIDList(TargetPIDL, PChar(S)) then begin
-      SetLength(S, StrLen(PChar(S)));
-      Result := IncludeTrailingPathDelimiter(S);
-    end;
-  end;
-end;
-
 function SpIDEBDSCommonDir(RADStudioIDENumber: Integer): string;
 var
   S: string;
 begin
   Result := '';
-  S := SpGetCommonDocumentsFolder + 'Embarcadero\Studio\' + IntToStr(RADStudioIDENumber) + '.0';
+  // C:\Users\Public\Documents\Embarcadero\Studio\21.0
+  S := IncludeTrailingPathDelimiter(TPath.GetSharedDocumentsPath) +
+    'Embarcadero\Studio\' + IntToStr(RADStudioIDENumber) + '.0';
   if DirectoryExists(S) then
     Result := S;
 end;
@@ -230,23 +205,6 @@ begin
   end;
 end;
 
-function SpGetWinAmpDir: String;
-var
-  Registry: TRegistry;
-begin
-  Registry := TRegistry.Create;
-  try
-    Registry.RootKey := HKEY_CURRENT_USER;
-    // False because we do not want to create it if it doesn't exist
-    Registry.OpenKey('\Software\Winamp', False);
-    Result := Registry.ReadString('');
-    if Length(Result) > 0 then
-      Result := IncludeTrailingPathDelimiter(Result);
-  finally
-    Registry.Free;
-  end;
-end;
-
 //WMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWM
 { Form }
 
@@ -254,17 +212,32 @@ procedure TForm1.FormCreate(Sender: TObject);
 begin
   FLastSkin := 'Aluminum';
   SkinManager.AddSkinNotification(Self);
+
+  {$IF CompilerVersion >= 33} // for Delphi Rio and up
+  // TImageCollection and TVirtualImagelist introduced on Rio
+  IC := TImageCollection.Create(Self);
+  IL := TVirtualImageList.Create(Self);
+  TVirtualImageList(IL).ImageCollection := IC;
+  {$ELSE}
+  IL := TImageList.Create(Self);
+  {$IFEND}
 end;
 
 procedure TForm1.FormDestroy(Sender: TObject);
 begin
   SkinManager.RemoveSkinNotification(Self);
+
+  {$IF CompilerVersion >= 33} // for Delphi Rio and up
+  // TImageCollection and TVirtualImagelist introduced on Rio
+  IC.Free;
+  {$IFEND}
+  IL.Free;
 end;
 
 procedure TForm1.FormShow(Sender: TObject);
 var
   A: TSpTBXItem;
-  D: String;
+  S: string;
   I: Integer;
 begin
   // Add the Languages to the Languages menu item and TabControl
@@ -293,18 +266,23 @@ begin
   // Load default button Skin
   AppPath := IncludeTrailingPathDelimiter(ExtractFilePath(Application.ExeName));
 
+  // Load PNGs
+  // Use ImageCollection/TVirtualImagelist on Rio and up
+  SpLoadGlyphs(IL, AppPath + 'Glyphs');
+
+  SpTBXTabControl1.Images := IL;
+  SpTBXToolbar3.Images := IL;
+  SpTBXStatusBar1.Images := IL;
+  DP2.Images := IL;
+  DP3.Images := IL;
+
   // Initialize the link labels
-  D := SpGetWindowsDir;
-  if Length(D) > 0 then begin
-    SpTBXLabel4.LinkText := D;
+  S := TPath.GetDocumentsPath;
+  if Length(S) > 0 then begin
+    SpTBXLabel4.LinkText := S;
     SpTBXLabel5.LinkText := 'explorer.exe';
-    SpTBXLabel5.LinkTextParams := '/e, ' + D;
+    SpTBXLabel5.LinkTextParams := '/e, ' + S;
   end;
-  D := SpGetWinAmpDir;
-  if Length(D) > 0 then
-    SpTBXLabel6.LinkText := D + 'winamp.exe';
-  if FileExists(AppPath + 'unit1.pas') then
-    SpTBXLabel7.LinkTextParams := '"' + AppPath + 'unit1.pas' + '"';
 
   // Init Skin Type
   radiobuttonSkin2.Enabled := CompilerVersion >= 23;  // Delphi XE2 or up
@@ -441,33 +419,33 @@ end;
 procedure TForm1.hintLabelDrawHint(Sender: TObject;
   AHintBitmap: TBitmap; var AHint: string; var PaintDefault: Boolean);
 var
-  R, GR, TR: TRect;
-  WS: WideString;
+  R, CaptionR, GlyphR: TRect;
+  S: string;
+  GSize: TSize;
+  Margin: Integer;
 begin
   PaintDefault := False;
-  AHintBitmap.Width := Image1.Picture.Bitmap.Width + 115;
-  AHintBitmap.Height := Image1.Picture.Bitmap.Height + 30;
-  with AHintBitmap.Canvas do begin
-    Brush.Color := clInfoBk;
-    Font.Color := clInfoText;
-    R := Rect(0, 0, AHintBitmap.Width, AHintBitmap.Height);
-    FillRect(R);
 
-    GR := Bounds(5, 5, Image1.Picture.Bitmap.Width, Image1.Picture.Bitmap.Height);
-    Draw(GR.Left, GR.Top, Image1.Picture.Bitmap);
+  Margin := SpPPIScale(5, CurrentPPI);
+  AHintBitmap.Canvas.Brush.Color := clInfoBk;
+  AHintBitmap.Canvas.Font.Color := clInfoText;
+  S := 'Selected Language: ' + subLang.Caption + #13#10 +
+       'Selected Skin: ' + SkinManager.CurrentSkinName + #13#10 +
+       'http://www.silverpointdevelopment.com';
+  GSize := SpGetTextSize(AHintBitmap.Canvas.Handle, 'http://www.silverpointdevelopment.com', True);
 
-    WS := 'Language: ' + subLang.Caption + #13#10 +
-          'Skin: ' + SkinManager.CurrentSkinName + #13#10 +
-          'Time: ' + TimeToStr(Now);
-    TR := Rect(GR.Right + 5, 10, R.Right, R.Bottom);
-    SpDrawXPText(AHintBitmap.Canvas, WS, TR, DT_WORDBREAK);
+  AHintBitmap.Width := Image1.Picture.Bitmap.Width + GSize.cx + Margin * 4;
+  AHintBitmap.Height := Image1.Picture.Bitmap.Height + Margin * 2;
+  R := Rect(0, 0, AHintBitmap.Width, AHintBitmap.Height);
+  AHintBitmap.Canvas.FillRect(R);
 
-    Font.Color := clBlue;
-    Font.Style := [fsUnderline];
-    TR := Rect(GR.Left, GR.Bottom + 5, R.Right, R.Bottom);
-    WS := 'http://www.silverpointdevelopment.com';
-    SpDrawXPText(AHintBitmap.Canvas, WS, TR, DT_WORDBREAK);
-  end;
+  R := Rect(Margin, Margin, AHintBitmap.Width - Margin, AHintBitmap.Height - Margin);
+  GSize.cx := Image1.Picture.Bitmap.Width;
+  GSize.cy := Image1.Picture.Bitmap.Height;
+  SpCalcXPText(AHintBitmap.Canvas, R, S, taLeftJustify, DT_WORDBREAK, GSize,
+    ghlGlyphLeft, False, CurrentPPI, CaptionR, GlyphR);
+  SpDrawXPText(AHintBitmap.Canvas, S, CaptionR, DT_WORDBREAK);
+  AHintBitmap.Canvas.Draw(GlyphR.Left, GlyphR.Top, Image1.Picture.Bitmap);
 end;
 
 //WMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWM
@@ -504,15 +482,15 @@ procedure TForm1.SpTBXProgressBar1ProgressChange(Sender: TObject;
   NewPosition: Integer);
 var
   I: Integer;
-  WS: WideString;
+  S: string;
 begin
   if progressFiles.Checked then begin
     I := (NewPosition div 10) - 1;
     if I < 0  then I := 0;
     if I > LangListBox.Items.Count - 1 then I := LangListBox.Items.Count - 1;
-    WS := 'C:\Lang\' + LangListBox.Items[I] + '.txt';
-    SpTBXProgressBar1.Caption := WS;
-    SpTBXProgressBar2.Caption := WS;
+    S := 'C:\Lang\' + LangListBox.Items[I] + '.txt';
+    SpTBXProgressBar1.Caption := S;
+    SpTBXProgressBar2.Caption := S;
   end;
 end;
 

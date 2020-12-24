@@ -2587,18 +2587,18 @@ begin
   end;
 
   if ItemInfo.Enabled and SkinManager.CurrentSkin.OfficeIcons then begin
-    // Draw icon shadow
+    // Draw icon shadow for Office style icons
     if ItemInfo.HotTrack and not ItemInfo.Pushed then begin
       OffsetRect(ARect, 1, 1);
       SpDrawIconShadow(ACanvas, ARect, ImageList, ImageIndex);
       OffsetRect(ARect, -2, -2);
     end;
-    SpDrawImageList(ACanvas, ARect, ImageList, ImageIndex, ItemInfo.Enabled, True);
+    SpDrawImageList(ACanvas, ARect, ImageList, ImageIndex, ItemInfo.Enabled);
   end
   else begin
     if ItemInfo.IsSunkenCaption then
       OffsetRect(ARect, 1, 1);
-    SpDrawImageList(ACanvas, ARect, ImageList, ImageIndex, ItemInfo.Enabled, True);
+    SpDrawImageList(ACanvas, ARect, ImageList, ImageIndex, ItemInfo.Enabled);
   end;
 end;
 
@@ -4679,8 +4679,8 @@ begin
           TextInfo.TextFlags := TextInfo.TextFlags or DT_RIGHT;
       end;
       SpCalcXPText(Canvas, R, WS, TextAlignment, TextInfo.TextFlags, ItemInfo.ImageSize,
-        ItemInfo.RightImageSize, GlyphLayout, False, CaptionRect, ImageRect,
-        RightImageRect, PPIScale, TextInfo.TextAngle);
+        ItemInfo.RightImageSize, GlyphLayout, False, ItemInfo.CurrentPPI, CaptionRect, ImageRect,
+        RightImageRect, TextInfo.TextAngle);
 
       if ItemInfo.IsSunkenCaption then
         OffsetRect(CaptionRect, PPIScale(1), PPIScale(1));
@@ -5527,12 +5527,10 @@ procedure TSpTBXToolViewer.DrawCellImage(ACanvas: TCanvas; const ARect: TRect;
   Col, Row: Integer; ItemInfo: TSpTBXMenuItemInfo);
 var
   I: Integer;
-  IL: TCustomImageList;
 begin
   if not Item.CustomImages then begin
     I := GetImageIndex(Col, Row);
-    IL := Item.Images;
-    SpDrawImageList(ACanvas, ARect, IL, I, ItemInfo.Enabled, True);
+    SpDrawImageList(ACanvas, ARect, Item.Images, I, ItemInfo.Enabled);
   end;
   Item.DoDrawCellImage(ACanvas, ARect, Col, Row, ItemInfo);
 end;

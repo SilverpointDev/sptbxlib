@@ -1907,8 +1907,7 @@ function TSpTBXTextObject.DoDrawText(ACanvas: TCanvas; var ARect: TRect;
   Flags: Longint): Integer;
 var
   PaintDefault: Boolean;
-  GlyphSize, DummyRightGlyphSize: TSize;
-  DummyRightGlyphRect: TRect;
+  GlyphSize: TSize;
   R, R1, R2: TRect;
   WS: string;
   TextFlags: Cardinal;
@@ -1928,12 +1927,9 @@ begin
     if PaintDefault then begin
       // Calc the rects
       GlyphSize := GetGlyphSize;
-      DummyRightGlyphSize.cx := 0;
-      DummyRightGlyphSize.cy := 0;
-      DummyRightGlyphRect := Rect(0, 0, 0, 0);
       SpCalcXPText(ACanvas, ARect, WS, GetRealAlignment(Self), TextFlags,
-        GlyphSize, DummyRightGlyphSize, FGlyphLayout, DrawPushedCaption and Pushed,
-        R1, R2, DummyRightGlyphRect, PPIScale, FCaptionRoatationAngle);
+        GlyphSize, FGlyphLayout, DrawPushedCaption and Pushed,
+        CurrentPPI, R1, R2, FCaptionRoatationAngle);
 
       // Paint the text
       if IsGlassPainting then
@@ -1981,8 +1977,7 @@ begin
   IL := FImages;
   I := FImageIndex;
   DoGetImageIndex(IL, I);
-  if Assigned(IL) and (I > -1) and (I < IL.Count) then
-    SpDrawImageList(ACanvas, AGlyphRect, IL, I, Enabled, FDisabledIconCorrection)
+  SpDrawImageList(ACanvas, AGlyphRect, IL, I, Enabled);
 end;
 
 procedure TSpTBXTextObject.DoMouseEnter;
@@ -2084,21 +2079,17 @@ end;
 procedure TSpTBXTextObject.GetSize(out TotalR, TextR, GlyphR: TRect);
 // Size of Text + Glyph + TextMargin + Margins
 var
-  GlyphSize, DummyRightGlyphSize: TSize;
-  DummyRightGlyphRect: TRect;
+  GlyphSize: TSize;
   R: TRect;
 begin
   GlyphSize := GetGlyphSize;
-  DummyRightGlyphSize.cx := 0;
-  DummyRightGlyphSize.cy := 0;
-  DummyRightGlyphRect := Rect(0, 0, 0, 0);
   R := ClientRect;
   ApplyMargins(R, GetTextMargins);
 
   Canvas.Font.Assign(Font);
   AdjustFont(Canvas.Font);
-  SpCalcXPText(Canvas, R, Caption, GetRealAlignment(Self), GetTextFlags, GlyphSize, DummyRightGlyphSize,
-    FGlyphLayout, DrawPushedCaption and Pushed, TextR, GlyphR, DummyRightGlyphRect, PPIScale);
+  SpCalcXPText(Canvas, R, Caption, GetRealAlignment(Self), GetTextFlags, GlyphSize,
+    FGlyphLayout, DrawPushedCaption and Pushed, CurrentPPI, TextR, GlyphR);
 
   UnionRect(TotalR, TextR, GlyphR);
 

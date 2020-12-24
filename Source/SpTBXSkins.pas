@@ -477,9 +477,10 @@ type
   TSpPrintWindow = function(Hnd: HWND; HdcBlt: HDC; nFlags: UINT): BOOL; stdcall;
 
 { Delphi Styles}
+{$IF CompilerVersion >= 23} // for Delphi XE2 and up
 function SpStyleGetElementObject(Style: TCustomStyleServices; const ControlName, ElementName: string): TObject;
-function SpStyleDrawBitmapElement(Element: TObject; State: TSpTBXSkinStatesType; DC: HDC; const R: TRect; ClipRect: PRect; DPI: Integer): Boolean;
-function SpStyleStretchDrawBitmapElement(Element: TObject; State: TSpTBXSkinStatesType; DC: HDC; const R: TRect; ClipRect: PRect; DPI: Integer): Boolean;
+function SpStyleDrawBitmapElement(const ControlName, ElementName: string; State: TSpTBXSkinStatesType; DC: HDC; const R: TRect; ClipRect: PRect; Stretch: Boolean; DPI: Integer): Boolean;
+{$IFEND}
 
 { Themes }
 function SpTBXThemeServices: TSpTBXThemeServices;
@@ -493,12 +494,10 @@ procedure SpDrawParentBackground(Control: TControl; DC: HDC; R: TRect);
 { WideString helpers }
 function SpCreateRotatedFont(DC: HDC; Orientation: Integer = 2700): HFONT;
 function SpDrawRotatedText(const DC: HDC; AText: string; var ARect: TRect; const AFormat: Cardinal; RotationAngle: TSpTextRotationAngle = tra270): Integer;
-function SpCalcXPText(ACanvas: TCanvas; ARect: TRect; Caption: string; CaptionAlignment: TAlignment; Flags: Cardinal; GlyphSize, RightGlyphSize: TSize; Layout: TSpGlyphLayout; PushedCaption: Boolean; out ACaptionRect, AGlyphRect, ARightGlyphRect: TRect; PPIScale: TPPIScale; RotationAngle: TSpTextRotationAngle = tra0): Integer;
+function SpCalcXPText(ACanvas: TCanvas; ARect: TRect; Caption: string; CaptionAlignment: TAlignment; Flags: Cardinal; GlyphSize, RightGlyphSize: TSize; Layout: TSpGlyphLayout; PushedCaption: Boolean; DPI: Integer; out ACaptionRect, AGlyphRect, ARightGlyphRect: TRect; RotationAngle: TSpTextRotationAngle = tra0): Integer; overload;
+function SpCalcXPText(ACanvas: TCanvas; ARect: TRect; Caption: string; CaptionAlignment: TAlignment; Flags: Cardinal; GlyphSize: TSize; Layout: TSpGlyphLayout; PushedCaption: Boolean; DPI: Integer; out ACaptionRect, AGlyphRect: TRect; RotationAngle: TSpTextRotationAngle = tra0): Integer; overload;
 function SpDrawXPGlassText(ACanvas: TCanvas; Caption: string; var ARect: TRect; Flags: Cardinal; CaptionGlowSize: Integer): Integer;
-function SpDrawXPText(ACanvas: TCanvas; Caption: string; var ARect: TRect; Flags: Cardinal; CaptionGlow: TSpGlowDirection = gldNone; CaptionGlowColor: TColor = clYellow; RotationAngle: TSpTextRotationAngle = tra0): Integer; overload;
-// The Following 2 overloads are not used
-function SpDrawXPText(ACanvas: TCanvas; ARect: TRect; Caption: string; CaptionGlow: TSpGlowDirection; CaptionGlowColor: TColor; CaptionAlignment: TAlignment; Flags: Cardinal; GlyphSize: TSize; Layout: TSpGlyphLayout; PushedCaption: Boolean; out ACaptionRect, AGlyphRect: TRect; PPIScale: TPPIScale; RotationAngle: TSpTextRotationAngle = tra0): Integer; overload;
-function SpDrawXPText(ACanvas: TCanvas; ARect: TRect; Caption: string; CaptionGlow: TSpGlowDirection; CaptionGlowColor: TColor; CaptionAlignment: TAlignment; Flags: Cardinal; IL: TCustomImageList; ImageIndex: Integer; Layout: TSpGlyphLayout; Enabled, PushedCaption, DisabledIconCorrection: Boolean; out ACaptionRect, AGlyphRect: TRect; PPIScale: TPPIScale; RotationAngle: TSpTextRotationAngle = tra0): Integer; overload;
+function SpDrawXPText(ACanvas: TCanvas; Caption: string; var ARect: TRect; Flags: Cardinal; CaptionGlow: TSpGlowDirection = gldNone; CaptionGlowColor: TColor = clYellow; RotationAngle: TSpTextRotationAngle = tra0): Integer;
 function SpGetTextSize(DC: HDC; S: string; NoPrefix: Boolean): TSize;
 function SpGetControlTextHeight(AControl: TControl; AFont: TFont): Integer;
 function SpGetControlTextSize(AControl: TControl; AFont: TFont; S: string): TSize;
@@ -532,7 +531,8 @@ procedure SpPaintTo(WinControl: TWinControl; ACanvas: TCanvas; X, Y: Integer);
 
 { ImageList painting }
 procedure SpDrawIconShadow(ACanvas: TCanvas; const ARect: TRect; ImageList: TCustomImageList; ImageIndex: Integer);
-procedure SpDrawImageList(ACanvas: TCanvas; const ARect: TRect; ImageList: TCustomImageList; ImageIndex: Integer; Enabled, DisabledIconCorrection: Boolean);
+procedure SpDrawImageList(ACanvas: TCanvas; const ARect: TRect; ImageList: TCustomImageList; ImageIndex: Integer; Enabled: Boolean);
+procedure SpLoadGlyphs(IL: TCustomImageList; GlyphPath: string);
 
 { Gradients }
 procedure SpGradient(ACanvas: TCanvas; const ARect: TRect; StartPos, EndPos, ChunkSize: Integer; C1, C2: TColor; const Vertical: Boolean);
@@ -579,7 +579,11 @@ implementation
 
 uses
   UxTheme, Forms, Math, TypInfo,
-  SpTBXDefaultSkins, CommCtrl, Rtti;
+  SpTBXDefaultSkins, CommCtrl,
+  {$IF CompilerVersion >= 33} // for Delphi Rio and up
+  ImageCollection, VirtualImageList,
+  {$IFEND}
+  Rtti, IOUtils, pngimage, Generics.Defaults;
 
 const
   ROP_DSPDxax = $00E20746;
@@ -592,6 +596,8 @@ var
 
 //WMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWM
 { Delphi Styles }
+
+{$IF CompilerVersion >= 23} // for Delphi XE2 and up
 
 function SpStyleGetElementObject(Style: TCustomStyleServices; const ControlName, ElementName: string): TObject;
 // From Vcl.Styles.GetElementObject
@@ -631,19 +637,26 @@ begin
   end;
 end;
 
-function SpStyleDrawBitmapElement(Element: TObject; State: TSpTBXSkinStatesType;
-  DC: HDC; const R: TRect; ClipRect: PRect; DPI: Integer): Boolean;
+function SpStyleDrawBitmapElement(const ControlName, ElementName: string;
+  State: TSpTBXSkinStatesType; DC: HDC; const R: TRect; ClipRect: PRect;
+  Stretch: Boolean; DPI: Integer): Boolean;
 // From Vcl.Styles.DrawBitmapElement
-// Element should be a TSeStyleObject descendant
+// Used to paint a style element. For example:
+//   SpStyleDrawBitmapElement('CheckBox', 'Checked', sknsPushed, ACanvas.Handle, Rect(0, 0, 100, 100), nil, True, CurrentPPI);
 var
-  V1, V2: TValue;
+  Element: TObject;
+  V1, V2, V3: TValue;
   SeState: TValue; // TSeState = (ssNormal, ssDesign, ssMaximized, ssMinimized, ssRollup, ssHot, ssPressed, ssFocused, ssDisabled)
   scTileStyle: TValue; // TscTileStyle = (tsTile, tsStretch, tsCenter, tsVertCenterStretch, tsVertCenterTile, tsHorzCenterStretch, tsHorzCenterTile);
   I: Int64;
+  IsBitmapObject: Boolean;
 begin
   Result := False;
+  Element := SpStyleGetElementObject(StyleServices, ControlName, ElementName);
   if Element <> nil then begin
     // Use RTTI to access fields, properties and methods of structures on StyleAPI.inc
+    // Before calling StyleAPI.inc.TSeStyleObject.Draw we need to set BoundsRect, State and TileStyle properties
+
     // Set StyleAPI.inc.TSeStyleObject.BoundsRect
     V1 := V1.From(R);
     TRttiContext.Create.GetType(Element.ClassType).GetProperty('BoundsRect').SetValue(Element, V1);
@@ -660,44 +673,40 @@ begin
     SeState := SeState.FromOrdinal(SeState.TypeInfo, I);
     TRttiContext.Create.GetType(Element.ClassType).GetProperty('State').SetValue(Element, SeState);
 
-    with TGDIHandleRecall.Create(DC, OBJ_FONT) do
+    // If Stretch then check if is a TSeBitmapObject and set StyleAPI.inc.TSeBitmapObject.TileStyle
+    // to tsStretch, and after painting reset to original value
+    IsBitmapObject := (Element.ClassName = 'TSeBitmapObject') or
+      (Element.ClassName = 'TSeButtonObject') or (Element.ClassName = 'TSeActiveBitmap');
+    if Stretch and IsBitmapObject then begin
+      scTileStyle := TRttiContext.Create.GetType(Element.ClassType).GetProperty('TileStyle').GetValue(Element);
+      V3 := V3.FromOrdinal(scTileStyle.TypeInfo, 1); // tsStretch = 1
+      TRttiContext.Create.GetType(Element.ClassType).GetProperty('TileStyle').SetValue(Element, V3);
+    end;
     try
       // Call StyleAPI.inc.TSeStyleObject.Draw
-      V1 := V1.From(Canvas);
-      if ClipRect <> nil then
-        V2 := V2.From(ClipRect^)
-      else
-        V2 := V2.From(Rect(-1, -1, -1, -1));
-      TRttiContext.Create.GetType(Element.ClassType).GetMethod('Draw').Invoke(Element, [V1, V2, DPI]);
+      // From Vcl.Styles.DrawBitmapElement
+      with TGDIHandleRecall.Create(DC, OBJ_FONT) do
+      try
+        V1 := V1.From(Canvas);
+        if ClipRect <> nil then
+          V2 := V2.From(ClipRect^)
+        else
+          V2 := V2.From(Rect(-1, -1, -1, -1));
+        TRttiContext.Create.GetType(Element.ClassType).GetMethod('Draw').Invoke(Element, [V1, V2, DPI]);
+      finally
+        Free;
+      end;
     finally
-      Free;
+      // Reset to original value
+      if Stretch and IsBitmapObject then
+        TRttiContext.Create.GetType(Element.ClassType).GetProperty('TileStyle').SetValue(Element, scTileStyle);
     end;
+
     Result := True;
   end;
 end;
 
-function SpStyleStretchDrawBitmapElement(Element: TObject; State: TSpTBXSkinStatesType;
-  DC: HDC; const R: TRect; ClipRect: PRect; DPI: Integer): Boolean;
-// From Vcl.Styles.DrawBitmapElement
-var
-  V: TValue;
-  scTileStyle: TValue; // TscTileStyle = (tsTile, tsStretch, tsCenter, tsVertCenterStretch, tsVertCenterTile, tsHorzCenterStretch, tsHorzCenterTile);
-begin
-  Result := False;
-  // Use RTTI to access fields, properties and methods of structures on StyleAPI.inc
-  // Assume SeStyleObject is TSeBitmapObject
-  // Set StyleAPI.inc.TSeBitmapObject.TileStyle to tsStretch,
-  // and after painting reset to original value
-  scTileStyle := TRttiContext.Create.GetType(Element.ClassType).GetProperty('TileStyle').GetValue(Element);
-  try
-    V := V.FromOrdinal(scTileStyle.TypeInfo, 1); // tsStretch = 1
-    TRttiContext.Create.GetType(Element.ClassType).GetProperty('TileStyle').SetValue(Element, V);
-    Result := SpStyleDrawBitmapElement(Element, State, DC, R, ClipRect, DPI);
-  finally
-    // Reset to original value
-    TRttiContext.Create.GetType(Element.ClassType).GetProperty('TileStyle').SetValue(Element, scTileStyle);
-  end;
-end;
+{$IFEND}
 
 //WMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWM
 { Themes }
@@ -984,14 +993,19 @@ end;
 
 function SpCalcXPText(ACanvas: TCanvas; ARect: TRect; Caption: string;
   CaptionAlignment: TAlignment; Flags: Cardinal; GlyphSize, RightGlyphSize: TSize;
-  Layout: TSpGlyphLayout; PushedCaption: Boolean; out ACaptionRect, AGlyphRect, ARightGlyphRect: TRect;
-  PPIScale: TPPIScale; RotationAngle: TSpTextRotationAngle = tra0): Integer;
+  Layout: TSpGlyphLayout; PushedCaption: Boolean; DPI: Integer; out ACaptionRect,
+  AGlyphRect, ARightGlyphRect: TRect; RotationAngle: TSpTextRotationAngle = tra0): Integer;
+// RightGlyphSize and ARightGlyphRect mostly used by tab items
 var
   R: TRect;
   TextOffset, Spacing, RightSpacing: TPoint;
   CaptionSz: TSize;
+  PP1, PP2, PP4: Integer;
 begin
   Result := 0;
+  PP1 :=  SpPPIScale(1, DPI);
+  PP2 :=  SpPPIScale(2, DPI);
+  PP4 :=  SpPPIScale(4, DPI);
   ACaptionRect := Rect(0, 0, 0, 0);
   AGlyphRect := Rect(0, 0, 0, 0);
   ARightGlyphRect := Rect(0, 0, 0, 0);
@@ -999,9 +1013,9 @@ begin
   Spacing := Point(0, 0);
   RightSpacing := Point(0, 0);
   if (Caption <> '') and (GlyphSize.cx > 0) and (GlyphSize.cy > 0) then
-    Spacing := Point(PPIScale(4), PPIScale(1));
+    Spacing := Point(PP4, PP1);
   if (Caption <> '') and (RightGlyphSize.cx > 0) and (RightGlyphSize.cy > 0) then
-    RightSpacing := Point(PPIScale(4), PPIScale(1));
+    RightSpacing := Point(PP4, PP1);
 
   Flags := Flags and not DT_CENTER;
   Flags := Flags and not DT_VCENTER;
@@ -1017,12 +1031,12 @@ begin
   // Get the caption size
   if ((Flags and DT_WORDBREAK) <> 0) or ((Flags and DT_END_ELLIPSIS) <> 0) or ((Flags and DT_PATH_ELLIPSIS) <> 0) then begin
     if Layout = ghlGlyphLeft then  // Glyph on left or right side
-      R := Rect(0, 0, ARect.Right - ARect.Left - GlyphSize.cx - Spacing.X - RightGlyphSize.cx - RightSpacing.X + PPIScale(2), PPIScale(1))
+      R := Rect(0, 0, ARect.Right - ARect.Left - GlyphSize.cx - Spacing.X - RightGlyphSize.cx - RightSpacing.X + PP2, PP1)
     else  // Glyph on top
-      R := Rect(0, 0, ARect.Right - ARect.Left + PPIScale(2), PPIScale(1));
+      R := Rect(0, 0, ARect.Right - ARect.Left + PP2, PP1);
   end
   else
-    R := Rect(0, 0, PPIScale(1), PPIScale(1));
+    R := Rect(0, 0, PP1, PP1);
 
   if (fsBold in ACanvas.Font.Style) and (RotationAngle = tra0) and (((Flags and DT_END_ELLIPSIS) <> 0) or ((Flags and DT_PATH_ELLIPSIS) <> 0)) then begin
     // [Bugfix] Windows bug:
@@ -1062,10 +1076,10 @@ begin
     // try to fix it by padding the text 8 pixels to the right
     if (RotationAngle <> tra0) and (R.Right + 8 < ARect.Right) then
       if ((Flags and DT_END_ELLIPSIS) <> 0) or ((Flags and DT_PATH_ELLIPSIS) <> 0) then
-        R.Right := R.Right + PPIScale(8);
+        R.Right := R.Right + SpPPIScale(8, DPI);
 
     if PushedCaption then
-      OffsetRect(R, PPIScale(1), PPIScale(1));
+      OffsetRect(R, PP1, PP1);
 
     ACaptionRect := R;
   end;
@@ -1112,7 +1126,7 @@ begin
     AGlyphRect.Bottom := AGlyphRect.Top + GlyphSize.cy;
 
     if PushedCaption then
-      OffsetRect(AGlyphRect, PPIScale(1), PPIScale(1));
+      OffsetRect(AGlyphRect, PP1, PP1);
   end;
 
   // Move the text according to the icon position
@@ -1137,6 +1151,22 @@ begin
     AGlyphRect := Rect(AGlyphRect.Top, AGlyphRect.Left, AGlyphRect.Bottom, AGlyphRect.Right);
     ARightGlyphRect := Rect(ARightGlyphRect.Top, ARightGlyphRect.Left, ARightGlyphRect.Bottom, ARightGlyphRect.Right);
   end;
+end;
+
+function SpCalcXPText(ACanvas: TCanvas; ARect: TRect; Caption: string;
+  CaptionAlignment: TAlignment; Flags: Cardinal; GlyphSize: TSize;
+  Layout: TSpGlyphLayout; PushedCaption: Boolean; DPI: Integer;
+  out ACaptionRect, AGlyphRect: TRect; RotationAngle: TSpTextRotationAngle = tra0): Integer;
+var
+  DummyRightGlyphSize: TSize;
+  DummyRightGlyphRect: TRect;
+begin
+  DummyRightGlyphSize.cx := 0;
+  DummyRightGlyphSize.cy := 0;
+  DummyRightGlyphRect := Rect(0, 0, 0, 0);
+  Result := SpCalcXPText(ACanvas, ARect, Caption, CaptionAlignment, Flags, GlyphSize,
+    DummyRightGlyphSize, Layout, PushedCaption, DPI, ACaptionRect, AGlyphRect,
+    DummyRightGlyphRect, RotationAngle);
 end;
 
 function SpDrawXPGlassText(ACanvas: TCanvas; Caption: string; var ARect: TRect;
@@ -1261,52 +1291,6 @@ begin
     ACanvas.Brush.Style := BS;
     ACanvas.Brush.Color := C;
   end;
-end;
-
-function SpDrawXPText(ACanvas: TCanvas; ARect: TRect; Caption: string;
-  CaptionGlow: TSpGlowDirection; CaptionGlowColor: TColor; CaptionAlignment: TAlignment;
-  Flags: Cardinal; GlyphSize: TSize; Layout: TSpGlyphLayout; PushedCaption: Boolean;
-  out ACaptionRect, AGlyphRect: TRect; PPIScale: TPPIScale;
-  RotationAngle: TSpTextRotationAngle = tra0): Integer; overload;
-var
-  DummyRightGlyphSize: TSize;
-  DummyRightGlyphRect: TRect;
-begin
-  DummyRightGlyphSize.cx := 0;
-  DummyRightGlyphSize.cy := 0;
-  DummyRightGlyphRect := Rect(0, 0, 0, 0);
-  Result := SpCalcXPText(ACanvas, ARect, Caption, CaptionAlignment, Flags, GlyphSize, DummyRightGlyphSize,
-    Layout, PushedCaption, ACaptionRect, AGlyphRect, DummyRightGlyphRect, PPIScale, RotationAngle);
-  SpDrawXPText(ACanvas, Caption, ACaptionRect, Flags and not DT_CALCRECT, CaptionGlow, CaptionGlowColor, RotationAngle);
-end;
-
-function SpDrawXPText(ACanvas: TCanvas; ARect: TRect; Caption: string;
-  CaptionGlow: TSpGlowDirection; CaptionGlowColor: TColor; CaptionAlignment: TAlignment;
-  Flags: Cardinal; IL: TCustomImageList; ImageIndex: Integer; Layout: TSpGlyphLayout;
-  Enabled, PushedCaption, DisabledIconCorrection: Boolean; out ACaptionRect, AGlyphRect: TRect;
-  PPIScale: TPPIScale; RotationAngle: TSpTextRotationAngle = tra0): Integer; overload;
-var
-  GlyphSize, DummyRightGlyphSize: TSize;
-  DummyRightGlyphRect: TRect;
-begin
-  GlyphSize.cx := 0;
-  GlyphSize.cy := 0;
-  DummyRightGlyphSize.cx := 0;
-  DummyRightGlyphSize.cy := 0;
-  DummyRightGlyphRect := Rect(0, 0, 0, 0);
-
-  if Assigned(IL) and (ImageIndex > -1) and (ImageIndex < IL.Count) then begin
-    GlyphSize.cx := IL.Width;
-    GlyphSize.cy := IL.Height;
-  end;
-
-  Result := SpCalcXPText(ACanvas, ARect, Caption, CaptionAlignment, Flags, GlyphSize, DummyRightGlyphSize,
-    Layout, PushedCaption, ACaptionRect, AGlyphRect, DummyRightGlyphRect, PPIScale, RotationAngle);
-
-  SpDrawXPText(ACanvas, Caption, ACaptionRect, Flags and not DT_CALCRECT, CaptionGlow, CaptionGlowColor, RotationAngle);
-
-  if Assigned(IL) and (ImageIndex > -1) and (ImageIndex < IL.Count) then
-    SpDrawImageList(ACanvas, AGlyphRect, IL, ImageIndex, Enabled, DisabledIconCorrection);
 end;
 
 function SpGetTextSize(DC: HDC; S: string; NoPrefix: Boolean): TSize;
@@ -1859,14 +1843,74 @@ begin
   end;
 end;
 
-procedure SpDrawImageList(ACanvas: TCanvas; const ARect: TRect; ImageList: TCustomImageList;
-  ImageIndex: Integer; Enabled, DisabledIconCorrection: Boolean);
+procedure SpDrawImageList(ACanvas: TCanvas; const ARect: TRect;
+  ImageList: TCustomImageList; ImageIndex: Integer; Enabled: Boolean);
 begin
   if Assigned(ImageList) and (ImageIndex > -1) and (ImageIndex < ImageList.Count) then
-    if not Enabled and DisabledIconCorrection then
-      SpDrawIconShadow(ACanvas, ARect, ImageList, ImageIndex)
+    ImageList.Draw(ACanvas, ARect.Left, ARect.Top, ImageIndex, Enabled);
+end;
+
+procedure SpLoadGlyphs(IL: TCustomImageList; GlyphPath: string);
+// Finds png files on GlyphPath and adds them to IL
+// If IL is a TVirtualImageList it adds all the PNGs sizes.
+// Otherwise it adds only the PNGs that matches the size of the IL
+// Notation of files must be filename-16x16.png
+var
+  Files: TStringDynArray;
+  FilenameS, S, ILSize: string;
+  I: Integer;
+  P: TPngImage;
+  B: TBitmap;
+begin
+  ILSize := Format('%dX%d', [IL.Width, IL.Height]);
+  Files := TDirectory.GetFiles(GlyphPath, '*.png');
+  TArray.Sort<string>(Files, TStringComparer.Ordinal);
+
+  for S in Files do begin
+    {$IF CompilerVersion >= 33} // for Delphi Rio and up
+    // TImageCollection and TVirtualImagelist introduced on Rio
+    if IL is TVirtualImageList then begin
+      if Assigned(TVirtualImageList(IL).ImageCollection) and (TVirtualImageList(IL).ImageCollection is TImageCollection) then begin
+        FilenameS := TPath.GetFileName(S);
+        I := LastDelimiter('-_', FilenameS);
+        if I > 1 then
+          FilenameS := Copy(FilenameS, 1, I-1);
+        // Add all the sizes of the png with 1 name on ImageCollection
+        TImageCollection(TVirtualImageList(IL).ImageCollection).Add(FilenameS, S);
+      end;
+    end
     else
-      ImageList.Draw(ACanvas, ARect.Left, ARect.Top, ImageIndex, Enabled);
+    {$IFEND}
+    begin
+      // Try to add only PNGs with the same size as the Image List
+      // Notation of files must be filename-16x16.png
+      FilenameS := TPath.GetFileNameWithoutExtension(S);
+      I := LastDelimiter('-_', FilenameS) + 1;
+      if I > 2 then begin
+        FilenameS := Copy(FilenameS, I, Length(ILSize));
+        if UpperCase(FilenameS) <> ILSize then
+          FilenameS := '';
+      end;
+      if FilenameS <> '' then begin
+        P := TPNGImage.Create;
+        B := TBitmap.Create;
+        try
+          P.LoadFromFile(S);
+          B.Assign(P);
+          IL.ColorDepth := cd32Bit;
+          IL.Add(B, nil);
+        finally
+          P.Free;
+          B.Free;
+        end;
+      end;
+    end;
+  end;
+
+  {$IF CompilerVersion >= 33} // for Delphi Rio and up
+  if IL is TVirtualImageList then
+    TVirtualImageList(IL).AutoFill := True;
+  {$IFEND}
 end;
 
 //WMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWM

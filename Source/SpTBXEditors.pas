@@ -2833,7 +2833,7 @@ begin
       ImageRect.Top := (R.Top + R.Bottom + 1 - ImgList.Height) div 2;
       ImageRect.Bottom := ImageRect.Top + ImgList.Height;
 
-      SpDrawImageList(Canvas, ImageRect, ImgList, Item.ImageIndex, Item.Enabled, True);
+      SpDrawImageList(Canvas, ImageRect, ImgList, Item.ImageIndex, Item.Enabled);
     end;
   end;
 
