@@ -193,7 +193,7 @@ type
   end;
 
 { Painting helpers }
-procedure SpTBXPaintPageScrollButton(ACanvas: TCanvas; const ARect: TRect; ButtonType: TSpTBXPageScrollerButtonType; Hot: Boolean);
+procedure SpTBXPaintPageScrollButton(ACanvas: TCanvas; const ARect: TRect; ButtonType: TSpTBXPageScrollerButtonType; Hot: Boolean; DPI: Integer);
 
 implementation
 
@@ -228,7 +228,7 @@ begin
 end;
 
 procedure SpTBXPaintPageScrollButton(ACanvas: TCanvas; const ARect: TRect;
-  ButtonType: TSpTBXPageScrollerButtonType; Hot: Boolean);
+  ButtonType: TSpTBXPageScrollerButtonType; Hot: Boolean; DPI: Integer);
 var
   R: TRect;
   Flags: Integer;
@@ -257,12 +257,12 @@ begin
         else
           Details := SpTBXThemeServices.GetElementDetails(tbPushButtonNormal);
 
-        CurrentSkin.PaintThemedElementBackground(ACanvas, ARect, Details);
+        CurrentSkin.PaintThemedElementBackground(ACanvas, ARect, Details, DPI);
         CurrentSkin.GetThemedElementTextColor(Details, C);
       end;
     sknSkin:
       begin
-        SpDrawXPButton(ACanvas, R, True, False, Hot, False, False, False);
+        SpDrawXPButton(ACanvas, R, True, False, Hot, False, False, False, DPI);
         if Hot then
           C := CurrentSkin.GetTextColor(skncButton, sknsHotTrack)
         else
@@ -563,14 +563,14 @@ begin
         BR := R;
         if Orientation = tpsoVertical then BR.Bottom := BR.Top + ButtonSize
         else BR.Right := BR.Left + ButtonSize;
-        SpTBXPaintPageScrollButton(ACanvas, BR, CBtns[Orientation, False], FScrollDirection < 0);
+        SpTBXPaintPageScrollButton(ACanvas, BR, CBtns[Orientation, False], FScrollDirection < 0, CurrentPPI);
       end;
       if tpsbNext in FVisibleButtons then
       begin
         BR := R;
         if Orientation = tpsoVertical then BR.Top := BR.Bottom - ButtonSize
         else BR.Left := BR.Right - ButtonSize;
-        SpTBXPaintPageScrollButton(ACanvas, BR, CBtns[Orientation, True], FScrollDirection > 0);
+        SpTBXPaintPageScrollButton(ACanvas, BR, CBtns[Orientation, True], FScrollDirection > 0, CurrentPPI);
       end;
       ACanvas.Brush.Color := clBlue;
       ACanvas.Pen.Color := clBlue;
