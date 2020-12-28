@@ -1704,7 +1704,7 @@ begin
         DrawItem(itemID, rcItem, State);
       end
       else
-        Canvas.FillRect(rcItem);
+        SpDrawXPListItemBackground(Canvas, rcItem, False, False, odFocused in State)
     finally
       Canvas.Unlock;
       Canvas.Handle := 0;
