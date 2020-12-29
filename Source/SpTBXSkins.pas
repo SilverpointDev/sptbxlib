@@ -86,13 +86,6 @@ type
     sknDelphiStyle   // Use Delphi Custom Styles
   );
 
-  TSpTBXLunaScheme = (
-    lusBlue,
-    lusMetallic,
-    lusGreen,
-    lusUnknown
-  );
-
   TSpTBXSkinComponentsType = (
     skncDock,
     skncDockablePanel,
@@ -486,7 +479,6 @@ function SpStyleDrawBitmapElement(const ControlName, ElementName: string; State:
 function SpTBXThemeServices: TSpTBXThemeServices;
 function SkinManager: TSpTBXSkinManager;
 function CurrentSkin: TSpTBXSkinOptions;
-function SpGetLunaScheme: TSpTBXLunaScheme;
 procedure SpFillGlassRect(ACanvas: TCanvas; ARect: TRect);
 function SpIsGlassPainting(AControl: TControl): Boolean;
 procedure SpDrawParentBackground(Control: TControl; DC: HDC; R: TRect);
@@ -730,38 +722,6 @@ end;
 function CurrentSkin: TSpTBXSkinOptions;
 begin
   Result := SkinManager.CurrentSkin;
-end;
-
-function SpGetLunaScheme: TSpTBXLunaScheme;
-const
-  MaxChars = 1024;
-var
-  pszThemeFileName, pszColorBuff, pszSizeBuf: PWideChar;
-  S: string;
-begin
-  Result := lusUnknown;
-
-  if SkinManager.IsXPThemesEnabled then begin
-    GetMem(pszThemeFileName, 2 * MaxChars);
-    GetMem(pszColorBuff,     2 * MaxChars);
-    GetMem(pszSizeBuf,       2 * MaxChars);
-    try
-      if not Failed(GetCurrentThemeName(pszThemeFileName, MaxChars, pszColorBuff, MaxChars, pszSizeBuf, MaxChars)) then
-        if UpperCase(ExtractFileName(pszThemeFileName)) = 'LUNA.MSSTYLES' then begin
-          S := UpperCase(pszColorBuff);
-          if S = 'NORMALCOLOR' then
-            Result := lusBlue
-          else if S = 'METALLIC' then
-            Result := lusMetallic
-          else if S = 'HOMESTEAD' then
-            Result := lusGreen;
-        end;
-    finally
-      FreeMem(pszSizeBuf);
-      FreeMem(pszColorBuff);
-      FreeMem(pszThemeFileName);
-    end;
-  end;
 end;
 
 procedure SpFillGlassRect(ACanvas: TCanvas; ARect: TRect);
@@ -2845,7 +2805,7 @@ end;
 
 function SpPPIScaleToDPI(PPIScale: TPPIScale): Integer;
 begin
-  Result := MulDiv(PPIScale(96), 96, 96);
+  Result := PPIScale(96);
 end;
 
 procedure SpDPIResizeBitmap(Bitmap: TBitmap; const NewWidth, NewHeight, DPI: Integer);

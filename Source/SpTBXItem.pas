@@ -3020,7 +3020,7 @@ end;
 procedure SpDrawXPToolbarGrip(W: TTBCustomDockableWindow; ACanvas: TCanvas; ARect: TRect);
 var
   GripR, CloseR: TRect;
-  GripSize: Integer;
+  GripSize, PP1, PP2, PP3, PP4: Integer;
   Vertical: Boolean;
   C1, C2: TColor;
   Toolbar: TTBCustomDockableWindowAccess;
@@ -3045,47 +3045,52 @@ begin
     InflateRect(GripR, 0, -2);
   end;
 
+  PP1 := SpPPIScale(1, W.CurrentPPI);
+  PP2 := SpPPIScale(2, W.CurrentPPI);
+  PP3 := SpPPIScale(3, W.CurrentPPI);
+  PP4 := SpPPIScale(4, W.CurrentPPI);
+
   if Toolbar.DragHandleStyle <> dhNone then begin
     if Toolbar.CloseButtonWhenDocked then begin
       if Vertical then begin
         CloseR.Left := ARect.Right - GripSize;
-        CloseR.Right := CloseR.Left + GripSize - W.PPIScale(2);
-        CloseR.Top := ARect.Top + W.PPIScale(2);
-        CloseR.Bottom := CloseR.Top + GripSize - W.PPIScale(2);
-        Dec(GripR.Right, GripSize - W.PPIScale(1));
+        CloseR.Right := CloseR.Left + GripSize - PP2;
+        CloseR.Top := ARect.Top + PP2;
+        CloseR.Bottom := CloseR.Top + GripSize - PP2;
+        Dec(GripR.Right, GripSize - PP1);
       end
       else begin
-        CloseR.Left := ARect.Left + W.PPIScale(2);
-        CloseR.Right := CloseR.Left + GripSize - W.PPIScale(2);
-        CloseR.Top := ARect.Top + W.PPIScale(2);
-        CloseR.Bottom := CloseR.Top + GripSize - W.PPIScale(2);
-        Inc(GripR.Top, GripSize - W.PPIScale(1));
+        CloseR.Left := ARect.Left + PP2;
+        CloseR.Right := CloseR.Left + GripSize - PP2;
+        CloseR.Top := ARect.Top + PP2;
+        CloseR.Bottom := CloseR.Top + GripSize - PP2;
+        Inc(GripR.Top, GripSize - PP1);
       end;
     end;
 
     case SkinManager.GetSkinType of
       sknNone:
         begin
-          OffsetRect(CloseR, -W.PPIScale(1), -W.PPIScale(1));
+          OffsetRect(CloseR, -PP1, -PP1);
           if Vertical then begin
             if Toolbar.CloseButtonWhenDocked then
-              if Toolbar.DragHandleStyle = dhDouble then Inc(GripR.Top, W.PPIScale(1))
-              else Inc(GripR.Top, W.PPIScale(3));
-            Inc(GripR.Top, W.PPIScale(3));
-            GripR.Bottom := GripR.Top + W.PPIScale(3);
+              if Toolbar.DragHandleStyle = dhDouble then Inc(GripR.Top, PP1)
+              else Inc(GripR.Top, PP3);
+            Inc(GripR.Top, PP3);
+            GripR.Bottom := GripR.Top + PP3;
           end
           else begin
             if Toolbar.CloseButtonWhenDocked then
-              if Toolbar.DragHandleStyle = dhDouble then Inc(GripR.Left, W.PPIScale(1))
-              else Inc(GripR.Left, W.PPIScale(3));
-            Inc(GripR.Left, W.PPIScale(3));
-            GripR.Right := GripR.Left + W.PPIScale(3);
+              if Toolbar.DragHandleStyle = dhDouble then Inc(GripR.Left, PP1)
+              else Inc(GripR.Left, PP3);
+            Inc(GripR.Left, PP3);
+            GripR.Right := GripR.Left + PP3;
           end;
           Windows.DrawEdge(ACanvas.Handle, GripR, BDR_RAISEDINNER, BF_RECT);
           ACanvas.Pixels[GripR.Left, GripR.Bottom - 1] := clBtnHighlight;
           if Toolbar.DragHandleStyle = dhDouble then begin
-            if Vertical then OffsetRect(GripR, 0, W.PPIScale(3))
-            else OffsetRect(GripR, W.PPIScale(3), 0);
+            if Vertical then OffsetRect(GripR, 0, PP3)
+            else OffsetRect(GripR, PP3, 0);
             Windows.DrawEdge(ACanvas.Handle, GripR, BDR_RAISEDINNER, BF_RECT);
             ACanvas.Pixels[GripR.Left, GripR.Bottom - 1] := clBtnHighlight;
           end;
@@ -3097,7 +3102,7 @@ begin
             else
               if Toolbar. CloseButtonHover then
                 Windows.DrawEdge(ACanvas.Handle, CloseR, BDR_RAISEDINNER, BF_RECT);
-            if Toolbar.CloseButtonDown then OffsetRect(CloseR, W.PPIScale(1), W.PPIScale(1));
+            if Toolbar.CloseButtonDown then OffsetRect(CloseR, PP1, PP1);
             SpDrawGlyphPattern(ACanvas, CloseR, gptToolbarClose, clBtnText, W.CurrentPPI);
           end;
         end;
@@ -3106,13 +3111,13 @@ begin
           if SkinManager.GetSkinType = sknDelphiStyle then begin
             if Vertical then begin
               Details := SpTBXThemeServices.GetElementDetails(trGripperVert);
-              Inc(GripR.Left, W.PPIScale(2));
-              OffsetRect(GripR, 0, W.PPIScale(2));
+              Inc(GripR.Left, PP2);
+              OffsetRect(GripR, 0, PP2);
             end
             else begin
               Details := SpTBXThemeServices.GetElementDetails(trGripper);
-              Inc(GripR.Top, W.PPIScale(2));
-              OffsetRect(GripR, W.PPIScale(2), 0);
+              Inc(GripR.Top, PP2);
+              OffsetRect(GripR, PP2, 0);
             end;
           end
           else begin
@@ -3122,20 +3127,20 @@ begin
               Details := SpTBXThemeServices.GetElementDetails(trGripperVert);
               GripR := SpCenterRectVert(GripR, 6);  // Do not DPIScale, Windows paints the grip with 4 pixels
               GripR.Right := GripR.Left + ((GripR.Right - GripR.Left) div 4) * 4;
-              OffsetRect(GripR, 0, W.PPIScale(1));
+              OffsetRect(GripR, 0, PP1);
             end
             else begin
               Details := SpTBXThemeServices.GetElementDetails(trGripper);
               GripR := SpCenterRectHoriz(GripR, 6);  // Do not DPIScale, Windows paints the grip with 4 pixels
               GripR.Bottom := GripR.Top + ((GripR.Bottom - GripR.Top) div 4) * 4;
-              OffsetRect(GripR, W.PPIScale(1), 0);
+              OffsetRect(GripR, PP1, 0);
             end;
           end;
 
           // Weird Delphi styles painting bug, we need to clip the bottom
           SaveIndex := SaveDC(ACanvas.Handle);
           try
-            ExcludeClipRect(ACanvas.Handle, ARect.Left, ARect.Bottom - W.PPIScale(3), ARect.Right, ARect.Bottom);
+            ExcludeClipRect(ACanvas.Handle, ARect.Left, ARect.Bottom - PP3, ARect.Right, ARect.Bottom);
             SpTBXThemeServices.DrawElement(ACanvas.Handle, Details, GripR);
           finally
             RestoreDC(ACanvas.Handle, SaveIndex);
@@ -3150,14 +3155,14 @@ begin
       sknSkin:
         begin
           if Vertical then begin
-            InflateRect(GripR, W.PPIScale(-3), 0);
-            OffsetRect(GripR, 0, W.PPIScale(2));
-            GripR := SpCenterRectVert(GripR, W.PPIScale(4));
+            InflateRect(GripR, -PP3, 0);
+            OffsetRect(GripR, 0, PP2);
+            GripR := SpCenterRectVert(GripR, PP4);
           end
           else begin
-            InflateRect(GripR, 0, W.PPIScale(-3));
-            OffsetRect(GripR, W.PPIScale(2), 0);
-            GripR := SpCenterRectHoriz(GripR, W.PPIScale(4));
+            InflateRect(GripR, 0, -PP3);
+            OffsetRect(GripR, PP2, 0);
+            GripR := SpCenterRectHoriz(GripR, PP4);
           end;
           C1 := SkinManager.CurrentSkin.Options(skncToolbarGrip).Body.Color1;
           C2 := SkinManager.CurrentSkin.Options(skncToolbarGrip).Body.Color2;
@@ -3169,7 +3174,7 @@ begin
             if Toolbar.CloseButtonDown then State := sknsPushed
             else if Toolbar.CloseButtonHover then State := sknsHotTrack;
             CurrentSkin.PaintBackground(ACanvas, CloseR, skncToolbarItem, State, True, True);
-            if Toolbar.CloseButtonDown then OffsetRect(CloseR, W.PPIScale(1), W.PPIScale(1));
+            if Toolbar.CloseButtonDown then OffsetRect(CloseR, PP1, PP1);
             SpDrawGlyphPattern(ACanvas, CloseR, gptToolbarClose, CurrentSkin.GetTextColor(skncToolbarItem, State), W.CurrentPPI);
           end;
         end;
