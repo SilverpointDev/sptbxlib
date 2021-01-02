@@ -1,7 +1,7 @@
 unit SpTBXDefaultSkins;
 
 {==============================================================================
-Version 2.5.4
+Version 2.5.7
 
 The contents of this file are subject to the SpTBXLib License; you may
 not use or distribute this file except in compliance with the
@@ -50,11 +50,8 @@ type
   TSpTBXAluminumColors = array[0..3] of TColor;
 
   TSpTBXAluminumSkin = class(TSpTBXSkinOptions)
-  private
-    procedure SetDefaultColorScheme(const Value: TSpTBXLunaScheme);
   protected
     FColors: TSpTBXAluminumColors;
-    FDefaultColorScheme: TSpTBXLunaScheme;
     FLightMetalColor: TColor;
     FDarkMetalColor: TColor;
     FRoughness: Integer;
@@ -67,7 +64,6 @@ type
     procedure PaintBackground(ACanvas: TCanvas; ARect: TRect; Component: TSpTBXSkinComponentsType; State: TSpTBXSkinStatesType; Background, Borders: Boolean; Vertical: Boolean = False; ForceRectBorders: TAnchors = []); override;
     property LightMetalColor: TColor read FLightMetalColor write FLightMetalColor;
     property DarkMetalColor: TColor read FDarkMetalColor write FDarkMetalColor;
-    property DefaultColorScheme: TSpTBXLunaScheme read FDefaultColorScheme write SetDefaultColorScheme default lusUnknown;
   end;
 
   TSpTBXAthenSkin = class(TSpTBXSkinOptions)
@@ -112,16 +108,11 @@ type
   TSpTBXOffice2003Colors = array[0..22] of TColor;
 
   TSpTBXOffice2003Skin = class(TSpTBXSkinOptions)
-  private
-    procedure SetDefaultColorScheme(const Value: TSpTBXLunaScheme);
   protected
     FColors: TSpTBXOffice2003Colors;
-    FDefaultColorScheme: TSpTBXLunaScheme;
     procedure FillColors; virtual;
   public
-    constructor Create; override;
     procedure FillOptions; override;
-    property DefaultColorScheme: TSpTBXLunaScheme read FDefaultColorScheme write SetDefaultColorScheme default lusUnknown;
   end;
 
   TSpTBXOffice2007Colors = array[0..17] of TColor;
@@ -413,7 +404,6 @@ end;
 constructor TSpTBXAluminumSkin.Create;
 begin
   FRoughness := 12;
-  FDefaultColorScheme := lusUnknown;
   inherited;
 end;
 
@@ -424,34 +414,11 @@ begin
 end;
 
 procedure TSpTBXAluminumSkin.FillColors;
-const
-  AluminumColors: array[lusBlue..lusGreen] of TSpTBXAluminumColors = (
-    ($C56A31,               // 0: Item borders
-     $E0D7D1,               // 1: Item Checked
-     $E2B598,               // 2: Item Pushed
-     $EED2C1),              // 3: Item HotTrack
-
-    ($BFB4B2,               // 0: Item borders
-     $DDDCDC,               // 1: Item Checked
-     $DFDAD9,               // 2: Item Pushed
-     $ECE9E8),              // 3: Item HotTrack
-
-    ($70A093,               // 0: Item borders
-     $D8DCDB,               // 1: Item Checked
-     $B8D0C9,               // 2: Item Pushed
-     $D4E3DF)               // 3: Item HotTrack
-  );
-var
-  Luna: TSpTBXLunaScheme;
 begin
-  if FDefaultColorScheme <> lusUnknown then
-    Luna := FDefaultColorScheme
-  else begin
-    Luna := SpGetLunaScheme;
-    if Luna = lusUnknown then Luna := lusMetallic;
-  end;
-
-  FColors := AluminumColors[Luna];
+  FColors[0] := $BFB4B2;    // 0: Item borders
+  FColors[1] := $DDDCDC;    // 1: Item Checked
+  FColors[2] := $DFDAD9;    // 2: Item Pushed
+  FColors[3] := $ECE9E8;    // 3: Item HotTrack
   FRoughness := 12;
   FLightMetalColor := $C7C7C7;
   FDarkMetalColor := $DFDFDF;
@@ -627,15 +594,6 @@ begin
 
     if Borders then
       SpPaintSkinBorders(ACanvas, ARect, Op, ForceRectBorders);
-  end;
-end;
-
-procedure TSpTBXAluminumSkin.SetDefaultColorScheme(const Value: TSpTBXLunaScheme);
-begin
-  if FDefaultColorScheme <> Value then begin
-    FDefaultColorScheme := Value;
-    Reset;
-    FillOptions;
   end;
 end;
 
@@ -1657,119 +1615,50 @@ end;
 //WMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWM
 { TSpTBXOffice2003Skin }
 
-constructor TSpTBXOffice2003Skin.Create;
-begin
-  FDefaultColorScheme := lusUnknown;
-  inherited;
-end;
-
 procedure TSpTBXOffice2003Skin.FillColors;
-const
-  Office2003Colors: array[lusBlue..lusGreen] of TSpTBXOffice2003Colors = (
-    ($F5BE9E, $F9D9C3,      // 0, 1: Dock
-     $FEECDD, $E2A981,      // 2, 3: Toolbar
-     $CB8C6A, $F5BE9E,      // 4, 5: Toolbar borders
-     $F6F6F6,               // 6: Popup
-     $962D00,               // 7: Popup borders
-     $800000,               // 8: Item borders
-     $C9662A,               // 9: Window borders
-     $8CD5FF, $55ADFF,      // 10, 11: Item Checked
-     $4E91FE, $8ED3FF,      // 12, 13: Item Pushed
-     $CCF4FF, $91D0FF,      // 14, 15: Item HotTrack
-     $FFEFE3, $E7B593,      // 16, 17: OpenToolbarItem
-     $91420D,               // 18: Button external border
-     $FBD0B3, $CB8C6A,      // 19, 20: Button internal borders
-     $FEECDD,               // 21: Grip/Separator soft color
-     $E2A981),              // 22: Panel/CheckBox/Tabs/ProgressBar/TrackBar borders
-
-    ($E5D7D7, $F7F3F3,      // 0, 1: Dock
-     $FAF4F3, $B59799,      // 2, 3: Toolbar
-     $8F6D6E, $E5D7D7,      // 4, 5: Toolbar borders
-     $FFFAFD,               // 6: Popup
-     $947C7C,               // 7: Popup borders
-     $6F4B4B,               // 8: Item borders
-     $99797A,               // 9: Window borders
-     $8CD5FF, $55ADFF,      // 10, 11: Item Checked
-     $4E91FE, $8ED3FF,      // 12, 13: Item Pushed
-     $CCF4FF, $91D0FF,      // 14, 15: Item HotTrack
-     $F1E9E8, $CDB9BA,      // 16, 17: OpenToolbarItem
-     $988B8A,               // 18: Button external border
-     clWhite, $B0A7A6,      // 19, 20: Button internal borders
-     $FFFFFF,               // 21: Grip/Separator soft color
-     $B59799),              // 22: Panel/CheckBox/Tabs/ProgressBar/TrackBar borders
-
-    ($A7D9D9, $E4F2F0,      // 0, 1: Dock
-     $DEF7F4, $91C6B7,      // 2, 3: Toolbar
-     $588060, $A7D9D9,      // 4, 5: Toolbar borders
-     $EEF4F4,               // 6: Popup
-     $5E8D75,               // 7: Popup borders
-     $385D3F,               // 8: Item borders
-     $5E8674,               // 9: Window borders
-     $8CD5FF, $55ADFF,      // 10, 11: Item Checked
-     $4E91FE, $8ED3FF,      // 12, 13: Item Pushed
-     $CCF4FF, $91D0FF,      // 14, 15: Item HotTrack
-     $D5F0EC, $9FCEC2,      // 16, 17: OpenToolbarItem
-     $5B8479,               // 18: Button external border
-     $E3FFFA, $86ADAA,      // 19, 20: Button internal borders
-     $DEF7F4,               // 21: Grip/Separator soft color
-     $91C6B7)               // 22: Panel/CheckBox/Tabs/ProgressBar/TrackBar borders
-  );
-var
-  Luna: TSpTBXLunaScheme;
 begin
-  if FDefaultColorScheme <> lusUnknown then
-    Luna := FDefaultColorScheme
-  else
-    Luna := SpGetLunaScheme;
-
-  if Luna <> lusUnknown then
-    FColors := Office2003Colors[Luna]
-  else begin
-    // Use adapted colors
-    // 0, 1: Dock
-    FColors[0] := clBtnFace;
-    FColors[1] := SpBlendColors(clBtnFace, clWindow, 35);
-    // 2, 3: Toolbar
-    FColors[2] := SpBlendColors(clBtnFace, clWindow, 20);
-    FColors[3] := SpBlendColors(clBtnFace, clWindow, 95);
-    // 4, 5: Toolbar borders
-    FColors[4] := SpBlendColors(clBtnShadow, clWindow, 70);
-    FColors[5] := SpBlendColors(clBtnFace, clWindow, 62);
-    // 6: Popup
-    FColors[6] := SpBlendColors(clBtnFace, clWindow, 15);
-    // 7: Popup borders
-    FColors[7] := SpBlendColors(clBtnFace, clBtnShadow, 20);
-    // 8: Item borders
-    FColors[8] := clHighlight;
-    // 9: Window borders
-    FColors[9] := SpBlendColors(clBtnText, clBtnShadow, 15);
-    // 10, 11: Item Checked
-    FColors[10] := SpBlendColors(clHighlight, SpBlendColors(clBtnFace, clWindow, 50), 10);
-    FColors[11] := FColors[10];
-    // 12, 13: Item Pushed
-    FColors[12] := SpBlendColors(clHighlight, clWindow, 50);
-    FColors[13] := FColors[12];
-    // 14, 15: Item HotTrack
-    FColors[14] := SpBlendColors(clHighlight, clWindow, 30);
-    FColors[15] := FColors[14];
-    // 16, 17: OpenToolbarItem
-    FColors[16] := SpBlendColors(clBtnFace, clWindow, 16);
-    FColors[17] := SpBlendColors(clBtnFace, clWindow, 42);
-    // 18: Button external border
-    FColors[18] := FColors[4];
-    // 19, 20: Button internal borders
-    FColors[19] := FColors[5];
-    FColors[20] := SpBlendColors(clBtnShadow, clWindow, 40);
-    // 21: Grip/Separator soft color
-    FColors[21] := clWhite;
-    // 22: Panel/CheckBox/Tabs/ProgressBar/TrackBar borders
-    FColors[22] := SpBlendColors(clBtnShadow, clWindow, 70);
-  end;
+  // Use adapted colors
+  // 0, 1: Dock
+  FColors[0] := clBtnFace;
+  FColors[1] := SpBlendColors(clBtnFace, clWindow, 35);
+  // 2, 3: Toolbar
+  FColors[2] := SpBlendColors(clBtnFace, clWindow, 20);
+  FColors[3] := SpBlendColors(clBtnFace, clWindow, 95);
+  // 4, 5: Toolbar borders
+  FColors[4] := SpBlendColors(clBtnShadow, clWindow, 70);
+  FColors[5] := SpBlendColors(clBtnFace, clWindow, 62);
+  // 6: Popup
+  FColors[6] := SpBlendColors(clBtnFace, clWindow, 15);
+  // 7: Popup borders
+  FColors[7] := SpBlendColors(clBtnFace, clBtnShadow, 20);
+  // 8: Item borders
+  FColors[8] := clHighlight;
+  // 9: Window borders
+  FColors[9] := SpBlendColors(clBtnText, clBtnShadow, 15);
+  // 10, 11: Item Checked
+  FColors[10] := SpBlendColors(clHighlight, SpBlendColors(clBtnFace, clWindow, 50), 10);
+  FColors[11] := FColors[10];
+  // 12, 13: Item Pushed
+  FColors[12] := SpBlendColors(clHighlight, clWindow, 50);
+  FColors[13] := FColors[12];
+  // 14, 15: Item HotTrack
+  FColors[14] := SpBlendColors(clHighlight, clWindow, 30);
+  FColors[15] := FColors[14];
+  // 16, 17: OpenToolbarItem
+  FColors[16] := SpBlendColors(clBtnFace, clWindow, 16);
+  FColors[17] := SpBlendColors(clBtnFace, clWindow, 42);
+  // 18: Button external border
+  FColors[18] := FColors[4];
+  // 19, 20: Button internal borders
+  FColors[19] := FColors[5];
+  FColors[20] := SpBlendColors(clBtnShadow, clWindow, 40);
+  // 21: Grip/Separator soft color
+  FColors[21] := clWhite;
+  // 22: Panel/CheckBox/Tabs/ProgressBar/TrackBar borders
+  FColors[22] := SpBlendColors(clBtnShadow, clWindow, 70);
 end;
 
 procedure TSpTBXOffice2003Skin.FillOptions;
-var
-  IsUnknownLuna: Boolean;
 begin
   //---- Skin Properties ----//
 
@@ -1779,7 +1668,6 @@ begin
   //---- Colors ----//
 
   FillColors;
-  IsUnknownLuna := FColors[0] = clBtnFace;
 
   //---- Single State ----//
   Options(skncDock, sknsNormal).Body.Fill(2, FColors[0], FColors[1], clNone, clNone);
@@ -1807,8 +1695,7 @@ begin
   Options(skncWindow, sknsNormal).Borders.Fill(0, FColors[9], FColors[9], FColors[9], FColors[9]);
 
   Options(skncWindowTitleBar, sknsNormal).Body.Fill(0, FColors[9], clNone, clNone, clNone);
-  if IsUnknownLuna then
-    Options(skncWindowTitleBar, sknsNormal).TextColor := clBtnHighlight;
+  Options(skncWindowTitleBar, sknsNormal).TextColor := clBtnHighlight;
 
   //---- Elements ----//
   Options(skncGutter, sknsNormal).Body.Fill(2, FColors[2], FColors[3], clNone, clNone);
@@ -1910,15 +1797,6 @@ begin
   Options(skncHeader, sknsNormal).Borders.Fill(0, FColors[19], FColors[20], clNone, clNone);
   Options(skncHeader, sknsHotTrack).Body.Fill(1, FColors[14], FColors[15], clNone, clNone);
   Options(skncHeader, sknsHotTrack).Borders.Fill(0, FColors[19], FColors[20], clNone, clNone);
-end;
-
-procedure TSpTBXOffice2003Skin.SetDefaultColorScheme(const Value: TSpTBXLunaScheme);
-begin
-  if FDefaultColorScheme <> Value then begin
-    FDefaultColorScheme := Value;
-    Reset;
-    FillOptions;
-  end;
 end;
 
 //WMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWM

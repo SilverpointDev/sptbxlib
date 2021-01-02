@@ -1,7 +1,7 @@
 unit SpTBXExtEditors;
 
 {==============================================================================
-Version 2.5.4
+Version 2.5.7
 
 The contents of this file are subject to the SpTBXLib License; you may
 not use or distribute this file except in compliance with the
@@ -134,7 +134,7 @@ type
     procedure DoDrawItem(ACanvas: TCanvas; var ARect: TRect; Index: Integer; const State: TOwnerDrawState;
       const PaintStage: TSpTBXPaintStage; var PaintDefault: Boolean); override;
     procedure DropDown; override;
-    procedure ChangeScale(M, D: Integer{$if CompilerVersion >= 31}; isDpiChange: Boolean{$ifend}); override;
+    procedure ChangeScale(M, D: Integer{$IF CompilerVersion >= 31}; isDpiChange: Boolean{$IFEND}); override;
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
@@ -193,9 +193,6 @@ procedure SpFillFontNames(ADest: TStrings);
 { Painting helpers }
 procedure SpDrawCheckeredBackground(ACanvas: TCanvas; ARect: TRect);
 procedure SpDrawColorDropDownButton(ACanvas: TCanvas; ARect: TRect; Pushed: Boolean; AColor: TColor; PPIScale: TPPIScale; CheckeredBkgndWhenTransparent: Boolean = True);
-
-var
-  FontGlyphImgList: TImageList = nil;
 
 implementation
 
@@ -478,6 +475,7 @@ begin
   FPreviewPanel.Color := CurrentSkin.GetThemedSystemColor(clWindow);
   FPreviewPanel.Font.Color := CurrentSkin.GetThemedSystemColor(clWindowText);
   FPreviewPanel.BevelOuter := bvNone;
+  FPreviewPanel.StyleElements := FPreviewPanel.StyleElements - [seFont];
   FPreviewPanel.Align := alClient;
 end;
 
@@ -508,25 +506,27 @@ end;
 constructor TSpTBXFontComboBox.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
-  FAutoDropDownWidthRightMargin := 20;
+  FAutoDropDownWidthRightMargin := 60; // scaled on DoCalcMaxDropDownWidth
   FFontNamePreview := True;
   FFontPreview := True;
   FMaxMRUItems := 5;
   FMRUCount := 0;
   AutoItemHeight := False;
   AutoDropDownWidth := True;
-  ItemHeight := 20;
-  FScaledFontGlyphImgList := TImageList.Create(Self);
-  FScaledFontGlyphImgList.Assign(FontGlyphImgList);
+  FScaledFontGlyphImgList := TImageList.CreateSize(12, 12);
+  FScaledFontGlyphImgList.ResInstLoad(HInstance, rtBitmap, 'SPTBXTRUETYPE', clFuchsia);
+  FScaledFontGlyphImgList.ResInstLoad(HInstance, rtBitmap, 'SPTBXOPENTYPE', clFuchsia);
+  ItemHeight := 23;
 end;
 
 destructor TSpTBXFontComboBox.Destroy;
 begin
+  FreeAndNil(FScaledFontGlyphImgList);
   FreeAndNil(FPreviewWindow);
   inherited;
 end;
 
-procedure TSpTBXFontComboBox.ChangeScale(M, D: Integer{$if CompilerVersion >= 31}; isDpiChange: Boolean{$ifend});
+procedure TSpTBXFontComboBox.ChangeScale(M, D: Integer{$IF CompilerVersion >= 31}; isDpiChange: Boolean{$IFEND});
 begin
   inherited;
   SpDPIScaleImageList(FScaledFontGlyphImgList, M, D);
@@ -1000,17 +1000,11 @@ end;
 procedure InitializeStock;
 begin
   Screen.Cursors[crSpTBXEyeDropper] := LoadCursor(HInstance, 'CZEYEDROPPER');
-
-  FontGlyphImgList := TImageList.CreateSize(12, 12);
-  FontGlyphImgList.ResInstLoad(HInstance, rtBitmap, 'SPTBXTRUETYPE', clFuchsia);
-  FontGlyphImgList.ResInstLoad(HInstance, rtBitmap, 'SPTBXOPENTYPE', clFuchsia);
-
   DefaultColorPickerDropDownMenu := TSpTBXColorEditPopupMenu.Create(nil);
 end;
 
 procedure FinalizeStock;
 begin
-  FreeAndNil(FontGlyphImgList);
   FreeAndNil(DefaultColorPickerDropDownMenu);
 end;
 

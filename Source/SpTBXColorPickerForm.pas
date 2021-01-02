@@ -126,6 +126,7 @@ type
     FPrevLabelColor: TColor;
     FColorPickerDragObject: TSpTBXColorPickerDragObject;
     procedure CenterImages;
+    procedure ChangeScale(M, D: Integer{$if CompilerVersion >= 31}; isDpiChange: Boolean{$ifend}); override;
   public
     function GetSelectedColor: TColor;
     procedure SetSelectedColor(AColor: TColor);
@@ -262,11 +263,10 @@ procedure TSpTBXColorPickerForm.FormShow(Sender: TObject);
 Var
   Bitmap : TBitmap;
 begin
-  SpDPIScaleImageList(ImageList1, PPIScale(96), 96);
   Bitmap := TBitmap.Create;
   try
     Bitmap.Assign(imgPalette.Picture.Bitmap);
-    SpDPIResizeBitmap(Bitmap, PPIScale(ImgPalette.Width), PPIScale(ImgPalette.Height));
+    SpDPIResizeBitmap(Bitmap, PPIScale(ImgPalette.Width), PPIScale(ImgPalette.Height), CurrentPPI);
     imgPalette.Picture.Assign(Bitmap);
   finally
     Bitmap.Free;
@@ -287,6 +287,12 @@ begin
          imgColorPicker.Picture := nil;
        end;
   end;
+end;
+
+procedure TSpTBXColorPickerForm.ChangeScale(M, D: Integer{$if CompilerVersion >= 31}; isDpiChange: Boolean{$ifend});
+begin
+  inherited;
+  SpDPIScaleImageList(ImageList1, M, D);
 end;
 
 procedure TSpTBXColorPickerForm.btnColorDraw(Sender: TObject;
@@ -448,7 +454,7 @@ procedure TSpTBXColorPickerForm.SpTBXPanel1DrawBackground(Sender: TObject;
 begin
   if PaintStage = pstPrePaint then begin
     PaintDefault := False;
-    SpDrawXPDock(ACanvas, ARect);
+    SpDrawXPDock(ACanvas, ARect, False, CurrentPPI);
     SpDrawXPToolbar(ACanvas, ARect, True, False, False, True, False);
   end;
 end;

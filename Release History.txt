@@ -1,3 +1,21 @@
+24 December 2020 - version 2.5.7
+  - Added RAD Studio 10.4 Sydney support
+  - Added High DPI and Per Monitor V2 awareness. Added all the changes made by 
+    PyScripter with some modifications. More testing needed.  
+  - Fixed incorrect border painting on floating DockablePanels
+  - Fixed incorrect checkbox and radiobutton size when using Delphi Styles
+  - Fixed TSpTBXSubmenuItem incorrect painting when DropdownCombo was True.
+  - Fixed TSpTBXTrackBar incorrect painting when using Delphi styles
+  - Fixed TSpTBXCustomizer.Save/SpTBIniSavePositions/SpTBRegSavePositions, it now 
+    saves the DPI and scales the positions of the forms, toolbars and dockable panels 
+    when loading.
+  - Fixed TSpTBXToolbar scaling when changing the DPI.
+  - Changed some PPIScale params to DPI, to better match Delphi Styles method calls.
+  - Changed Overview demo to support High DPI and Per Monitor V2 awareness.
+  - Changed tb2kdiff, TB2K needs to be repatched: added High DPI support by 
+    PyScripter, and fixed TB2K bug (FloatingPosition is reset after 
+    ReadPositionData is called, see TB2Dock.TBCustomLoadPositions).
+
 22 January 2020 - version 2.5.6
   - Allow localization of clNone and clDefault color names in TSpTBXColorEdit
   - Fixed MDI button high DPI scaling issues.

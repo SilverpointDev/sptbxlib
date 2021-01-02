@@ -1,7 +1,7 @@
 unit SpTBXDkPanels;
 
 {==============================================================================
-Version 2.5.4
+Version 2.5.7
 
 The contents of this file are subject to the SpTBXLib License; you may
 not use or distribute this file except in compliance with the
@@ -219,7 +219,7 @@ type
 
     // Component
     function DefaultScalingFlags: TScalingFlags; override;
-    procedure ChangeScale(M, D: Integer{$if CompilerVersion >= 31}; isDpiChange: Boolean{$ifend}); override;
+    procedure ChangeScale(M, D: Integer{$IF CompilerVersion >= 31}; isDpiChange: Boolean{$IFEND}); override;
     procedure CreateParams(var Params: TCreateParams); override;
     procedure Notification(AComponent: TComponent; Operation: TOperation); override;
     procedure Loaded; override;
@@ -380,7 +380,7 @@ type
     procedure WMEraseBkgnd(var Message: TWmEraseBkgnd); message WM_ERASEBKGND;
   protected
     FRestorePos: Integer;
-    procedure ChangeScale(M, D: Integer{$if CompilerVersion >= 31}; isDpiChange: Boolean{$ifend}); override;
+    procedure ChangeScale(M, D: Integer{$IF CompilerVersion >= 31}; isDpiChange: Boolean{$IFEND}); override;
     procedure DoDrawBackground(ACanvas: TCanvas; ARect: TRect; const PaintStage: TSpTBXPaintStage; var PaintDefault: Boolean); virtual;
     procedure DoMoved; virtual;
     function DoMoving(var NewSize: Integer): Boolean; virtual;
@@ -443,7 +443,7 @@ type
   end;
 
 { Painting helpers }
-procedure SpDrawXPDockablePanelTitleBar(ACanvas: TCanvas; ARect: TRect; IsActive, Vertical: Boolean);
+procedure SpDrawXPDockablePanelTitleBar(ACanvas: TCanvas; ARect: TRect; IsActive, Vertical: Boolean; DPI: Integer);
 procedure SpDrawXPDockablePanelBody(ACanvas: TCanvas; ARect: TRect; IsActive, IsFloating: Boolean; PPIScale: TPPIScale);
 
 { Toolbar Load/Save Position helpers }
@@ -886,10 +886,9 @@ begin
                 Exit;
 
               if MultiDock.IsVertical then
-                MinSize := DPSibling.PPIScale(DPSibling.MinClientHeight) + (DP.DockedBorderSize * 2)
+                MinSize := DPSibling.MinClientHeight + (DP.DockedBorderSize * 2)
               else
-                MinSize := DPSibling.PPIScale(DPSibling.MinClientWidth) + (DP.DockedBorderSize * 2);
-
+                MinSize := DPSibling.MinClientWidth + (DP.DockedBorderSize * 2);
               // If DP can't be resized find another sibling
               if not (csDesigning in MultiDock.ComponentState) and DP.FixedDockedSize then begin
                 if MultiDock.IsVertical then
@@ -905,16 +904,16 @@ begin
 
                 if MultiDock.IsVertical then begin
                   NewSize := DP.Height - Delta;
-                  if (DPSibling.Height + Delta < DPSibling.PPIScale(DPSibling.MinClientHeight) + (DP.DockedBorderSize * 2)) or
-                     (NewSize < DP.PPIScale(DP.MinClientHeight) + (DP.DockedBorderSize * 2)) then
+                  if (DPSibling.Height + Delta < DPSibling.MinClientHeight + (DP.DockedBorderSize * 2)) or
+                     (NewSize < DP.MinClientHeight + (DP.DockedBorderSize * 2)) then
                   begin
                     Exit;
                   end;
                 end
                 else begin
                   NewSize := DP.Width - Delta;
-                  if (DPSibling.Width + Delta < DPSibling.PPIScale(DPSibling.MinClientWidth) + (DP.DockedBorderSize * 2)) or
-                     (NewSize < DP.PPIScale(DP.MinClientWidth) + (DP.DockedBorderSize * 2)) then
+                  if (DPSibling.Width + Delta < DPSibling.MinClientWidth + (DP.DockedBorderSize * 2)) or
+                     (NewSize < DP.MinClientWidth + (DP.DockedBorderSize * 2)) then
                   begin
                     Exit;
                   end;
@@ -1045,7 +1044,7 @@ end;
 //WMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWM
 { Painting helpers }
 
-procedure SpDrawXPDockablePanelTitleBar(ACanvas: TCanvas; ARect: TRect; IsActive, Vertical: Boolean);
+procedure SpDrawXPDockablePanelTitleBar(ACanvas: TCanvas; ARect: TRect; IsActive, Vertical: Boolean; DPI: Integer);
 var
   Details: TThemedElementDetails;
 begin
@@ -1059,7 +1058,7 @@ begin
       end;
     sknDelphiStyle:
       if CurrentSkin.GetThemedElementDetails(skncDockablePanelTitleBar, sknsNormal, Details) then
-        CurrentSkin.PaintThemedElementBackground(ACanvas, ARect, Details);
+        CurrentSkin.PaintThemedElementBackground(ACanvas, ARect, Details, DPI);
     sknSkin:
       CurrentSkin.PaintBackground(ACanvas, ARect, skncDockablePanelTitleBar, sknsNormal, True, True, Vertical);
   end;
@@ -1329,7 +1328,7 @@ begin
   try
     SpTBUpdateBeforeLoadIni(OwnerComponent, IniFile, SectionNamePrefix, LockedDocks);
     TBIniLoadPositions(OwnerComponent, IniFile, SectionNamePrefix);
-    SpTBUpdateAfterLoadIni(OwnerComponent, IniFile, SectionNamePrefix, LockedDocks);  
+    SpTBUpdateAfterLoadIni(OwnerComponent, IniFile, SectionNamePrefix, LockedDocks);
   finally
     LockedDocks.Free;
   end;
@@ -1679,6 +1678,7 @@ begin
   inherited;
   Maximize := False;
   Minimize := False;
+  // Do not use PPIScale, scaled on TSpTBXCustomDockablePanel.ChangeScale
   TitleBarMaxSize := 19;
 end;
 
@@ -1709,6 +1709,7 @@ end;
 procedure TSpTBXDockablePanelButtonOptions.SetupButton(B: TSpTBXCustomItem);
 begin
   inherited;
+  // Do not use PPIScale, scaled on TSpTBXCustomDockablePanel.ChangeScale
   TSpTBXCustomItemAccess(B).CustomWidth := 15;
 end;
 
@@ -1856,7 +1857,7 @@ begin
   FreeAndNil(FDockForms);  // After inherited, Notification accesses FDockForms
 end;
 
-procedure TSpTBXCustomDockablePanel.ChangeScale(M, D: Integer{$if CompilerVersion >= 31}; isDpiChange: Boolean{$ifend});
+procedure TSpTBXCustomDockablePanel.ChangeScale(M, D: Integer{$IF CompilerVersion >= 31}; isDpiChange: Boolean{$IFEND});
 begin
   BeginUpdate;
   try
@@ -1865,10 +1866,11 @@ begin
   finally
     EndUpdate;
   end;
-  if Docked and IsVertical then
-    EffectiveHeight := ClientHeight
-  else if Docked then
-    EffectiveWidth := Width;
+  // newpy check if needed
+  FFloatingClientHeight := MulDiv(FFloatingClientHeight, M, D);
+  FFloatingClientWidth := MulDiv(FFloatingClientWidth, M, D);
+  MinClientHeight := MulDiv(MinClientHeight, M, D);
+  MinClientWidth := MulDiv(MinClientWidth, M, D);
 end;
 
 procedure TSpTBXCustomDockablePanel.Loaded;
@@ -1938,7 +1940,7 @@ begin
     if FState.DockedState <> wsMinimized then begin
       FState.DockedState := wsMinimized;
       FState.RestoreSize := Parent.Height;
-      Parent.ClientHeight := PPIScale(MinClientHeight);
+      Parent.ClientHeight := MinClientHeight;
       FOptions.SetupButtonIcon(FOptions.MinimizeButton);
       FOptions.SetupButtonIcon(FOptions.MaximizeButton);
       Result := True;
@@ -1966,9 +1968,9 @@ begin
         if CanMinimize then begin
           FIsManualSizing := True;
           try
-            if Height > PPIScale(MinClientHeight) then
+            if Height > MinClientHeight then
               FState.RestoreSize := Height;
-            if SpDPResize(Self, PPIScale(MinClientHeight), dprtMinimizeOrRestore) then begin
+            if SpDPResize(Self, MinClientHeight, dprtMinimizeOrRestore) then begin
               FState.DockedState := wsMinimized;
               FOptions.SetupButtonIcon(FOptions.MinimizeButton);
               FOptions.SetupButtonIcon(FOptions.MaximizeButton);
@@ -2016,14 +2018,14 @@ begin
     // account the borders and the close button.
     TotalBorderSize := GetFloatingBorderSize.Y * 2;
     Parent.Constraints.MinWidth := PPIScale(20) + TotalBorderSize;
-    Parent.Constraints.MinHeight := PPIScale(MinClientHeight) + TotalBorderSize;
-    if (FState.DockedState = wsMinimized) and (Parent.ClientHeight > PPIScale(MinClientHeight)) then begin
+    Parent.Constraints.MinHeight := MinClientHeight + TotalBorderSize;
+    if (FState.DockedState = wsMinimized) and (Parent.ClientHeight > MinClientHeight) then begin
       FState.DockedState := wsNormal;
       FOptions.SetupButtonIcon(FOptions.MinimizeButton);
     end;
   end
   else begin
-    if (FState.DockedState = wsMinimized) and (ClientHeight > PPIScale(MinClientHeight)) then begin
+    if (FState.DockedState = wsMinimized) and (ClientHeight > MinClientHeight) then begin
       FState.DockedState := wsNormal;
       FOptions.SetupButtonIcon(FOptions.MinimizeButton);
     end;
@@ -2155,7 +2157,7 @@ procedure TSpTBXCustomDockablePanel.BeginDockedMoving;
           // The cursor is outside the Dock, make the DP float
           // Position the DP at the center of the clicked point
           if FFloatingClientWidth > 0 then
-            FloatingW := PPIScale(FFloatingClientWidth)
+            FloatingW := FFloatingClientWidth
           else
             FloatingW := ClientAreaWidth;
           FloatingPosition := Point(CursorPos.X - (FloatingW div 2), CursorPos.Y - 10);
@@ -2413,10 +2415,10 @@ var
 begin
   Sz := CalcNCSizes;
 
-  if PPIScale(MinClientWidth) > 0 then MinWidth := PPIScale(MinClientWidth) + Sz.X;
-  if PPIScale(MinClientHeight) > 0 then MinHeight := PPIScale(MinClientHeight) + Sz.Y;
-  if PPIScale(MaxClientWidth) > 0 then MaxWidth := PPIScale(MaxClientWidth) + Sz.X;
-  if PPIScale(MaxClientHeight) > 0 then MaxHeight := PPIScale(MaxClientHeight) + Sz.Y;
+  if MinClientWidth > 0 then MinWidth := MinClientWidth + Sz.X;
+  if MinClientHeight > 0 then MinHeight := MinClientHeight + Sz.Y;
+  if MaxClientWidth > 0 then MaxWidth := MaxClientWidth + Sz.X;
+  if MaxClientHeight > 0 then MaxHeight := MaxClientHeight + Sz.Y;
 
   // Disallow lateral Width change when the DP is docked
   if Docked then begin
@@ -2472,7 +2474,7 @@ begin
     DefaultPainting := True;
     DoDrawCaptionPanel(ACanvas, ARect, pstPrePaint, DefaultPainting);
     if DefaultPainting then
-      SpDrawXPDockablePanelTitleBar(ACanvas, ARect, True, IsVerticalTitleBar);
+      SpDrawXPDockablePanelTitleBar(ACanvas, ARect, True, IsVerticalTitleBar, CurrentPPI);
     DefaultPainting := True;
     DoDrawCaptionPanel(ACanvas, ARect, pstPostPaint, DefaultPainting);
   end;
@@ -2510,21 +2512,21 @@ begin
     if not Floating and not ShowCaptionWhenDocked then
       MinClientWidth := 1
     else
-      MinClientWidth := PPIUnScale(FPanel.Width);
+      MinClientWidth := FPanel.Width;
   end
   else begin
     if FPanel.Height <> FToolbarDock.Height then begin
       FPanel.Height := FToolbarDock.Height;
       if Floating and Assigned(Parent) then begin
         Parent.Constraints.MinWidth := 0;
-        Parent.Constraints.MinHeight := FPanel.Height + GetFloatingBorderSize.Y * PPIScale(2);
+        Parent.Constraints.MinHeight := FPanel.Height + GetFloatingBorderSize.Y * 2;
       end;
     end;
     MinClientWidth := 0;
     if not Floating and not ShowCaptionWhenDocked then
       MinClientHeight := 1
     else
-      MinClientHeight := PPIUnScale(FPanel.Height);
+      MinClientHeight := FPanel.Height;
   end;
 end;
 
@@ -2614,7 +2616,7 @@ end;
 function TSpTBXCustomDockablePanel.GetFloatingClientHeight: Integer;
 begin
   if Docked then
-    Result := PPIScale(FFloatingClientHeight)
+    Result := FFloatingClientHeight
   else
     Result := ClientAreaHeight;
 end;
@@ -2622,7 +2624,7 @@ end;
 function TSpTBXCustomDockablePanel.GetFloatingClientWidth: Integer;
 begin
   if Docked then
-    Result := PPIScale(FFloatingClientWidth)
+    Result := FFloatingClientWidth
   else
     Result := ClientAreaWidth;
 end;
@@ -2650,7 +2652,7 @@ begin
     DefaultPainting := True;
     DoDrawCaptionPanel(ACanvas, ARect, pstPrePaint, DefaultPainting);
     if DefaultPainting then
-      SpDrawXPDockablePanelTitleBar(ACanvas, ARect, True, IsVerticalTitleBar);
+      SpDrawXPDockablePanelTitleBar(ACanvas, ARect, True, IsVerticalTitleBar, CurrentPPI);
     DefaultPainting := True;
     DoDrawCaptionPanel(ACanvas, ARect, pstPostPaint, DefaultPainting);
   end;
@@ -2758,7 +2760,11 @@ begin
 end;
 
 procedure TSpTBXCustomDockablePanel.ReadPositionData(const Data: TTBReadPositionData);
+var
+  DPI: Integer;
 begin
+  // The ancestor class TSpTBXCustomToolWindow scales the DockPos,
+  // FloatLeft, FloatTop, ClientAreaWidth, ClientAreaHeight
   inherited;
 
   // Load FLoadedBarSize and FLoadedDockPos
@@ -2768,9 +2774,11 @@ begin
 
   // Load FloatingClientWidth/FloatingClientHeight, RestoreSize, State
   with Data do begin
-    FFloatingClientWidth := ReadIntProc(Name, rvFloatingClientWidth, 0, ExtraData);
-    FFloatingClientHeight := ReadIntProc(Name, rvFloatingClientHeight, 0, ExtraData);
-    FState.RestoreSize := ReadIntProc(Name, rvRestoreSize, 0, ExtraData);
+    // Read the saved DPI and scale
+    DPI := ReadIntProc(Name, 'DPI', 96, ExtraData);
+    FFloatingClientWidth := MulDiv(ReadIntProc(Name, rvFloatingClientWidth, 0, ExtraData), CurrentPPI, DPI);
+    FFloatingClientHeight := MulDiv(ReadIntProc(Name, rvFloatingClientHeight, 0, ExtraData), CurrentPPI, DPI);
+    FState.RestoreSize := MulDiv(ReadIntProc(Name, rvRestoreSize, 0, ExtraData), CurrentPPI, DPI);
     FState.DockedState := TWindowState(ReadIntProc(Name, rvState, 0, ExtraData));
     FLoadedState := FState.DockedState;
   end;
@@ -2839,7 +2847,6 @@ var
   PrevSize: TSize;
   D: TTBDock;
   Splitter: TSpTBXCustomSplitter;
-  NewPPI: Integer;
 begin
   if not (csDestroying in ComponentState) and Assigned(Parent) and Assigned(AParent) and
     not ((csLoading in ComponentState) and (AParent = Parent)) then
@@ -2857,8 +2864,8 @@ begin
     PrevSize.cy := ClientAreaHeight;
 
     if Floating then begin
-      FFloatingClientWidth := PPIUnScale(PrevSize.cx);
-      FFloatingClientHeight := PPIUnScale(PrevSize.cy);
+      FFloatingClientWidth := PrevSize.cx;
+      FFloatingClientHeight := PrevSize.cy;
     end;
 
     if ToDock then begin
@@ -2925,20 +2932,12 @@ begin
         if ToFloating then begin
           // [DockablePanel-Rule]
           // Remember the previous floating size
-          if AParent is TTBFloatingWindowParent then
-            NewPPI := Screen.MonitorFromPoint(Point(FloatingPosition.X,
-              FloatingPosition.Y)).PixelsPerInch
-          else if Assigned(Parent) then
-            NewPPI := AParent.CurrentPPI
-          else
-            NewPPI := FCurrentPPI;
-
           if FFloatingClientWidth > 0 then
-            ClientAreaWidth := MulDiv(FFloatingClientWidth, NewPPI, 96)
+            ClientAreaWidth := FFloatingClientWidth
           else
             ClientAreaWidth := PrevSize.cx;
           if FFloatingClientHeight > 0 then
-            ClientAreaHeight := MulDiv(FFloatingClientHeight, NewPPI, 96)
+            ClientAreaHeight := FFloatingClientHeight
           else
             // [DockablePanel-Rule]
             // If the previous floating size is not valid and the DP was minimized
@@ -3284,7 +3283,7 @@ begin
   Invalidate;
 end;
 
-procedure TSpTBXCustomSplitter.ChangeScale(M, D: Integer{$if CompilerVersion >= 31}; isDpiChange: Boolean{$ifend});
+procedure TSpTBXCustomSplitter.ChangeScale(M, D: Integer{$IF CompilerVersion >= 31}; isDpiChange: Boolean{$IFEND});
 begin
   inherited;
   FGripSize := MulDiv(FGripSize, M, D);
@@ -3551,12 +3550,12 @@ begin
         CurrentSkin.PaintBackground(Canvas, R, skncButton, sknsNormal, True, True, False, [akLeft, akTop, akRight, akBottom]);
       C1 := SkinManager.CurrentSkin.Options(skncToolbarGrip).Body.Color1;
       C2 := SkinManager.CurrentSkin.Options(skncToolbarGrip).Body.Color2;
-      SpDrawXPGrip(Canvas, DragHandleR, C1, C2, PPIScale);
+      SpDrawXPGrip(Canvas, DragHandleR, C1, C2, CurrentPPI);
     end
     else begin
       C1 := CurrentSkin.GetThemedSystemColor(clBtnShadow);
       C2 := CurrentSkin.GetThemedSystemColor(clWindow);
-      SpDrawXPGrip(Canvas, DragHandleR, C1, C2, PPIScale);
+      SpDrawXPGrip(Canvas, DragHandleR, C1, C2, CurrentPPI);
     end;
   end;
 

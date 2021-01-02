@@ -1,7 +1,7 @@
 unit SpTBXControls;
 
 {==============================================================================
-Version 2.5.4
+Version 2.5.7
 
 The contents of this file are subject to the SpTBXLib License; you may
 not use or distribute this file except in compliance with the
@@ -1054,6 +1054,10 @@ type
     procedure SetTickMarks(const Value: TSpTBXTickMark);
     procedure CMSpTBXControlsInvalidate(var Message: TMessage); message CM_SPTBXCONTROLSINVALIDATE;
     procedure CNNotify(var Message: TWMNotify); message CN_NOTIFY;
+    procedure CNHScroll(var Message: TWMHScroll); message CN_HSCROLL;
+    procedure CNVScroll(var Message: TWMVScroll); message CN_VSCROLL;
+    procedure WMLButtonUp(var Message: TWMMouse); message WM_LBUTTONUP;
+    procedure WMLButtonDown(var Message: TWMMouse); message WM_LBUTTONDOWN;
     procedure WMEraseBkGnd(var Message: TMessage); message WM_ERASEBKGND;
     procedure WMSpSkinChange(var Message: TMessage); message WM_SPSKINCHANGE;
   protected
@@ -1079,12 +1083,12 @@ type
   end;
 
 { Painting helpers }
-procedure SpDrawXPPanel(ACanvas: TCanvas; ARect: TRect; Enabled, TBXStyleBackground: Boolean; Border: TSpTBXPanelBorder);
+procedure SpDrawXPPanel(ACanvas: TCanvas; ARect: TRect; Enabled, TBXStyleBackground: Boolean; Border: TSpTBXPanelBorder; DPI: Integer);
 procedure SpDrawXPPanelBorder(ACanvas: TCanvas; ARect: TRect; Border: TSpTBXPanelBorder);
-procedure SpDrawXPGroupBox(ACanvas: TCanvas; ARect: TRect; ACaption: string; TextFlags: Cardinal; Enabled, TBXStyleBackground: Boolean);
-procedure SpDrawXPProgressBar(ACanvas: TCanvas; ARect: TRect; Min, Max, Position: Integer; Back, Fore: TBitmap); overload;
-function SpDrawXPProgressBar(ACanvas: TCanvas; ARect: TRect; Vertical, Smooth, DrawProgress: Boolean; Min, Max, Position: Integer): Integer; overload;
-procedure SpDrawXPTrackBar(ACanvas: TCanvas; ARect: TRect; Part: Cardinal; Vertical, ChannelSelection: Boolean; ThumbState: TSpTBXSkinStatesType; TickMark: TSpTBXTickMark; Min, Max, SelStart, SelEnd: Integer);
+procedure SpDrawXPGroupBox(ACanvas: TCanvas; ARect: TRect; ACaption: string; TextFlags: Cardinal; Enabled, TBXStyleBackground: Boolean; DPI: Integer);
+procedure SpDrawXPProgressBar(ACanvas: TCanvas; ARect: TRect; Min, Max, Position: Integer; Back, Fore: TBitmap; DPI: Integer); overload;
+function SpDrawXPProgressBar(ACanvas: TCanvas; ARect: TRect; Vertical, Smooth, DrawProgress: Boolean; Min, Max, Position, DPI: Integer): Integer; overload;
+procedure SpDrawXPTrackBar(ACanvas: TCanvas; ARect: TRect; Part: Cardinal; Vertical, ChannelSelection: Boolean; ThumbState: TSpTBXSkinStatesType; TickMark: TSpTBXTickMark; Min, Max, SelStart, SelEnd, DPI: Integer);
 
 implementation
 
@@ -1097,15 +1101,14 @@ type
 //WMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWM
 { Helpers }
 
-procedure SpDrawXPPanel(ACanvas: TCanvas; ARect: TRect; Enabled, TBXStyleBackground: Boolean;
-  Border: TSpTBXPanelBorder);
+procedure SpDrawXPPanel(ACanvas: TCanvas; ARect: TRect; Enabled, TBXStyleBackground: Boolean; Border: TSpTBXPanelBorder; DPI: Integer);
 begin
   case SkinManager.GetSkinType of
     sknNone:
       SpDrawXPPanelBorder(ACanvas, ARect, Border);
     sknWindows, sknDelphiStyle:
       CurrentSkin.PaintThemedElementBackground(ACanvas, ARect, skncPanel,
-        Enabled, False, False, False, False, False, False);
+        Enabled, False, False, False, False, False, False, DPI);
     sknSkin:
       CurrentSkin.PaintBackground(ACanvas, ARect, skncPanel, sknsNormal, TBXStyleBackground, True);
   end;
@@ -1124,8 +1127,7 @@ begin
     DrawEdge(ACanvas.Handle, ARect, Edge[Border], BF_RECT);
 end;
 
-procedure SpDrawXPGroupBox(ACanvas: TCanvas; ARect: TRect; ACaption: string;
-  TextFlags: Cardinal; Enabled, TBXStyleBackground: Boolean);
+procedure SpDrawXPGroupBox(ACanvas: TCanvas; ARect: TRect; ACaption: string; TextFlags: Cardinal; Enabled, TBXStyleBackground: Boolean; DPI: Integer);
 var
   Width, SaveIndex: Integer;
   R: TRect;
@@ -1154,7 +1156,7 @@ begin
   with CaptionRect do
     ExcludeClipRect(ACanvas.Handle, Left, Top, Right, Bottom);
   try
-    SpDrawXPPanel(ACanvas, R, Enabled, TBXStyleBackground, pbrEtched);
+    SpDrawXPPanel(ACanvas, R, Enabled, TBXStyleBackground, pbrEtched, DPI);
   finally
     RestoreDC(ACanvas.Handle, SaveIndex);
   end;
@@ -1187,7 +1189,7 @@ begin
 end;
 
 procedure SpDrawXPProgressBar(ACanvas: TCanvas; ARect: TRect;
-  Min, Max, Position: Integer; Back, Fore: TBitmap);
+  Min, Max, Position: Integer; Back, Fore: TBitmap; DPI: Integer);
 var
   Percent, Delta: Integer;
   DeltaR, R: TRect;
@@ -1220,7 +1222,7 @@ begin
 end;
 
 function SpDrawXPProgressBar(ACanvas: TCanvas; ARect: TRect;
-  Vertical, Smooth, DrawProgress: Boolean; Min, Max, Position: Integer): Integer;
+  Vertical, Smooth, DrawProgress: Boolean; Min, Max, Position, DPI: Integer): Integer;
 var
   ChunkPaint: Boolean;
   I: Integer;
@@ -1264,7 +1266,7 @@ begin
         begin
           if Vertical then Details := SpTBXThemeServices.GetElementDetails(tpBarVert)
           else Details := SpTBXThemeServices.GetElementDetails(tpBar);
-          CurrentSkin.PaintThemedElementBackground(ACanvas, ARect, Details);
+          CurrentSkin.PaintThemedElementBackground(ACanvas, ARect, Details, DPI);
           if DrawProgress and not IsRectEmpty(DeltaR) then begin
             if SpIsWinVistaOrUp then begin
               Details.Element := teProgress;
@@ -1279,7 +1281,7 @@ begin
                 InflateRect(DeltaR, 0, -1);
               end;
               {$IFEND}
-              CurrentSkin.PaintThemedElementBackground(ACanvas, DeltaR, Details);
+              CurrentSkin.PaintThemedElementBackground(ACanvas, DeltaR, Details, DPI);
             end
             else begin
               // [Theme-Change]
@@ -1295,7 +1297,7 @@ begin
               end;
               if Vertical then Details := SpTBXThemeServices.GetElementDetails(tpChunkVert)
               else Details := SpTBXThemeServices.GetElementDetails(tpChunk);
-              CurrentSkin.PaintThemedElementBackground(B.Canvas, R, Details);
+              CurrentSkin.PaintThemedElementBackground(B.Canvas, R, Details, DPI);
               ChunkPaint := True;
             end;
           end;
@@ -1370,7 +1372,7 @@ end;
 
 procedure SpDrawXPTrackBar(ACanvas: TCanvas; ARect: TRect; Part: Cardinal;
   Vertical, ChannelSelection: Boolean; ThumbState: TSpTBXSkinStatesType;
-  TickMark: TSpTBXTickMark; Min, Max, SelStart, SelEnd: Integer);
+  TickMark: TSpTBXTickMark; Min, Max, SelStart, SelEnd, DPI: Integer);
 
   procedure DrawChannelSelection(ChannelR: TRect);
   var
@@ -1454,13 +1456,13 @@ begin
             end;
         end;
         Details := SpTBXThemeServices.GetElementDetails(T);
-        CurrentSkin.PaintThemedElementBackground(ACanvas, ARect, Details);
+        CurrentSkin.PaintThemedElementBackground(ACanvas, ARect, Details, DPI);
       end
       else if Part = TBCD_CHANNEL then begin
         if Vertical then T := ttbTrackVert
         else T := ttbTrack;
         Details := SpTBXThemeServices.GetElementDetails(T);
-        CurrentSkin.PaintThemedElementBackground(ACanvas, ARect, Details);
+        CurrentSkin.PaintThemedElementBackground(ACanvas, ARect, Details, DPI);
         DrawChannelSelection(ARect);
       end;
     sknSkin:
@@ -1547,7 +1549,7 @@ procedure TSpTBXCustomPanel.DrawBackground(ACanvas: TCanvas; ARect: TRect);
 begin
   if not Borders then
     InflateRect(ARect, PPIScale(3), PPIScale(3));
-  SpDrawXPPanel(ACanvas, ARect, True, FTBXStyleBackground, FBorderType);
+  SpDrawXPPanel(ACanvas, ARect, True, FTBXStyleBackground, FBorderType, CurrentPPI);
 end;
 
 //WMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWM
@@ -1577,7 +1579,7 @@ begin
     if SkinManager.GetSkinType = sknNone then
       SpDrawXPPanelBorder(ACanvas, ARect, pbrDoubleSunken)
     else
-      SpDrawXPEditFrame(ACanvas, ARect, Enabled, FHotTracking, True, True);
+      SpDrawXPEditFrame(ACanvas, ARect, Enabled, FHotTracking, True, True, CurrentPPI);
   end
   else
     inherited;
@@ -1719,7 +1721,7 @@ begin
   Flags := DT_SINGLELINE;
   if UseRightToLeftAlignment then
     Flags := Flags or DT_RTLREADING;
-  SpDrawXPGroupBox(ACanvas, ARect, Caption, Flags, True, TBXStyleBackground);
+  SpDrawXPGroupBox(ACanvas, ARect, Caption, Flags, True, TBXStyleBackground, CurrentPPI);
 end;
 
 //WMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWM
@@ -1905,8 +1907,7 @@ function TSpTBXTextObject.DoDrawText(ACanvas: TCanvas; var ARect: TRect;
   Flags: Longint): Integer;
 var
   PaintDefault: Boolean;
-  GlyphSize, DummyRightGlyphSize: TSize;
-  DummyRightGlyphRect: TRect;
+  GlyphSize: TSize;
   R, R1, R2: TRect;
   WS: string;
   TextFlags: Cardinal;
@@ -1926,12 +1927,9 @@ begin
     if PaintDefault then begin
       // Calc the rects
       GlyphSize := GetGlyphSize;
-      DummyRightGlyphSize.cx := 0;
-      DummyRightGlyphSize.cy := 0;
-      DummyRightGlyphRect := Rect(0, 0, 0, 0);
       SpCalcXPText(ACanvas, ARect, WS, GetRealAlignment(Self), TextFlags,
-        GlyphSize, DummyRightGlyphSize, FGlyphLayout, DrawPushedCaption and Pushed,
-        R1, R2, DummyRightGlyphRect, PPIScale, FCaptionRoatationAngle);
+        GlyphSize, FGlyphLayout, DrawPushedCaption and Pushed,
+        CurrentPPI, R1, R2, FCaptionRoatationAngle);
 
       // Paint the text
       if IsGlassPainting then
@@ -1979,8 +1977,7 @@ begin
   IL := FImages;
   I := FImageIndex;
   DoGetImageIndex(IL, I);
-  if Assigned(IL) and (I > -1) and (I < IL.Count) then
-    SpDrawImageList(ACanvas, AGlyphRect, IL, I, Enabled, FDisabledIconCorrection)
+  SpDrawImageList(ACanvas, AGlyphRect, IL, I, Enabled);
 end;
 
 procedure TSpTBXTextObject.DoMouseEnter;
@@ -2082,21 +2079,17 @@ end;
 procedure TSpTBXTextObject.GetSize(out TotalR, TextR, GlyphR: TRect);
 // Size of Text + Glyph + TextMargin + Margins
 var
-  GlyphSize, DummyRightGlyphSize: TSize;
-  DummyRightGlyphRect: TRect;
+  GlyphSize: TSize;
   R: TRect;
 begin
   GlyphSize := GetGlyphSize;
-  DummyRightGlyphSize.cx := 0;
-  DummyRightGlyphSize.cy := 0;
-  DummyRightGlyphRect := Rect(0, 0, 0, 0);
   R := ClientRect;
   ApplyMargins(R, GetTextMargins);
 
   Canvas.Font.Assign(Font);
   AdjustFont(Canvas.Font);
-  SpCalcXPText(Canvas, R, Caption, GetRealAlignment(Self), GetTextFlags, GlyphSize, DummyRightGlyphSize,
-    FGlyphLayout, DrawPushedCaption and Pushed, TextR, GlyphR, DummyRightGlyphRect, PPIScale);
+  SpCalcXPText(Canvas, R, Caption, GetRealAlignment(Self), GetTextFlags, GlyphSize,
+    FGlyphLayout, DrawPushedCaption and Pushed, CurrentPPI, TextR, GlyphR);
 
   UnionRect(TotalR, TextR, GlyphR);
 
@@ -2732,7 +2725,7 @@ begin
   if IsImageIndexValid then
     inherited
   else
-    SpDrawXPCheckBoxGlyph(ACanvas, AGlyphRect, Enabled, State, MouseInControl, Pushed, PPIScale);
+    SpDrawXPCheckBoxGlyph(ACanvas, AGlyphRect, Enabled, State, MouseInControl, Pushed, CurrentPPI);
 end;
 
 procedure TSpTBXCustomCheckBox.AdjustFont(AFont: TFont);
@@ -2762,17 +2755,19 @@ begin
 end;
 
 function TSpTBXCustomCheckBox.GetGlyphSize: TSize;
-Var
+var
   Details: TThemedElementDetails;
 begin
-  if (SkinManager.GetSkinType = sknDelphiStyle) and HandleAllocated and
-    CurrentSkin.GetThemedElementDetails(skncCheckBox, Enabled, Pushed, MouseInControl, State = cbChecked, False, False, State = cbGrayed, Details)
-  then begin
-    Result := CurrentSkin.GetThemedElementSize(Canvas, Details);
-    Result.cx := PPIScale(Result.cx);
-    Result.cy := PPIScale(Result.cy);
-  end else
-    Result := inherited GetGlyphSize;
+  if not IsImageIndexValid and HandleAllocated and (SkinManager.GetSkinType = sknDelphiStyle) then begin
+    // 10.4 Styles bug: GetThemedElementSize returns incorrect value when Pushed = True
+    // When Pushed is true it returns (13, 13), when false it returns the correct value (16,16)
+    // Check Vcl.Styles.TCustomStyle.DoGetElementSize, the problem might be in the vsf file itself
+    CurrentSkin.GetThemedElementDetails(skncCheckBox, Enabled, False, MouseInControl, State = cbChecked, False, False, State = cbGrayed, Details);
+    // CurrentPPI introduced on 10.3 Rio, but we are using TB2Common.TControlHelper
+    Result := CurrentSkin.GetThemedElementSize(Canvas, Details, CurrentPPI); // returns a scaled value
+    if not Result.IsZero then Exit;
+  end;
+  Result := inherited GetGlyphSize;
 end;
 
 procedure TSpTBXCustomCheckBox.SetChecked(Value: Boolean);
@@ -2824,21 +2819,24 @@ begin
   if IsImageIndexValid then
     inherited
   else
-    SpDrawXPRadioButtonGlyph(ACanvas, AGlyphRect, Enabled, Checked, MouseInControl, Pushed, PPIScale);
+    SpDrawXPRadioButtonGlyph(ACanvas, AGlyphRect, Enabled, Checked, MouseInControl, Pushed, CurrentPPI);
 end;
 
 function TSpTBXCustomRadioButton.GetGlyphSize: TSize;
-Var
+var
   Details: TThemedElementDetails;
 begin
-  if (SkinManager.GetSkinType = sknDelphiStyle) and HandleAllocated and
-    CurrentSkin.GetThemedElementDetails(skncRadioButton, Enabled, Pushed, MouseInControl, Checked, False, False, False, Details)
-  then begin
-    Result := CurrentSkin.GetThemedElementSize(Canvas, Details);
-    Result.cx := PPIScale(Result.cx);
-    Result.cy := PPIScale(Result.cy);
-  end else
-    Result := inherited GetGlyphSize;
+  if not IsImageIndexValid and HandleAllocated and (SkinManager.GetSkinType = sknDelphiStyle) then begin
+    // 10.4 Styles bug: GetThemedElementSize returns incorrect value when Pushed = True
+    // When Pushed is true it returns (13, 13), when false it returns the correct value (16,16)
+    // Check Vcl.Styles.TCustomStyle.DoGetElementSize, the problem might be in the vsf file itself
+    CurrentSkin.GetThemedElementDetails(skncRadioButton, Enabled, False, MouseInControl, Checked, False, False, False, Details);
+    // CurrentPPI introduced on 10.3 Rio, but we are using TB2Common.TControlHelper
+    // GetThemedElementSize returns a scaled value
+    Result := CurrentSkin.GetThemedElementSize(Canvas, Details, CurrentPPI);
+    if not Result.IsZero then Exit;
+  end;
+  Result := inherited GetGlyphSize;
 end;
 
 procedure TSpTBXCustomRadioButton.AdjustFont(AFont: TFont);
@@ -3322,14 +3320,14 @@ begin
       else begin
         if Flat and FToolbarStyle then begin
           State := CurrentSkin.GetState(Enabled, Pushed, MouseInControl, Checked);
-          SpDrawXPToolbarButton(ACanvas, ARect, State);
+          SpDrawXPToolbarButton(ACanvas, ARect, State, cpNone, CurrentPPI);
         end
         else begin
           if SkinManager.GetSkinType = sknSkin then
             Defaulted := False
           else
             Defaulted := FActive;
-          SpDrawXPButton(ACanvas, ARect, Enabled, Pushed, MouseInControl, Checked, False, Defaulted);
+          SpDrawXPButton(ACanvas, ARect, Enabled, Pushed, MouseInControl, Checked, False, Defaulted, CurrentPPI);
         end;
       end;
     end;
@@ -3608,7 +3606,7 @@ var
 begin
   Result := inherited DoDrawItem(ACanvas, ARect, PaintStage);
   if Result and (PaintStage = pstPrePaint) then begin
-    I := SpDrawXPProgressBar(ACanvas, ARect, FVertical, FSmooth, FProgressVisible, FMin, FMax, FPosition);
+    I := SpDrawXPProgressBar(ACanvas, ARect, FVertical, FSmooth, FProgressVisible, FMin, FMax, FPosition, CurrentPPI);
     case FCaptionType of
       pctNone: Caption := '';
       pctPercentage: Caption := IntToStr(I) + '%';
@@ -3791,7 +3789,11 @@ begin
     sknNone:
       ACanvas.Pen.Color := clBlack;
     sknWindows, sknDelphiStyle:
+      {$IF CompilerVersion >= 23} // for Delphi XE2 and up
+      ACanvas.Pen.Color := SpTBXThemeServices.GetSystemColor(clBtnText);
+      {$ELSE}
       ACanvas.Pen.Color := clBtnShadow;
+      {$IFEND}
     sknSkin:
       if CurrentSkin.Options(skncTrackBar, sknsNormal).TextColor <> clNone then
         ACanvas.Pen.Color := CurrentSkin.Options(skncTrackBar, sknsNormal).TextColor
@@ -3994,22 +3996,11 @@ begin
               TBCD_THUMB:
                 begin
                   if SliderVisible then begin
-                    // VCL Styles doesn't stretch draw the trackbar thumb, sometimes it's
-                    // bigger than the rect we get from TBM_GETTHUMBRECT (it has a custom
-                    // size depending on the style), which causes painting issues.
-                    // We need to clip the painting region.
                     SendMessage(Handle, TBM_GETTHUMBRECT, 0, LPARAM(@R));
-                    Rgn := CreateRectRgn(R.Left, R.Top, R.Right, R.Bottom);
-                    SelectClipRgn(ACanvas.Handle, Rgn);
-                    try
-                      if DoDrawThumb(ACanvas, R, pstPrePaint) then
-                        SpDrawXPTrackBar(ACanvas, R, TBCD_THUMB, Orientation = trVertical, False, GetThumbState, FTickMarks, Min, Max, SelStart, SelEnd);
-                      DoDrawThumb(ACanvas, R, pstPostPaint);
-                      Message.Result := CDRF_SKIPDEFAULT;
-                    finally
-                      DeleteObject(Rgn);
-                      SelectClipRgn(ACanvas.Handle, 0);
-                    end;
+                    if DoDrawThumb(ACanvas, R, pstPrePaint) then
+                      SpDrawXPTrackBar(ACanvas, R, TBCD_THUMB, Orientation = trVertical, False, GetThumbState, FTickMarks, Min, Max, SelStart, SelEnd, CurrentPPI);
+                    DoDrawThumb(ACanvas, R, pstPostPaint);
+                    Message.Result := CDRF_SKIPDEFAULT;
                   end;
                 end;
               TBCD_CHANNEL:
@@ -4033,7 +4024,7 @@ begin
                     SpDrawParentBackground(Self, ACanvas.Handle, ClientRect);
                     R := ChannelRect;
                     if DoDrawChannel(ACanvas, R, pstPrePaint) then
-                      SpDrawXPTrackBar(ACanvas, R, TBCD_CHANNEL, Orientation = trVertical, FCanDrawChannelSelection, sknsNormal, FTickMarks, Min, Max, SelStart, SelEnd);
+                      SpDrawXPTrackBar(ACanvas, R, TBCD_CHANNEL, Orientation = trVertical, FCanDrawChannelSelection, sknsNormal, FTickMarks, Min, Max, SelStart, SelEnd, CurrentPPI);
                     DoDrawChannel(ACanvas, R, pstPostPaint);
 
                     // Draw channel tics
@@ -4054,6 +4045,38 @@ begin
         end;
     end;
   end;
+end;
+
+procedure TSpTBXTrackBar.CNHScroll(var Message: TWMHScroll);
+begin
+  inherited;
+  InvalidateBackground;
+end;
+
+procedure TSpTBXTrackBar.CNVScroll(var Message: TWMVScroll);
+begin
+  inherited;
+  InvalidateBackground;
+end;
+
+procedure TSpTBXTrackBar.WMLButtonDown(var Message: TWMMouse);
+var
+  R: TRect;
+begin
+  inherited;
+  if GetWindowLong(Handle, GWL_STYLE) and TBS_NOTHUMB = 0 then
+  begin
+    SendMessage(Handle, TBM_GETTHUMBRECT, 0, IntPtr(@R));
+    if R.Contains(Point(Message.XPos, Message.YPos)) then
+      InvalidateBackground;
+  end;
+end;
+
+procedure TSpTBXTrackBar.WMLButtonUp(var Message: TWMMouse);
+begin
+  inherited;
+  if GetWindowLong(Handle, GWL_STYLE) and TBS_NOTHUMB = 0 then
+    InvalidateBackground;
 end;
 
 procedure TSpTBXTrackBar.WMEraseBkGnd(var Message: TMessage);

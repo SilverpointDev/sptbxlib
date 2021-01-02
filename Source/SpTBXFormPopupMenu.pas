@@ -1,7 +1,7 @@
 unit SpTBXFormPopupMenu;
 
 {==============================================================================
-Version 2.5.4
+Version 2.5.7
 
 The contents of this file are subject to the SpTBXLib License; you may
 not use or distribute this file except in compliance with the
@@ -344,7 +344,7 @@ begin
     DoDrawBackground(ACanvas, R, pstPrePaint, PaintDefault);
     if PaintDefault then begin
       GR := Rect(0, 0, 0, 0);
-      SpDrawXPStatusBar(ACanvas, R, GR, PPIScale);
+      SpDrawXPStatusBar(ACanvas, R, GR, CurrentPPI);
     end;
 
     // Draw the grip
@@ -363,19 +363,19 @@ begin
           begin
             CellR.Top := (CellR.Top + CellR.Bottom - PPIScale(4)) div 2 + PPIScale(1);
             CellR.Bottom := CellR.Top + PPIScale(3);
-            SpDrawXPGrip(ACanvas, CellR, C1, C2, PPIScale);
+            SpDrawXPGrip(ACanvas, CellR, C1, C2, CurrentPPI);
           end;
         pbsSizeableRightBottom:
           begin
             // Draw 2 cells at the bottom
             CellR.Left := GR.Right - PPIScale(4) * 2;
             CellR.Top := CellR.Bottom - PPIScale(4);
-            SpDrawXPGrip(ACanvas, CellR, C1, C2, PPIScale);
+            SpDrawXPGrip(ACanvas, CellR, C1, C2, CurrentPPI);
             // Draw 1 cell at the top
             CellR.Bottom := CellR.Top;
             CellR.Top := CellR.Bottom - PPIScale(4);
             CellR.Left := CellR.Left + PPIScale(4);
-            SpDrawXPGrip(ACanvas, CellR, C1, C2, PPIScale);
+            SpDrawXPGrip(ACanvas, CellR, C1, C2, CurrentPPI);
           end;
       end;
     end;
@@ -862,7 +862,7 @@ end;
 
 procedure TSpTBXWrapperPopupForm.PaintBackground(ACanvas: TCanvas; ARect: TRect);
 begin
-  SpDrawXPMenuPopupWindow(ACanvas, ARect, Rect(0, 0, 0, 0), False, 0, PPIScale);
+  SpDrawXPMenuPopupWindow(ACanvas, ARect, Rect(0, 0, 0, 0), False, 0, CurrentPPI);
 end;
 
 //WMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWM
@@ -973,7 +973,6 @@ var
   ClientR: TRect;
   FC: TCustomFormClass;
   PPI: Integer;
-
 begin
   Result := False;
   SetPopupPoint(Point(X, Y));

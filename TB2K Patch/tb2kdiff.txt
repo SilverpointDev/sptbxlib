@@ -1,5 +1,5 @@
---- TB2Acc.pas	Sat Apr 19 00:31:00 2008
-+++ TB2Acc.pas	Fri May 29 05:32:49 2020
+--- TB2Acc.pas	Sat Apr 19 01:31:00 2008
++++ TB2Acc.pas	Wed Dec 30 05:28:45 2020
 @@ -36,7 +36,8 @@
  uses
    Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
@@ -10,8 +10,8 @@
  
  type
    { Our declaration for IAccessible }
---- TB2Common.pas	Wed Sep 17 14:46:30 2008
-+++ TB2Common.pas	Tue Sep 22 02:28:50 2020
+--- TB2Common.pas	Wed Sep 17 15:46:30 2008
++++ TB2Common.pas	Wed Dec 30 05:28:45 2020
 @@ -31,11 +31,13 @@
  {$I TB2Ver.inc}
  
@@ -146,8 +146,8 @@
  
  initialization
    InitGradientFillFunc;
---- TB2Dock.pas	Wed Sep 17 15:12:26 2008
-+++ TB2Dock.pas	Tue Sep 22 06:43:58 2020
+--- TB2Dock.pas	Wed Sep 17 16:12:26 2008
++++ TB2Dock.pas	Sat Jan  2 03:40:42 2021
 @@ -37,7 +37,12 @@
  {$I TB2Ver.inc}
  
@@ -605,7 +605,7 @@
  begin
    OldCurrentDock := ParentToCurrentDock(Parent);
    NewCurrentDock := ParentToCurrentDock(AParent);
-@@ -3256,6 +3480,29 @@
+@@ -3256,6 +3480,22 @@
                SetWindowPos(SaveHandle, 0, 0, 0, 0, 0, SWP_FRAMECHANGED or
                  SWP_NOACTIVATE or SWP_NOMOVE or SWP_NOSIZE or SWP_NOZORDER);
              end;
@@ -619,13 +619,6 @@
 +              begin
 +                NewPPI := Screen.MonitorFromPoint(Point(FloatingPosition.X,
 +                  FloatingPosition.Y)).PixelsPerInch;
-+                // The form font is initialized with the font size of the main monitor
-+                // If the main monitor has PPI > 96 and we then scale them
-+                // child controls with ParentFont property would have wrong font size
-+                // after we scale the form.  Hence the following:
-+                TTBFloatingWindowParent(AParent).Font.Height :=
-+                  MulDiv(TTBFloatingWindowParent(AParent).Font.Height, 96,
-+                  Screen.PixelsPerInch);
 +                AParent.ScaleForPPI(NewPPI);
 +              end else
 +                NewPPI := AParent.CurrentPPI;
@@ -635,7 +628,7 @@
              inherited;
            except
              { Failure is rare, but just in case, restore these back. }
-@@ -3353,12 +3600,12 @@
+@@ -3353,12 +3593,12 @@
    BottomRight.X := Z;
    BottomRight.Y := Z;
    if not LeftRight then begin
@@ -650,7 +643,7 @@
      //if FShowChevron then
      //  Inc(BottomRight.Y, tbChevronSize);
    end;
-@@ -3372,8 +3619,8 @@
+@@ -3372,8 +3612,8 @@
    XMetrics: array[Boolean] of Integer = (SM_CXDLGFRAME, SM_CXFRAME);
    YMetrics: array[Boolean] of Integer = (SM_CYDLGFRAME, SM_CYFRAME);
  begin
@@ -661,7 +654,7 @@
  end;
  
  procedure TTBCustomDockableWindow.GetFloatingNCArea(var TopLeft, BottomRight: TPoint);
-@@ -3382,24 +3629,29 @@
+@@ -3382,24 +3622,29 @@
      TopLeft.X := X;
      TopLeft.Y := Y;
      if ShowCaption then
@@ -695,7 +688,7 @@
    end;
    Result := Bounds(X, Y, Z, Z);
  end;
-@@ -3413,10 +3665,10 @@
+@@ -3413,10 +3658,10 @@
      Result.Y := 0;
    end
    else begin
@@ -709,7 +702,7 @@
        if not(CurrentDock.Position in PositionLeftOrRight) then
          Inc(Result.X, Z)
        else
-@@ -3433,7 +3685,7 @@
+@@ -3433,7 +3678,7 @@
    begin
      InflateRect(R, -DockedBorderSize, -DockedBorderSize);
      if CurrentDock.FAllowDrag then begin
@@ -718,7 +711,7 @@
        if not(CurrentDock.Position in PositionLeftOrRight) then
          Inc(R.Left, Z)
        else
-@@ -3475,7 +3727,7 @@
+@@ -3475,7 +3720,7 @@
        I := P.X - R.Left
      else
        I := P.Y - R.Top;
@@ -727,7 +720,7 @@
        SetCursor(LoadCursor(0, IDC_SIZEALL));
        Message.Result := 1;
        Exit;
-@@ -3591,31 +3843,32 @@
+@@ -3591,31 +3836,32 @@
        else
          Y2 := ClientWidth;
        Inc(Y2, DockedBorderSize);
@@ -768,7 +761,7 @@
          end;
        end;
        if not UsingBackground then begin
-@@ -3635,9 +3888,9 @@
+@@ -3635,9 +3881,9 @@
            DrawEdge(DC, R2, BDR_SUNKENOUTER, BF_RECT)
          else if FCloseButtonHover then
            DrawRaisedEdge(R2, False);
@@ -780,7 +773,7 @@
          DrawButtonBitmap(CreateCloseButtonBitmap);
        end;
      end;
-@@ -3727,6 +3980,22 @@
+@@ -3727,6 +3973,22 @@
    end;
  end;
  
@@ -803,7 +796,7 @@
  procedure TTBCustomDockableWindow.DrawDraggingOutline(const DC: HDC;
    const NewRect, OldRect: TRect; const NewDocking, OldDocking: Boolean);
  var
-@@ -3874,7 +4143,7 @@
+@@ -3874,7 +4136,7 @@
              C := FirstPos.X - LastPos.X
            else
              C := FirstPos.Y - LastPos.Y;
@@ -812,7 +805,7 @@
              WatchForSplit := False;
              FDragSplitting := True;
              SetCursor(LoadCursor(0, SplitCursors[SplitVertical]));
-@@ -3941,15 +4210,15 @@
+@@ -3941,15 +4203,15 @@
        with Control do begin
          Result := False;
  
@@ -831,7 +824,7 @@
            Exit;
  
          { Don't try to dock to the left or right if pointer is above or below
-@@ -3960,8 +4229,8 @@
+@@ -3960,8 +4222,8 @@
  
          { And also distribute ~25 pixels of extra dock detection area to
            the top or bottom side }
@@ -842,7 +835,7 @@
            Exit;
  
          Result := IntersectRect(Temp, R, S);
-@@ -4022,7 +4291,7 @@
+@@ -4022,7 +4284,7 @@
        R2 := GetRectOfMonitorContainingPoint(Pos, True);
        R := R2;
        with GetFloatingBorderSize do
@@ -851,7 +844,7 @@
        if MoveRect.Bottom < R.Top then
          OffsetRect(MoveRect, 0, R.Top-MoveRect.Bottom);
        if MoveRect.Top > R.Bottom then
-@@ -4033,7 +4302,7 @@
+@@ -4033,7 +4295,7 @@
          OffsetRect(MoveRect, R.Right-MoveRect.Left, 0);
  
        GetFloatingNCArea(TL, BR);
@@ -860,7 +853,7 @@
        if MoveRect.Top < I then
          OffsetRect(MoveRect, 0, I-MoveRect.Top);
      end;
-@@ -4394,7 +4663,7 @@
+@@ -4394,7 +4656,7 @@
    else
    if Assigned(DefaultDock) then begin
      FDockRow := ForceDockAtTopRow;
@@ -869,11 +862,18 @@
      Parent := DefaultDock;
    end;
  end;
-@@ -5037,6 +5306,7 @@
+@@ -5037,6 +5299,14 @@
              BorderStyle := bsToolWindow;
              ShowHint := True;
              Visible := True;
 +            ParentFont := False;
++            //Font.Assign(Application.DefaultFont);
++            // The form font is initialized with the font size of the main monitor
++            // If the main monitor has PPI > 96 and we then scale
++            // child controls with ParentFont property would have wrong font size
++            // after we scale the form.  Hence the following:
++            Font.Height := MulDiv(Font.Height, 96, Screen.PixelsPerInch);
++
              { Note: The above line doesn't actually make it visible at this
                point since FShouldShow is still False. }
            end;
@@ -895,8 +895,18 @@
      if not FTransparent then begin
        { Copy from a possible DIB to our DDB }
        BitBlt(FBitmapCache.Canvas.Handle, 0, 0, FBitmapCache.Width,
---- TB2DsgnItemEditor.pas	Thu Sep 25 13:49:32 2008
-+++ TB2DsgnItemEditor.pas	Fri May 29 05:32:50 2020
+@@ -5411,8 +5681,8 @@
+       Data.ReadIntProc := ReadIntProc;
+       Data.ReadStringProc := ReadStringProc;
+       Data.ExtraData := ExtraData;
++      FloatingPosition := Pos;  // Robert: set FloatingPosition before we call ReadPositionData
+       ReadPositionData(Data);
+-      FloatingPosition := Pos;
+       if Assigned(NewDock) then
+         Parent := NewDock
+       else begin
+--- TB2DsgnItemEditor.pas	Thu Sep 25 14:49:32 2008
++++ TB2DsgnItemEditor.pas	Wed Dec 30 05:28:45 2020
 @@ -207,7 +207,8 @@
    can't be unloaded. When a design-time package is uninstalled, it remains
    loaded until the IDE is restarted. }
@@ -907,8 +917,8 @@
  var
    I: Integer;
    Info: TItemClassInfo;
---- TB2ExtItems.pas	Thu Apr 10 16:51:12 2008
-+++ TB2ExtItems.pas	Fri Feb 28 18:45:54 2020
+--- TB2ExtItems.pas	Thu Apr 10 17:51:12 2008
++++ TB2ExtItems.pas	Wed Dec 30 05:28:45 2020
 @@ -157,6 +157,8 @@
      function EditLoop(const CapHandle: HWND): Boolean;
      procedure EditWndProc(var Message: TMessage);
@@ -1069,8 +1079,8 @@
    //View.FreeNotification(Self);
    FEditControl := TEdit.Create(nil);
    try
---- TB2Item.pas	Fri Sep 19 11:35:48 2008
-+++ TB2Item.pas	Sun Sep 20 17:50:50 2020
+--- TB2Item.pas	Fri Sep 19 12:35:48 2008
++++ TB2Item.pas	Wed Dec 30 05:28:45 2020
 @@ -40,7 +40,11 @@
  uses
    Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
@@ -1884,8 +1894,8 @@
  
  { TTBBaseAccObject }
  
---- TB2Reg.pas	Thu Sep 18 14:08:40 2008
-+++ TB2Reg.pas	Fri May 29 05:32:50 2020
+--- TB2Reg.pas	Thu Sep 18 15:08:40 2008
++++ TB2Reg.pas	Wed Dec 30 05:28:45 2020
 @@ -65,10 +65,15 @@
  
  uses
@@ -1903,8 +1913,8 @@
  { TTBImageIndexPropertyEditor }
  
  { Unfortunately TComponentImageIndexPropertyEditor seems to be gone in
---- TB2Toolbar.pas	Mon Jun 23 13:05:48 2008
-+++ TB2Toolbar.pas	Sun Sep 20 18:16:36 2020
+--- TB2Toolbar.pas	Mon Jun 23 14:05:48 2008
++++ TB2Toolbar.pas	Wed Dec 30 05:28:45 2020
 @@ -298,6 +298,23 @@
    {$IFDEF CLR} System.Runtime.InteropServices, System.Text, {$ENDIF}
    TB2Consts, TB2Common, TB2Hook;
@@ -1987,8 +1997,8 @@
  end;
  
  procedure TTBCustomToolbar.BeginUpdate;
---- TB2ToolWindow.pas	Wed Jan  5 19:56:50 2005
-+++ TB2ToolWindow.pas	Sun Mar  1 12:31:14 2020
+--- TB2ToolWindow.pas	Wed Jan  5 20:56:50 2005
++++ TB2ToolWindow.pas	Wed Dec 30 05:28:45 2020
 @@ -120,6 +120,8 @@
    end;
  
@@ -2013,8 +2023,8 @@
  end;
  
  procedure TTBToolWindow.SizeChanging(const AWidth, AHeight: Integer);
---- TB2Ver.inc	Sat Sep 13 16:06:46 2008
-+++ TB2Ver.inc	Fri May 29 05:32:50 2020
+--- TB2Ver.inc	Sat Sep 13 17:06:46 2008
++++ TB2Ver.inc	Wed Dec 30 05:28:45 2020
 @@ -50,7 +50,7 @@
      {$DEFINE JR_WIDESTR}  { defined if String type = WideString }
    {$IFEND}

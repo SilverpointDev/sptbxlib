@@ -21,6 +21,7 @@ object Form1: TForm1
     Top = 77
     Height = 343
     Cursor = crSizeWE
+    ParentColor = False
   end
   object SpTBXSplitter2: TSpTBXSplitter
     Left = 614
@@ -28,6 +29,7 @@ object Form1: TForm1
     Height = 343
     Cursor = crSizeWE
     Align = alRight
+    ParentColor = False
   end
   object SpTBXTabControl1: TSpTBXTabControl
     Left = 147
@@ -495,11 +497,11 @@ object Form1: TForm1
     Height = 343
     object dpLog: TSpTBXDockablePanel
       Left = 0
-      Top = 156
+      Top = 0
       Width = 142
       Height = 187
       Caption = 'Commands Log'
-      DockPos = 156
+      DockPos = 0
       TabOrder = 0
       object Memo1: TMemo
         Left = 0
@@ -515,11 +517,11 @@ object Form1: TForm1
     end
     object dpOptions: TSpTBXDockablePanel
       Left = 0
-      Top = 0
+      Top = 187
       Width = 142
       Height = 156
       Caption = 'Customizer Options'
-      DockPos = 0
+      DockPos = 187
       TabOrder = 1
     end
   end
@@ -604,7 +606,7 @@ object Form1: TForm1
     Left = 192
     Top = 352
     Bitmap = {
-      494C01011A001D00080010001000FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
+      494C01011A001D00040010001000FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
       0000000000003600000028000000400000007000000001002000000000000070
       0000000000000000000000000000000000000000000000000000000000000000
       0000000000000000000000000000000000000000000000000000000000000000

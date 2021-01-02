@@ -117,9 +117,7 @@ type
 implementation
 
 uses
-  TB2Common,
-  ActnList,
-  Themes;
+  ActnList, Themes, TB2Common;
 
 {$R *.dfm}
 
@@ -152,10 +150,10 @@ begin
       // Draw icon shadow
       if odSelected in State then begin
         OffsetRect(ILRect, L.PPIScale(1), L.PPIScale(1));
-        SpDrawImageList(ACanvas, ILRect, IL, Item.ImageIndex, False, True);
+        SpDrawImageList(ACanvas, ILRect, IL, Item.ImageIndex, False);
         OffsetRect(ILRect, L.PPIScale(-2), L.PPIScale(-2));
       end;
-      SpDrawImageList(ACanvas, ILRect, IL, Item.ImageIndex, True, True);
+      SpDrawImageList(ACanvas, ILRect, IL, Item.ImageIndex, True);
     end;
   end;
 
