@@ -9663,11 +9663,11 @@ begin
         // GetThemedElementSize returns a scaled value
         Details := SpTBXThemeServices.GetElementDetails(twFrameBottomActive);
         ElementSize := CurrentSkin.GetThemedElementSize(Canvas, Details, CurrentPPI);
-        Result.Y := ElementSize.cy;
+        Result.Y := ElementSize.cy + 2;
 
         Details := SpTBXThemeServices.GetElementDetails(twFrameLeftActive);
         ElementSize := CurrentSkin.GetThemedElementSize(Canvas, Details, CurrentPPI);
-        Result.X := ElementSize.cx;
+        Result.X := ElementSize.cx + 2;
       end;
     else begin
       Result.X := GetSystemMetrics(SM_CXFRAME);
