@@ -624,8 +624,7 @@ begin
     C.Control := Combo;
     C.Font.Assign(Combo.Font);
     for I := 0 to Combo.Items.Count - 1 do begin
-      Sz := SpGetTextSize(C.Handle, Combo.Items[I], False);
-      // newpy check if SpGetTextSize returns (0,0)
+      Sz := C.TextExtent(Combo.Items[I]); // Using SpGetTextSize returns zero on 64bit, doesn't happen on 32bit, don't know why
       if Sz.cx > MaxWidth then MaxWidth := Sz.cx;
     end;
 

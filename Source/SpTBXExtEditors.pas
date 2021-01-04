@@ -100,16 +100,17 @@ type
   end;
 
   { TSpTBXFontComboBox }
+  TSpTBXPreviewPanel = class(TPanel);
 
   TSpTBXFontComboBoxPreview = class(TCustomControl)
   private
-    FPreviewPanel: TPanel;
   protected
     procedure CreateParams(var Params: TCreateParams); override;
+    procedure Paint; override;
   public
     constructor Create(AOwner: TComponent); override;
-    destructor Destroy; override;
-    property PreviewPanel: TPanel read FPreviewPanel;
+    property Caption;
+    property Font;
   end;
 
   TSpTBXFontComboBox = class(TSpTBXComboBox)
@@ -470,12 +471,7 @@ begin
   Visible := False;
   SetBounds(0, 0, 0, 0);
   Color := CurrentSkin.GetThemedSystemColor(clWindow);
-  FPreviewPanel := TPanel.Create(Self);
-  FPreviewPanel.Parent := Self;
-  FPreviewPanel.Color := CurrentSkin.GetThemedSystemColor(clWindow);
-  FPreviewPanel.Font.Color := CurrentSkin.GetThemedSystemColor(clWindowText);
-  FPreviewPanel.BevelOuter := bvNone;
-  FPreviewPanel.Align := alClient;
+  Font.Color := CurrentSkin.GetThemedSystemColor(clWindowText);
 end;
 
 procedure TSpTBXFontComboBoxPreview.CreateParams(var Params: TCreateParams);
@@ -492,11 +488,14 @@ begin
   end;
 end;
 
-destructor TSpTBXFontComboBoxPreview.Destroy;
+procedure TSpTBXFontComboBoxPreview.Paint;
+var
+  R: TRect;
 begin
-  FreeAndNil(FPreviewPanel);
-
   inherited;
+  R := ClientRect;
+  Canvas.Font.Assign(Font);
+  SpDrawXPText(Canvas, Caption, R, DT_SINGLELINE or DT_CENTER or DT_VCENTER);
 end;
 
 //WMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWM
@@ -557,12 +556,12 @@ begin
     S := 'AaBbYyZz';
     FPreviewWindow := TSpTBXFontComboBoxPreview.Create(Self);
     FPreviewWindow.ParentWindow := Application.Handle;
-    FPreviewWindow.PreviewPanel.Font.Size := 14;
+    FPreviewWindow.Font.Size := 14;
 
     if Assigned(FOnFontPreview) then FOnFontPreview(Self, S);
 
-    FPreviewWindow.PreviewPanel.Caption := S;
-    Sz := SpGetControlTextSize(FPreviewWindow.PreviewPanel, FPreviewWindow.PreviewPanel.Font, S);
+    FPreviewWindow.Caption := S;
+    Sz := SpGetControlTextSize(FPreviewWindow, FPreviewWindow.Font, S);
     Inc(Sz.cx, PPIScale(100));
     Inc(Sz.cy, PPIScale(20));
 
@@ -629,8 +628,10 @@ begin
     end;
 
     // Update the Font of the PreviewWindow
-    if Assigned(FPreviewWindow) and (odSelected in State) then
-        FPreviewWindow.PreviewPanel.Font.Name := Items[Index];
+    if Assigned(FPreviewWindow) and (odSelected in State) then begin
+      FPreviewWindow.Font.Name := Items[Index];
+      FPreviewWindow.Invalidate;
+    end;
   end;
 end;
 
