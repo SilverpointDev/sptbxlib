@@ -2858,22 +2858,25 @@ begin
           RightBorder := TThemedWindow(Ord(RightBorder) + 1);
         end;
 
+        // Do not scale borders, set DPI to 96
+        DPI := 96;
+
         R := ARect;
         Details := SpTBXThemeServices.GetElementDetails(LeftBorder);
         R.Top := ARect.Top + BorderSize.Y;
         R.Bottom := ARect.Bottom - BorderSize.Y;
         R.Right := R.Left + BorderSize.X;
-        CurrentSkin.PaintThemedElementBackground(ACanvas, R, Details, 0);
+        CurrentSkin.PaintThemedElementBackground(ACanvas, R, Details, DPI);
 
         Details := SpTBXThemeServices.GetElementDetails(RightBorder);
         R.Right := ARect.Right;
         R.Left := R.Right - BorderSize.X;
-        CurrentSkin.PaintThemedElementBackground(ACanvas, R, Details, 0);
+        CurrentSkin.PaintThemedElementBackground(ACanvas, R, Details, DPI);
 
         Details := SpTBXThemeServices.GetElementDetails(BottomBorder);
         R := ARect;
         R.Top := R.Bottom - BorderSize.Y;
-        CurrentSkin.PaintThemedElementBackground(ACanvas, R, Details, 0);
+        CurrentSkin.PaintThemedElementBackground(ACanvas, R, Details, DPI);
 
         // Don't know how to paint a captionless window frame
         // We have to mirror the bottom frame and paint it on the top
@@ -2882,7 +2885,7 @@ begin
           R := ARect;
           R.Bottom := R.Top + BorderSize.Y;
           B.SetSize(R.Right - R.Left, R.Bottom - R.Top);
-          CurrentSkin.PaintThemedElementBackground(B.Canvas, Rect(0, 0, B.Width, B.Height), Details, 0);
+          CurrentSkin.PaintThemedElementBackground(B.Canvas, Rect(0, 0, B.Width, B.Height), Details, DPI);
           // Mirror
           MirrorR := Rect(0, B.Height - 1, B.Width, -1);
           ACanvas.CopyRect(R, B.Canvas, MirrorR);
@@ -6466,11 +6469,11 @@ begin
         // GetThemedElementSize returns a scaled value
         Details := SpTBXThemeServices.GetElementDetails(twSmallFrameBottomActive);
         ElementSize := CurrentSkin.GetThemedElementSize(Canvas, Details, CurrentPPI);
-        Result.Y := ElementSize.cy + 2;
+        Result.Y := ElementSize.cy + 2;   // Do not scale, not sure why +2 is needed
 
         Details := SpTBXThemeServices.GetElementDetails(twSmallFrameLeftActive);
         ElementSize := CurrentSkin.GetThemedElementSize(Canvas, Details, CurrentPPI);
-        Result.X := ElementSize.cx + 2;
+        Result.X := ElementSize.cx + 2;  // Do not scale, not sure why +2 is needed
       end;
     else begin
       Result.X := GetSystemMetrics(SM_CXDLGFRAME);
@@ -7270,11 +7273,11 @@ begin
         // GetThemedElementSize returns a scaled value
         Details := SpTBXThemeServices.GetElementDetails(twSmallFrameBottomActive);
         ElementSize := CurrentSkin.GetThemedElementSize(Canvas, Details, CurrentPPI);
-        Result.Y := ElementSize.cy + 2;
+        Result.Y := ElementSize.cy + 2;  // Do not scale, not sure why +2 is needed
 
         Details := SpTBXThemeServices.GetElementDetails(twSmallFrameLeftActive);
         ElementSize := CurrentSkin.GetThemedElementSize(Canvas, Details, CurrentPPI);
-        Result.X := ElementSize.cx + 2;
+        Result.X := ElementSize.cx + 2;  // Do not scale, not sure why +2 is needed
       end;
     else begin
       Result.X := GetSystemMetrics(SM_CXDLGFRAME);

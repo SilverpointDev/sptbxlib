@@ -1263,7 +1263,6 @@ begin
   if NoPrefix then
     S := SpStripAccelChars(S);
   Windows.GetTextExtentPoint32W(DC, S, Length(S), Result);
-  Assert(Result.cx <> 0);
 end;
 
 function SpGetControlTextHeight(AControl: TControl; AFont: TFont): Integer;
