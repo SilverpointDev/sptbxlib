@@ -1,7 +1,7 @@
 unit SpTBXEditors;
 
 {==============================================================================
-Version 2.5.4
+Version 2.5.7
 
 The contents of this file are subject to the SpTBXLib License; you may
 not use or distribute this file except in compliance with the
@@ -623,8 +623,8 @@ function SpFocusEditItem(Item: TTBCustomItem; View: TTBView): Boolean;
 { Painting helpers }
 function SpCanEditFrameBeHotTracked(BorderStyle: TBorderStyle): Boolean;
 procedure SpDrawXPEditButton(ACanvas: TCanvas; ARect: TRect; Enabled, FrameHotTrack, HotTrack, Pushed, RightAligned: Boolean);
-procedure SpDrawXPComboButton(ACanvas: TCanvas; ARect: TRect; Enabled, FrameHotTrack, HotTrack, DroppedDown, RightAligned: Boolean);
-procedure SpDrawXPSpinButton(ACanvas: TCanvas; ARect: TRect; Enabled, FrameHotTrack, UpHotTrack, DownHotTrack, UpPushed, DownPushed, RightAligned: Boolean);
+procedure SpDrawXPComboButton(ACanvas: TCanvas; ARect: TRect; Enabled, FrameHotTrack, HotTrack, DroppedDown, RightAligned: Boolean;  DPI: Integer);
+procedure SpDrawXPSpinButton(ACanvas: TCanvas; ARect: TRect; Enabled, FrameHotTrack, UpHotTrack, DownHotTrack, UpPushed, DownPushed, RightAligned: Boolean; DPI: Integer);
 
 implementation
 
@@ -639,10 +639,8 @@ type
 //WMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWM
 { Constants }
 
-function CDefaultSpinButtonSize: Integer;
-begin
-  Result := SpDPIScale(14);
-end;
+Const
+  CDefaultSpinButtonSize = 14;
 
 //WMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWM
 { Helpers }
@@ -660,11 +658,11 @@ begin
     C.Control := Combo;
     C.Font.Assign(Combo.Font);
     for I := 0 to Combo.Items.Count - 1 do begin
-      Sz := SpGetTextSize(C.Handle, Combo.Items[I], False);
+      Sz := C.TextExtent(Combo.Items[I]); // Using SpGetTextSize returns zero on 64bit, doesn't happen on 32bit, don't know why
       if Sz.cx > MaxWidth then MaxWidth := Sz.cx;
     end;
 
-    MaxWidth := MaxWidth + GetSystemMetrics(SM_CXVSCROLL) + RightMargin;
+    MaxWidth := MaxWidth + {$IF CompilerVersion>= 33}Combo.{$IFEND}GetSystemMetrics(SM_CXVSCROLL) + RightMargin;
     if Combo.Width < MaxWidth then
       SendMessage(Combo.Handle, CB_SETDROPPEDWIDTH, MaxWidth, 0);
   finally
@@ -680,7 +678,9 @@ begin
   IV := View.Find(Item);
   if Assigned(IV) then begin
     View.Select(IV, False);
-    View.ExecuteSelected(False);
+    // Call View.EnterToolbarLoop to reset FDoneActionData.DoneAction to
+    // tbdaNone and execute the selected edit item viewer.
+    View.EnterToolbarLoop([tbetExecuteSelected]);
     Result := True;
   end;
 end;
@@ -720,7 +720,7 @@ begin
 end;
 
 procedure SpDrawXPComboButton(ACanvas: TCanvas; ARect: TRect; Enabled, FrameHotTrack,
-  HotTrack, DroppedDown, RightAligned: Boolean);
+  HotTrack, DroppedDown, RightAligned: Boolean;  DPI: Integer);
 var
   State: TSpTBXSkinStatesType;
   C: TColor;
@@ -740,7 +740,7 @@ begin
         C := CurrentSkin.GetTextColor(skncEditButton, State);
         X := (ARect.Left + ARect.Right) div 2;
         Y := (ARect.Top + ARect.Bottom) div 2 - 1;
-        SpDrawArrow(ACanvas, X, Y, C, True, False, SpDPIScale(3));
+        SpDrawArrow(ACanvas, X, Y, C, True, False, SpPPIScale(3, DPI));
       end;
     sknWindows, sknDelphiStyle:
       begin
@@ -769,7 +769,7 @@ begin
         else Details := SpTBXThemeServices.GetElementDetails(tcDropDownButtonNormal);
         {$IFEND}
 
-        CurrentSkin.PaintThemedElementBackground(ACanvas, ARect, Details);
+        CurrentSkin.PaintThemedElementBackground(ACanvas, ARect, Details, DPI);
       end;
     sknSkin:
       begin
@@ -779,13 +779,13 @@ begin
         C := CurrentSkin.GetTextColor(skncEditButton, State);
         X := (ARect.Left + ARect.Right) div 2;
         Y := (ARect.Top + ARect.Bottom) div 2 - 1;
-        SpDrawArrow(ACanvas, X, Y, C, True, False, SpDPIScale(3));
+        SpDrawArrow(ACanvas, X, Y, C, True, False, SpPPIScale(3, DPI));
       end;
   end;
 end;
 
 procedure SpDrawXPSpinButton(ACanvas: TCanvas; ARect: TRect; Enabled, FrameHotTrack,
-  UpHotTrack, DownHotTrack, UpPushed, DownPushed, RightAligned: Boolean);
+  UpHotTrack, DownHotTrack, UpPushed, DownPushed, RightAligned: Boolean; DPI: Integer);
 var
   ButtonR, BR: TRect;
   Details: TThemedElementDetails;
@@ -822,7 +822,7 @@ begin
         else if UpPushed then Details := SpTBXThemeServices.GetElementDetails(tsUpPressed)
         else if UpHotTrack then Details := SpTBXThemeServices.GetElementDetails(tsUpHot)
         else Details := SpTBXThemeServices.GetElementDetails(tsUpNormal);
-        CurrentSkin.PaintThemedElementBackground(ACanvas, BR, Details);
+        CurrentSkin.PaintThemedElementBackground(ACanvas, BR, Details, DPI);
         // Down button
         BR := ButtonR;
         BR.Top := (ButtonR.Top + ButtonR.Bottom) div 2;
@@ -830,7 +830,7 @@ begin
         else if DownPushed then Details := SpTBXThemeServices.GetElementDetails(tsDownPressed)
         else if DownHotTrack then Details := SpTBXThemeServices.GetElementDetails(tsDownHot)
         else Details := SpTBXThemeServices.GetElementDetails(tsDownNormal);
-        CurrentSkin.PaintThemedElementBackground(ACanvas, BR, Details);
+        CurrentSkin.PaintThemedElementBackground(ACanvas, BR, Details, DPI);
       end;
     sknDelphiStyle:
       begin
@@ -844,7 +844,7 @@ begin
         else if UpPushed then Details := SpTBXThemeServices.GetElementDetails(tsArrowBtnUpPressed)
         else if UpHotTrack then Details := SpTBXThemeServices.GetElementDetails(tsArrowBtnUpHot)
         else Details := SpTBXThemeServices.GetElementDetails(tsArrowBtnUpNormal);
-        CurrentSkin.PaintThemedElementBackground(ACanvas, BR, Details);
+        CurrentSkin.PaintThemedElementBackground(ACanvas, BR, Details, DPI);
         // Down button
         BR := ButtonR;
         BR.Top := (ButtonR.Top + ButtonR.Bottom) div 2;
@@ -852,7 +852,7 @@ begin
         else if DownPushed then Details := SpTBXThemeServices.GetElementDetails(tsArrowBtnDownPressed)
         else if DownHotTrack then Details := SpTBXThemeServices.GetElementDetails(tsArrowBtnDownHot)
         else Details := SpTBXThemeServices.GetElementDetails(tsArrowBtnDownNormal);
-        CurrentSkin.PaintThemedElementBackground(ACanvas, BR, Details);
+        CurrentSkin.PaintThemedElementBackground(ACanvas, BR, Details, DPI);
       end;
     sknSkin:
       begin
@@ -865,7 +865,7 @@ begin
           BR.Bottom := BR.Bottom - 1;
         SpDrawXPEditButton(ACanvas, BR, Enabled, FrameHotTrack, UpHotTrack, UpPushed, RightAligned);
         C := CurrentSkin.GetTextColor(skncEditButton, State);
-        SpDrawArrow(ACanvas, X, Y, C, True, True, SpDPIScale(2));
+        SpDrawArrow(ACanvas, X, Y, C, True, True, SpPPIScale(2, DPI));
         if FrameHotTrack then
           BR.Bottom := BR.Bottom + 1;
         // Down button
@@ -877,7 +877,7 @@ begin
           BR.Top := BR.Top + 1;
         SpDrawXPEditButton(ACanvas, BR, Enabled, FrameHotTrack, DownHotTrack, DownPushed, RightAligned);
         C := CurrentSkin.GetTextColor(skncEditButton, State);
-        SpDrawArrow(ACanvas, X, Y, C, True, False, SpDPIScale(2));
+        SpDrawArrow(ACanvas, X, Y, C, True, False, SpPPIScale(2, DPI));
       end;
   end;
 end;
@@ -952,15 +952,15 @@ begin
 
       // Draw the ComboButton if the caption is not set
       if (Length(Caption) = 0) and not IsImageIndexValid then
-        SpDrawXPComboButton(ACanvas, ARect, Enabled, FrameHotTrack, MouseInControl, Pushed, RightAligned)
+        SpDrawXPComboButton(ACanvas, ARect, Enabled, FrameHotTrack, MouseInControl, Pushed, RightAligned, CurrentPPI)
       else begin
         case SkinManager.GetSkinType of
           sknNone:
-            SpDrawXPButton(ACanvas, ARect, Enabled, Pushed, MouseInControl, Checked, Focused, Default);
+            SpDrawXPButton(ACanvas, ARect, Enabled, Pushed, MouseInControl, Checked, Focused, Default, CurrentPPI);
           sknWindows, sknDelphiStyle:
             begin
               InflateRect(ARect, 1, 1);
-              SpDrawXPButton(ACanvas, ARect, Enabled, Pushed, MouseInControl, Checked, Focused, Default);
+              SpDrawXPButton(ACanvas, ARect, Enabled, Pushed, MouseInControl, Checked, Focused, Default, CurrentPPI);
             end;
           sknSkin:
             SpDrawXPEditButton(ACanvas, ARect, Enabled, FrameHotTrack, FrameHotTrack or MouseInControl, Pushed, RightAligned);
@@ -1023,7 +1023,7 @@ begin
     if Result then begin
       IsHotTracking(UpHotTrack, DownHotTrack, EditFrameHotTrack);
       RightAligned := Align <> alLeft;
-      SpDrawXPSpinButton(ACanvas, ARect, Enabled, EditFrameHotTrack, UpHotTrack, DownHotTrack, FUpPushed, FDownPushed, RightAligned);
+      SpDrawXPSpinButton(ACanvas, ARect, Enabled, EditFrameHotTrack, UpHotTrack, DownHotTrack, FUpPushed, FDownPushed, RightAligned, CurrentPPI);
     end;
   end
   else
@@ -1312,7 +1312,7 @@ begin
     inherited
   else
     if Ctl3D then
-      SpDrawXPEditFrame(Self, HotTrackFrame, False, FBorderStyle = bsNone);
+      SpDrawXPEditFrame(Self, HotTrackFrame, False, FBorderStyle = bsNone, CurrentPPI);
 end;
 
 procedure TSpTBXEdit.WMPaste(var Msg: TMessage);
@@ -1825,7 +1825,7 @@ begin
         DrawItem(itemID, rcItem, State);
       end
       else
-        Canvas.FillRect(rcItem);
+        SpDrawXPListItemBackground(Canvas, rcItem, False, False, odFocused in State)
     finally
       Canvas.Unlock;
       Canvas.Handle := 0;
@@ -1857,7 +1857,7 @@ end;
 procedure TSpTBXComboBox.DoCalcMaxDropDownWidth;
 begin
   if FAutoDropDownWidth then
-    SpCalcMaxDropDownWidth(Self, FAutoDropDownWidthRightMargin);
+    SpCalcMaxDropDownWidth(Self, PPIScale(FAutoDropDownWidthRightMargin));
 end;
 
 procedure TSpTBXComboBox.DoDrawBackground(ACanvas: TCanvas; ARect: TRect;
@@ -2144,9 +2144,9 @@ begin
         ButtonR := GetDropDownButtonRect;
         if SkinManager.GetSkinType = sknSkin then
           SpDrawParentBackground(Self, ACanvas.Handle, R);
-        SpDrawXPEditFrame(ACanvas, R, Enabled, HotTrackFrame);
+        SpDrawXPEditFrame(ACanvas, R, Enabled, HotTrackFrame, False, False, CurrentPPI);
         if Style <> csSimple then
-          SpDrawXPComboButton(ACanvas, ButtonR, Enabled, HotTrackFrame, GetMouseInDropDownButton, DroppedDown, True);
+          SpDrawXPComboButton(ACanvas, ButtonR, Enabled, HotTrackFrame, GetMouseInDropDownButton, DroppedDown, True, CurrentPPI);
       end;
 
       PaintDefault := True;
@@ -2402,7 +2402,7 @@ begin
   inherited;
   if (BorderStyle <> bsNone) and (SkinManager.GetSkinType <> sknNone) then
     if Ctl3D then
-      SpDrawXPEditFrame(Self, FHotTracking, True);
+      SpDrawXPEditFrame(Self, FHotTracking, True, False, CurrentPPI);
 end;
 
 //WMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWM
@@ -2504,9 +2504,9 @@ begin
     // Add a margin to the rect
     R := Rect;
     if not UseRightToLeftAlignment then
-      Inc(R.Left, SpDPIScale(3))
+      Inc(R.Left, PPIScale(3))
     else
-      Dec(R.Right, SpDPIScale(3));
+      Dec(R.Right, PPIScale(3));
     SpDrawXPText(Canvas, Items[Index], R, Flags);
   end;
 
@@ -2541,7 +2541,7 @@ begin
 
       if SkinManager.GetSkinType = sknSkin then
         Canvas.FillRect(R);
-      SpDrawXPCheckBoxGlyph(Canvas, R, ItemEnabled[Index], Self.State[Index], False, False);
+      SpDrawXPCheckBoxGlyph(Canvas, R, ItemEnabled[Index], Self.State[Index], False, False, CurrentPPI);
 
       // Draw the background and focus
       SpDrawXPListItemBackground(Canvas, ARect, odSelected in State, False, odFocused in State);
@@ -2599,7 +2599,7 @@ begin
   inherited;
   if (BorderStyle <> bsNone) and (SkinManager.GetSkinType <> sknNone) then
     if Ctl3D then
-      SpDrawXPEditFrame(Self, FHotTracking, True);
+      SpDrawXPEditFrame(Self, FHotTracking, True, False, CurrentPPI);
 end;
 
 //WMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWM
@@ -2827,7 +2827,7 @@ begin
   R := BoundsRect;
   if not IsToolbarStyle then begin
     TextSize := MeasureEditCaption;
-    CurrentSkin.GetMenuItemMargins(StockBitmap.Canvas, 0, MarginsInfo);
+    CurrentSkin.GetMenuItemMargins(StockBitmap.Canvas, 0, MarginsInfo, View.Window.CurrentPPI);
     Inc(R.Left, MarginsInfo.GutterSize + MarginsInfo.ImageTextSpace);
     if Length(Item.EditCaption) > 0 then
       Inc(R.Left, MarginsInfo.LeftCaptionMargin + TextSize.cx + MarginsInfo.RightCaptionMargin + 1);
@@ -2892,11 +2892,11 @@ var
   EditBoxHeight: Integer;
 begin
   if Item.CustomWidth > -1 then
-    AWidth := Item.CustomWidth;
+    AWidth := PPIScale(Item.CustomWidth);
 
   if not IsToolbarStyle then begin
     TextSize := MeasureEditCaption;
-    CurrentSkin.GetMenuItemMargins(StockBitmap.Canvas, 0, MarginsInfo);
+    CurrentSkin.GetMenuItemMargins(StockBitmap.Canvas, 0, MarginsInfo, View.Window.CurrentPPI);
     Inc(AWidth, MarginsInfo.GutterSize + MarginsInfo.ImageTextSpace);
     if Length(Item.EditCaption) > 0 then
       Inc(AWidth, MarginsInfo.LeftCaptionMargin + TextSize.cx + MarginsInfo.RightCaptionMargin + 2);
@@ -2915,7 +2915,7 @@ begin
     AHeight := AHeight or $01;
 
   if (Item.CustomHeight > -1) and IsToolbarStyle then
-    AHeight := Item.CustomHeight;
+    AHeight := PPIScale(Item.CustomHeight);
 end;
 
 function TSpTBXEditItemViewer.CaptionShown: Boolean;
@@ -2934,8 +2934,8 @@ begin
   if not (ItemInfo.HotTrack or ItemInfo.Pushed) and (SkinManager.CurrentSkinName = 'Default') and not SpIsWinVistaOrUp then
     SpFillRect(ACanvas, ARect, clWindow, clBtnFace)
   else begin
-    SpDrawXPEditFrame(ACanvas, ARect, ItemInfo.Enabled, ItemInfo.HotTrack);
-    InflateRect(ARect, -2, -2);  // Do not use SpDPIScale, border size is always 2
+    SpDrawXPEditFrame(ACanvas, ARect, ItemInfo.Enabled, ItemInfo.HotTrack, False, False, View.Window.CurrentPPI);
+    InflateRect(ARect, -2, -2);  // Do not DPI scale, border size is always 2
     SpFillRect(ACanvas, ARect, CurrentSkin.GetThemedSystemColor(clWindow));
   end;
 end;
@@ -2969,18 +2969,19 @@ begin
   SpFillItemInfo(Canvas, Self, ItemInfo);
 
   Canvas.Font.Assign(View.GetFont);
+  Canvas.Font.Height := MulDiv(Canvas.Font.Height, View.Window.CurrentPPI, View.GetFont.PixelsPerInch);
   Item.FontSettings.Apply(Canvas.Font);
 
   { Item Caption, only on MenuItems }
   if not IsToolbarStyle then begin
     S := Item.EditCaption;
-    CurrentSkin.GetMenuItemMargins(Canvas, 0, MarginsInfo);
+    CurrentSkin.GetMenuItemMargins(Canvas, 0, MarginsInfo, View.Window.CurrentPPI);
     TextSize := SpGetTextSize(DC, S, True);
 
     if Length(S) > 0 then
       R.Right := MarginsInfo.GutterSize + MarginsInfo.ImageTextSpace + TextSize.cx + MarginsInfo.LeftCaptionMargin + MarginsInfo.RightCaptionMargin
     else
-      R.Right := MarginsInfo.GutterSize + MarginsInfo.ImageTextSpace - SpDpiScale(1);
+      R.Right := MarginsInfo.GutterSize + MarginsInfo.ImageTextSpace - PPIScale(1);
     SpDrawXPMenuItem(Canvas, R, ItemInfo);
 
     R.Right := ClientAreaRect.Right;
@@ -3007,18 +3008,18 @@ begin
 
   { Edit Frame }
   InternalDrawFrame(Canvas, R, ItemInfo);
-  InflateRect(R, SpDPIScale(1), 0);
+  InflateRect(R, PPIScale(1), 0);
 
   { Editor Image }
   if ShowImage then begin
     ImgList := GetImageList;
     if Assigned(ImgList) and (Item.ImageIndex >= 0) and (Item.ImageIndex <= ImgList.Count - 1) then begin
-      ImageRect.Left := R.Left + SpDPIScale(4);
+      ImageRect.Left := R.Left + PPIScale(4);
       ImageRect.Right := R.Left + ImgList.Width;
       ImageRect.Top := (R.Top + R.Bottom + 1 - ImgList.Height) div 2;
       ImageRect.Bottom := ImageRect.Top + ImgList.Height;
 
-      SpDrawImageList(Canvas, ImageRect, ImgList, Item.ImageIndex, Item.Enabled, True);
+      SpDrawImageList(Canvas, ImageRect, ImgList, Item.ImageIndex, Item.Enabled);
     end;
   end;
 
@@ -3030,21 +3031,22 @@ begin
       S := Item.Text;
 
     Canvas.Font.Assign(View.GetFont);
+    Canvas.Font.Height := MulDiv(Canvas.Font.Height, View.Window.CurrentPPI, View.GetFont.PixelsPerInch);
     Item.EditorFontSettings.Apply(Canvas.Font);
     if Canvas.Font.Color = clNone then
       if Item.Enabled then
         Canvas.Font.Color := CurrentSkin.GetThemedSystemColor(clWindowText)
       else
         Canvas.Font.Color := CurrentSkin.GetThemedSystemColor(clGrayText);
-    InflateRect(R, -SpDPIScale(2), -SpDPIScale(1));
+    InflateRect(R, -PPIScale(2), -PPIScale(1));
     if not IsToolbarStyle then
-      Inc(R.Left, GetIndentBefore + SpDPIScale(1))
+      Inc(R.Left, GetIndentBefore + PPIScale(1))
     else
-      Inc(R.Left, GetIndentBefore + SpDPIScale(2));
-    Dec(R.Right, GetIndentAfter + SpDPIScale(1));
-    Dec(R.Top, SpDPIScale(1));
+      Inc(R.Left, GetIndentBefore + PPIScale(2));
+    Dec(R.Right, GetIndentAfter + PPIScale(1));
+    Dec(R.Top, PPIScale(1));
     if IsToolbarStyle then
-      Inc(R.Left, -SpDPIScale(1));
+      Inc(R.Left, -PPIScale(1));
     SpDrawXPText(Canvas, S, R, DT_SINGLELINE or DT_VCENTER or DT_NOPREFIX or Alignments[Item.Alignment]);
   end;
 end;
@@ -3202,6 +3204,8 @@ begin
     TCustomEditAccess(FEditControl).BorderStyle := bsNone;
     TCustomEditAccess(FEditControl).AutoSize := False;
     TCustomEditAccess(FEditControl).Font.Assign(View.GetFont);
+    TCustomEditAccess(FEditControl).Font.Height :=
+      MulDiv(TCustomEditAccess(FEditControl).Font.Height, View.Window.CurrentPPI, View.GetFont.PixelsPerInch);
     Item.EditorFontSettings.Apply(TCustomEditAccess(FEditControl).Font);
     if FEditControl is TSpTBXUnicodeEdit then begin
       TSpTBXUnicodeEdit(FEditControl).Alignment := Item.Alignment;
@@ -3285,6 +3289,8 @@ end;
 function TSpTBXEditItemViewer.MeasureEditCaption: TSize;
 begin
   StockBitmap.Canvas.Font.Assign(View.GetFont);
+  StockBitmap.Canvas.Font.Height :=
+    MulDiv(StockBitmap.Canvas.Font.Height, View.Window.CurrentPPI, View.GetFont.PixelsPerInch);
   Item.FontSettings.Apply(StockBitmap.Canvas.Font);
   Result := SpGetTextSize(StockBitmap.Canvas.Handle, Item.EditCaption, True);
 end;
@@ -3294,6 +3300,8 @@ var
   I: Integer;
 begin
   StockBitmap.Canvas.Font.Assign(View.GetFont);
+  StockBitmap.Canvas.Font.Height :=
+    MulDiv(StockBitmap.Canvas.Font.Height, View.Window.CurrentPPI, View.GetFont.PixelsPerInch);
   Item.EditorFontSettings.Apply(StockBitmap.Canvas.Font);
   GetEditHeight(StockBitmap.Canvas.Handle, Result, I);
   Inc(Result, I);
@@ -3435,9 +3443,9 @@ end;
 function TSpTBXSpinEditViewer.GetIndentAfter: Integer;
 begin
   if IsToolbarStyle then
-    Result := CDefaultSpinButtonSize + SpDPIScale(1)
+    Result := PPIScale(CDefaultSpinButtonSize + 1)
   else
-    Result := GetSystemMetrics(SM_CXMENUCHECK) + SpDPIScale(1);
+    Result := {$IF CompilerVersion>= 33}View.Window.{$IFEND}GetSystemMetrics(SM_CXMENUCHECK) + PPIScale(1);
 end;
 
 function TSpTBXSpinEditViewer.GetItem: TSpTBXSpinEditItem;
@@ -3497,11 +3505,11 @@ var
 begin
   inherited;
   R := ARect;
-  InflateRect(R, -SpDPIScale(2), -SpDPIScale(2));
+  InflateRect(R, -PPIScale(2), -PPIScale(2));
   R.Left := ARect.Right - GetIndentAfter;
 
   IsHotTrack := ItemInfo.HotTrack;
-  SpDrawXPSpinButton(ACanvas, R, ItemInfo.Enabled, IsHotTrack, IsHotTrack, IsHotTrack, FUpPushed, FDownPushed, True);
+  SpDrawXPSpinButton(ACanvas, R, ItemInfo.Enabled, IsHotTrack, IsHotTrack, IsHotTrack, FUpPushed, FDownPushed, True, View.Window.CurrentPPI);
 end;
 
 procedure TSpTBXSpinEditViewer.InternalEditControlChange(Sender: TObject);

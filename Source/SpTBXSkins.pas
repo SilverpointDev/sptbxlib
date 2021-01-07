@@ -1,7 +1,7 @@
 unit SpTBXSkins;
 
 {==============================================================================
-Version 2.5.4
+Version 2.5.7
 
 The contents of this file are subject to the SpTBXLib License; you may
 not use or distribute this file except in compliance with the
@@ -67,7 +67,11 @@ uses
   {$IF CompilerVersion >= 25} // for Delphi XE4 and up
   System.UITypes,
   {$IFEND}
-  Themes, Generics.Collections;
+  Themes, Styles, Generics.Collections;
+
+resourcestring
+  SSpTBXColorNone = 'None';
+  SSpTBXColorDefault = 'Default';
 
 const
   WM_SPSKINCHANGE = WM_APP + 2007;   // Skin change notification message
@@ -80,13 +84,6 @@ type
     sknWindows,      // Use Windows themes
     sknSkin,         // Use Skins
     sknDelphiStyle   // Use Delphi Custom Styles
-  );
-
-  TSpTBXLunaScheme = (
-    lusBlue,
-    lusMetallic,
-    lusGreen,
-    lusUnknown
   );
 
   TSpTBXSkinComponentsType = (
@@ -136,6 +133,8 @@ type
     Name: string;
     States: TSpTBXSkinStatesSet;
   end;
+
+  TPPIScale = function(Value: Integer): Integer of object;
 
 const
   SpTBXSkinMultiStateComponents: set of TSpTBXSkinComponentsType = [skncMenuBarItem..High(TSpTBXSkinComponentsType)];
@@ -238,6 +237,7 @@ type
   end;
 
   TSpTBXMenuItemInfo = record
+    CurrentPPI: Integer;
     Enabled: Boolean;
     HotTrack: Boolean;
     Pushed: Boolean;
@@ -266,7 +266,7 @@ type
   { Colors }
 
   TSpTBXColorTextType = (
-    cttDefault,        // Default format (clWhite, $FFFFFF)
+    cttDefault,        // Use color idents (clWhite), if not possible use Delphi format ($FFFFFF)
     cttHTML,           // HTML format (#FFFFFF)
     cttIdentAndHTML    // Use color idents (clWhite), if not possible use HTML format
   );
@@ -351,31 +351,30 @@ type
     procedure Reset(ForceResetSkinProperties: Boolean = False);
 
     // Metrics
-    procedure GetDropDownArrowSize(out DropDownArrowSize, DropDownArrowMargin, SplitBtnArrowSize: Integer); virtual;
-    procedure GetMenuItemMargins(ACanvas: TCanvas; ImgSize: Integer; out MarginsInfo: TSpTBXMenuItemMarginsInfo); virtual;
+    procedure GetMenuItemMargins(ACanvas: TCanvas; ImgSize: Integer; out MarginsInfo: TSpTBXMenuItemMarginsInfo; DPI: Integer); virtual;
     function GetState(Enabled, Pushed, HotTrack, Checked: Boolean): TSpTBXSkinStatesType; overload;
     procedure GetState(State: TSpTBXSkinStatesType; out Enabled, Pushed, HotTrack, Checked: Boolean); overload;
     function GetTextColor(Component: TSpTBXSkinComponentsType; State: TSpTBXSkinStatesType): TColor; virtual;
     function GetThemedElementDetails(Component: TSpTBXSkinComponentsType; Enabled, Pushed, HotTrack, Checked, Focused, Defaulted, Grayed: Boolean; out Details: TThemedElementDetails): Boolean; overload;
     function GetThemedElementDetails(Component: TSpTBXSkinComponentsType; State: TSpTBXSkinStatesType; out Details: TThemedElementDetails): Boolean; overload;
-    function GetThemedElementSize(ACanvas: TCanvas; Details: TThemedElementDetails): TSize;
+    function GetThemedElementSize(ACanvas: TCanvas; Details: TThemedElementDetails; DPI: Integer): TSize;
     procedure GetThemedElementTextColor(Details: TThemedElementDetails; out AColor: TColor);
     function GetThemedSystemColor(AColor: TColor): TColor;
 
     // Skin Paint
     procedure PaintBackground(ACanvas: TCanvas; ARect: TRect; Component: TSpTBXSkinComponentsType; State: TSpTBXSkinStatesType; Background, Borders: Boolean; Vertical: Boolean = False; ForceRectBorders: TAnchors = []); virtual;
-    procedure PaintThemedElementBackground(ACanvas: TCanvas; ARect: TRect; Details: TThemedElementDetails); overload;
-    procedure PaintThemedElementBackground(ACanvas: TCanvas; ARect: TRect; Component: TSpTBXSkinComponentsType; State: TSpTBXSkinStatesType); overload;
-    procedure PaintThemedElementBackground(ACanvas: TCanvas; ARect: TRect; Component: TSpTBXSkinComponentsType; Enabled, Pushed, HotTrack, Checked, Focused, Defaulted, Grayed: Boolean); overload;
+    procedure PaintThemedElementBackground(ACanvas: TCanvas; ARect: TRect; Details: TThemedElementDetails; DPI: Integer); overload;
+    procedure PaintThemedElementBackground(ACanvas: TCanvas; ARect: TRect; Component: TSpTBXSkinComponentsType; State: TSpTBXSkinStatesType; DPI: Integer); overload;
+    procedure PaintThemedElementBackground(ACanvas: TCanvas; ARect: TRect; Component: TSpTBXSkinComponentsType; Enabled, Pushed, HotTrack, Checked, Focused, Defaulted, Grayed: Boolean; DPI: Integer); overload;
 
     // Element Paint
-    procedure PaintMenuCheckMark(ACanvas: TCanvas; ARect: TRect; Checked, Grayed: Boolean; State: TSpTBXSkinStatesType); virtual;
-    procedure PaintMenuRadioMark(ACanvas: TCanvas; ARect: TRect; Checked: Boolean; State: TSpTBXSkinStatesType); virtual;
+    procedure PaintMenuCheckMark(ACanvas: TCanvas; ARect: TRect; Checked, Grayed: Boolean; State: TSpTBXSkinStatesType; DPI: Integer); virtual;
+    procedure PaintMenuRadioMark(ACanvas: TCanvas; ARect: TRect; Checked: Boolean; State: TSpTBXSkinStatesType; DPI: Integer); virtual;
     procedure PaintWindowFrame(ACanvas: TCanvas; ARect: TRect; IsActive, DrawBody: Boolean; BorderSize: Integer = 4); virtual;
 
     // Properties
     property ColorBtnFace: TColor read FColorBtnFace write FColorBtnFace;
-    property FloatingWindowBorderSize: Integer read GetFloatingWindowBorderSize write SetFloatingWindowBorderSize;
+    property FloatingWindowBorderSize: Integer read GetFloatingWindowBorderSize write SetFloatingWindowBorderSize; // Unscaled
     property OfficeIcons: Boolean read GetOfficeIcons write FOfficeIcons;
     property OfficeMenu: Boolean read GetOfficeMenu write FOfficeMenu;
     property OfficePopup: Boolean read GetOfficePopup;
@@ -472,11 +471,16 @@ type
   // http://msdn2.microsoft.com/en-us/library/ms535695.aspx
   TSpPrintWindow = function(Hnd: HWND; HdcBlt: HDC; nFlags: UINT): BOOL; stdcall;
 
+{ Delphi Styles}
+{$IF CompilerVersion >= 23} // for Delphi XE2 and up
+function SpStyleGetElementObject(Style: TCustomStyleServices; const ControlName, ElementName: string): TObject;
+function SpStyleDrawBitmapElement(const ControlName, ElementName: string; State: TSpTBXSkinStatesType; DC: HDC; const R: TRect; ClipRect: PRect; Stretch: Boolean; DPI: Integer): Boolean;
+{$IFEND}
+
 { Themes }
 function SpTBXThemeServices: TSpTBXThemeServices;
 function SkinManager: TSpTBXSkinManager;
 function CurrentSkin: TSpTBXSkinOptions;
-function SpGetLunaScheme: TSpTBXLunaScheme;
 procedure SpFillGlassRect(ACanvas: TCanvas; ARect: TRect);
 function SpIsGlassPainting(AControl: TControl): Boolean;
 procedure SpDrawParentBackground(Control: TControl; DC: HDC; R: TRect);
@@ -484,14 +488,13 @@ procedure SpDrawParentBackground(Control: TControl; DC: HDC; R: TRect);
 { WideString helpers }
 function SpCreateRotatedFont(DC: HDC; Orientation: Integer = 2700): HFONT;
 function SpDrawRotatedText(const DC: HDC; AText: string; var ARect: TRect; const AFormat: Cardinal; RotationAngle: TSpTextRotationAngle = tra270): Integer;
-function SpCalcXPText(ACanvas: TCanvas; ARect: TRect; const Caption: string; CaptionAlignment: TAlignment; Flags: Cardinal; GlyphSize, RightGlyphSize: TSize; Layout: TSpGlyphLayout; PushedCaption: Boolean; out ACaptionRect, AGlyphRect, ARightGlyphRect: TRect; RotationAngle: TSpTextRotationAngle = tra0): Integer;
-function SpDrawXPGlassText(ACanvas: TCanvas; const Caption: string; var ARect: TRect; Flags: Cardinal; CaptionGlowSize: Integer): Integer;
-function SpDrawXPText(ACanvas: TCanvas; const Caption: string; var ARect: TRect; Flags: Cardinal; CaptionGlow: TSpGlowDirection = gldNone; CaptionGlowColor: TColor = clYellow; RotationAngle: TSpTextRotationAngle = tra0): Integer; overload;
-function SpDrawXPText(ACanvas: TCanvas; ARect: TRect; const Caption: string; CaptionGlow: TSpGlowDirection; CaptionGlowColor: TColor; CaptionAlignment: TAlignment; Flags: Cardinal; GlyphSize: TSize; Layout: TSpGlyphLayout; PushedCaption: Boolean; out ACaptionRect, AGlyphRect: TRect; RotationAngle: TSpTextRotationAngle = tra0): Integer; overload;
-function SpDrawXPText(ACanvas: TCanvas; ARect: TRect; const Caption: string; CaptionGlow: TSpGlowDirection; CaptionGlowColor: TColor; CaptionAlignment: TAlignment; Flags: Cardinal; IL: TCustomImageList; ImageIndex: Integer; Layout: TSpGlyphLayout; Enabled, PushedCaption, DisabledIconCorrection: Boolean; out ACaptionRect, AGlyphRect: TRect; RotationAngle: TSpTextRotationAngle = tra0): Integer; overload;
+function SpCalcXPText(ACanvas: TCanvas; ARect: TRect; Caption: string; CaptionAlignment: TAlignment; Flags: Cardinal; GlyphSize, RightGlyphSize: TSize; Layout: TSpGlyphLayout; PushedCaption: Boolean; DPI: Integer; out ACaptionRect, AGlyphRect, ARightGlyphRect: TRect; RotationAngle: TSpTextRotationAngle = tra0): Integer; overload;
+function SpCalcXPText(ACanvas: TCanvas; ARect: TRect; Caption: string; CaptionAlignment: TAlignment; Flags: Cardinal; GlyphSize: TSize; Layout: TSpGlyphLayout; PushedCaption: Boolean; DPI: Integer; out ACaptionRect, AGlyphRect: TRect; RotationAngle: TSpTextRotationAngle = tra0): Integer; overload;
+function SpDrawXPGlassText(ACanvas: TCanvas; Caption: string; var ARect: TRect; Flags: Cardinal; CaptionGlowSize: Integer): Integer;
+function SpDrawXPText(ACanvas: TCanvas; Caption: string; var ARect: TRect; Flags: Cardinal; CaptionGlow: TSpGlowDirection = gldNone; CaptionGlowColor: TColor = clYellow; RotationAngle: TSpTextRotationAngle = tra0): Integer;
 function SpGetTextSize(DC: HDC; S: string; NoPrefix: Boolean): TSize;
 function SpGetControlTextHeight(AControl: TControl; AFont: TFont): Integer;
-function SpGetControlTextSize(AControl: TControl; AFont: TFont; const S: string): TSize;
+function SpGetControlTextSize(AControl: TControl; AFont: TFont; S: string): TSize;
 function SpStripAccelChars(const S: string): string;
 function SpStripShortcut(const S: string): string;
 function SpStripTrailingPunctuation(const S: string): string;
@@ -522,7 +525,8 @@ procedure SpPaintTo(WinControl: TWinControl; ACanvas: TCanvas; X, Y: Integer);
 
 { ImageList painting }
 procedure SpDrawIconShadow(ACanvas: TCanvas; const ARect: TRect; ImageList: TCustomImageList; ImageIndex: Integer);
-procedure SpDrawImageList(ACanvas: TCanvas; const ARect: TRect; ImageList: TCustomImageList; ImageIndex: Integer; Enabled, DisabledIconCorrection: Boolean);
+procedure SpDrawImageList(ACanvas: TCanvas; const ARect: TRect; ImageList: TCustomImageList; ImageIndex: Integer; Enabled: Boolean);
+procedure SpLoadGlyphs(IL: TCustomImageList; GlyphPath: string);
 
 { Gradients }
 procedure SpGradient(ACanvas: TCanvas; const ARect: TRect; StartPos, EndPos, ChunkSize: Integer; C1, C2: TColor; const Vertical: Boolean);
@@ -535,14 +539,14 @@ procedure SpGradientFillGlass(ACanvas: TCanvas; const ARect: TRect; const C1, C2
 procedure SpDrawArrow(ACanvas: TCanvas; X, Y: Integer; AColor: TColor; Vertical, Reverse: Boolean; Size: Integer);
 procedure SpDrawDropMark(ACanvas: TCanvas; DropMark: TRect);
 procedure SpDrawFocusRect(ACanvas: TCanvas; const ARect: TRect);
-procedure SpDrawGlyphPattern(ACanvas: TCanvas; ARect: TRect; Pattern: TSpTBXGlyphPattern; PatternColor: TColor);
-procedure SpDrawXPButton(ACanvas: TCanvas; ARect: TRect; Enabled, Pushed, HotTrack, Checked, Focused, Defaulted: Boolean);
-procedure SpDrawXPCheckBoxGlyph(ACanvas: TCanvas; ARect: TRect; Enabled: Boolean; State: TCheckBoxState; HotTrack, Pushed: Boolean);
-procedure SpDrawXPRadioButtonGlyph(ACanvas: TCanvas; ARect: TRect; Enabled, Checked, HotTrack, Pushed: Boolean);
-procedure SpDrawXPEditFrame(ACanvas: TCanvas; ARect: TRect; Enabled, HotTrack: Boolean; ClipContent: Boolean = False; AutoAdjust: Boolean = False); overload;
-procedure SpDrawXPEditFrame(AWinControl: TWinControl; HotTracking: Boolean; AutoAdjust: Boolean = False; HideFrame: Boolean = False); overload;
-procedure SpDrawXPGrip(ACanvas: TCanvas; ARect: TRect; LoC, HiC: TColor);
-procedure SpDrawXPHeader(ACanvas: TCanvas; ARect: TRect; HotTrack, Pushed: Boolean);
+procedure SpDrawGlyphPattern(ACanvas: TCanvas; ARect: TRect; Pattern: TSpTBXGlyphPattern; PatternColor: TColor; DPI: Integer);
+procedure SpDrawXPButton(ACanvas: TCanvas; ARect: TRect; Enabled, Pushed, HotTrack, Checked, Focused, Defaulted: Boolean; DPI: Integer);
+procedure SpDrawXPCheckBoxGlyph(ACanvas: TCanvas; ARect: TRect; Enabled: Boolean; State: TCheckBoxState; HotTrack, Pushed: Boolean; DPI: Integer);
+procedure SpDrawXPRadioButtonGlyph(ACanvas: TCanvas; ARect: TRect; Enabled: Boolean; Checked, HotTrack, Pushed: Boolean; DPI: Integer);
+procedure SpDrawXPEditFrame(ACanvas: TCanvas; ARect: TRect; Enabled, HotTrack, ClipContent, AutoAdjust: Boolean; DPI: Integer); overload;
+procedure SpDrawXPEditFrame(AWinControl: TWinControl; HotTracking, AutoAdjust, HideFrame: Boolean; DPI: Integer); overload;
+procedure SpDrawXPGrip(ACanvas: TCanvas; ARect: TRect; LoC, HiC: TColor; DPI: Integer);
+procedure SpDrawXPHeader(ACanvas: TCanvas; ARect: TRect; HotTrack, Pushed: Boolean; DPI: Integer);
 procedure SpDrawXPListItemBackground(ACanvas: TCanvas; ARect: TRect; Selected, HotTrack, Focused: Boolean; ForceRectBorders: Boolean = False; Borders: Boolean = True);
 
 { Skins painting }
@@ -551,10 +555,14 @@ procedure SpPaintSkinBorders(ACanvas: TCanvas; ARect: TRect; SkinOption: TSpTBXS
 
 { Misc }
 function SpIsWinVistaOrUp: Boolean;
+function SpIsWin10OrUp: Boolean;
 function SpGetDirectories(Path: string; L: TStringList): Boolean;
-function SpDPIScale(I: Integer): Integer;
-procedure SpDPIResizeBitmap(Bitmap: TBitmap; const NewWidth, NewHeight: Integer);
-procedure SpDPIScaleImageList(const ImageList: TCustomImageList);
+
+{ DPI }
+function SpPPIScale(Value, DPI: Integer): Integer;
+function SpPPIScaleToDPI(PPIScale: TPPIScale): Integer;
+procedure SpDPIResizeBitmap(Bitmap: TBitmap; const NewWidth, NewHeight, DPI: Integer);
+procedure SpDPIScaleImageList(const ImageList: TCustomImageList; M, D: Integer);
 
 { Stock Objects }
 var
@@ -565,7 +573,11 @@ implementation
 
 uses
   UxTheme, Forms, Math, TypInfo,
-  SpTBXDefaultSkins, CommCtrl;
+  SpTBXDefaultSkins, CommCtrl,
+  {$IF CompilerVersion >= 33} // for Delphi Rio and up
+  ImageCollection, VirtualImageList,
+  {$IFEND}
+  Rtti, IOUtils, pngimage, Generics.Defaults;
 
 const
   ROP_DSPDxax = $00E20746;
@@ -575,6 +587,120 @@ type
 
 var
   FInternalSkinManager: TSpTBXSkinManager = nil;
+
+//WMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWM
+{ Delphi Styles }
+
+{$IF CompilerVersion >= 23} // for Delphi XE2 and up
+
+function SpStyleGetElementObject(Style: TCustomStyleServices; const ControlName, ElementName: string): TObject;
+// From Vcl.Styles.GetElementObject
+// Returns a TObject that is a TSeStyleObject:
+//   TSeBitmapObject(TSeStyleObject)
+//   TSeButtonObject(TSeBitmapObject)
+//   TSeTextObject(TSeStyleObject)
+// Use Bitmap Style Designer to browse the different controls and elements
+// of a style, and the class types of such elements.
+var
+  CustomStyle: TCustomStyle;
+  SeStyle, SeStyleSource, SeStyleObject: TObject;
+begin
+  Result := nil;
+  if Style is TCustomStyle then
+    CustomStyle := Style as TCustomStyle
+  else
+    Exit;
+
+  // Use RTTI to access fields, properties and methods of structures on StyleAPI.inc
+
+  // Get Vcl.Styles.TCustomStyle.FSource which is a StyleAPI.inc.TSeStyle (actual Delphi style file)
+  SeStyle := TRttiContext.Create.GetType(CustomStyle.ClassType).GetField('FSource').GetValue(CustomStyle).AsObject;
+  // Get StyleAPI.inc.TSeStyle.FStyleSource which is a StyleAPI.inc.TSeStyleSource (structure that contains all the style options and bitmaps)
+  SeStyleSource := TRttiContext.Create.GetType(SeStyle.ClassType).GetField('FStyleSource').GetValue(SeStyle).AsObject;
+
+  // Find the control (TSeStyleObject)
+  // Call StyleAPI.inc.TSeStyleSource.GetObjectByName method that returns a StyleAPI.inc.TSeStyleObject
+  SeStyleObject := TRttiContext.Create.GetType(SeStyleSource.ClassType).GetMethod('GetObjectByName').Invoke(SeStyleSource, [ControlName]).AsObject;
+
+  // Find the element of the control (TSeStyleObject/TSeBitmapObject/TSeButtonObject)
+  // Call StyleAPI.inc.TSeStyleObject.FindObjectByName method that returns a StyleAPI.inc.TSeStyleObject
+  if SeStyleObject <> nil then begin
+    SeStyleObject := TRttiContext.Create.GetType(SeStyleObject.ClassType).GetMethod('FindObjectByName').Invoke(SeStyleObject, [ElementName]).AsObject;
+    if SeStyleObject <> nil then
+      Result := SeStyleObject;
+  end;
+end;
+
+function SpStyleDrawBitmapElement(const ControlName, ElementName: string;
+  State: TSpTBXSkinStatesType; DC: HDC; const R: TRect; ClipRect: PRect;
+  Stretch: Boolean; DPI: Integer): Boolean;
+// From Vcl.Styles.DrawBitmapElement
+// Used to paint a style element. For example:
+//   SpStyleDrawBitmapElement('CheckBox', 'Checked', sknsPushed, ACanvas.Handle, Rect(0, 0, 100, 100), nil, True, CurrentPPI);
+var
+  Element: TObject;
+  V1, V2, V3: TValue;
+  SeState: TValue; // TSeState = (ssNormal, ssDesign, ssMaximized, ssMinimized, ssRollup, ssHot, ssPressed, ssFocused, ssDisabled)
+  scTileStyle: TValue; // TscTileStyle = (tsTile, tsStretch, tsCenter, tsVertCenterStretch, tsVertCenterTile, tsHorzCenterStretch, tsHorzCenterTile);
+  I: Int64;
+  IsBitmapObject: Boolean;
+begin
+  Result := False;
+  Element := SpStyleGetElementObject(StyleServices, ControlName, ElementName);
+  if Element <> nil then begin
+    // Use RTTI to access fields, properties and methods of structures on StyleAPI.inc
+    // Before calling StyleAPI.inc.TSeStyleObject.Draw we need to set BoundsRect, State and TileStyle properties
+
+    // Set StyleAPI.inc.TSeStyleObject.BoundsRect
+    V1 := V1.From(R);
+    TRttiContext.Create.GetType(Element.ClassType).GetProperty('BoundsRect').SetValue(Element, V1);
+
+    // Set StyleAPI.inc.TSeStyleObject.State
+    SeState := TRttiContext.Create.GetType(Element.ClassType).GetProperty('State').GetValue(Element);
+    case State of
+      sknsDisabled: I := 7; // ssDisabled
+      sknsHotTrack: I := 5; // ssHot
+      sknsPushed: I := 6;   // ssPressed
+    else
+      I := 0; // ssNormal
+    end;
+    SeState := SeState.FromOrdinal(SeState.TypeInfo, I);
+    TRttiContext.Create.GetType(Element.ClassType).GetProperty('State').SetValue(Element, SeState);
+
+    // If Stretch then check if is a TSeBitmapObject and set StyleAPI.inc.TSeBitmapObject.TileStyle
+    // to tsStretch, and after painting reset to original value
+    IsBitmapObject := (Element.ClassName = 'TSeBitmapObject') or
+      (Element.ClassName = 'TSeButtonObject') or (Element.ClassName = 'TSeActiveBitmap');
+    if Stretch and IsBitmapObject then begin
+      scTileStyle := TRttiContext.Create.GetType(Element.ClassType).GetProperty('TileStyle').GetValue(Element);
+      V3 := V3.FromOrdinal(scTileStyle.TypeInfo, 1); // tsStretch = 1
+      TRttiContext.Create.GetType(Element.ClassType).GetProperty('TileStyle').SetValue(Element, V3);
+    end;
+    try
+      // Call StyleAPI.inc.TSeStyleObject.Draw
+      // From Vcl.Styles.DrawBitmapElement
+      with TGDIHandleRecall.Create(DC, OBJ_FONT) do
+      try
+        V1 := V1.From(Canvas);
+        if ClipRect <> nil then
+          V2 := V2.From(ClipRect^)
+        else
+          V2 := V2.From(Rect(-1, -1, -1, -1));
+        TRttiContext.Create.GetType(Element.ClassType).GetMethod('Draw').Invoke(Element, [V1, V2, DPI]);
+      finally
+        Free;
+      end;
+    finally
+      // Reset to original value
+      if Stretch and IsBitmapObject then
+        TRttiContext.Create.GetType(Element.ClassType).GetProperty('TileStyle').SetValue(Element, scTileStyle);
+    end;
+
+    Result := True;
+  end;
+end;
+
+{$IFEND}
 
 //WMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWM
 { Themes }
@@ -598,38 +724,6 @@ end;
 function CurrentSkin: TSpTBXSkinOptions;
 begin
   Result := SkinManager.CurrentSkin;
-end;
-
-function SpGetLunaScheme: TSpTBXLunaScheme;
-const
-  MaxChars = 1024;
-var
-  pszThemeFileName, pszColorBuff, pszSizeBuf: PWideChar;
-  S: string;
-begin
-  Result := lusUnknown;
-
-  if SkinManager.IsXPThemesEnabled then begin
-    GetMem(pszThemeFileName, 2 * MaxChars);
-    GetMem(pszColorBuff,     2 * MaxChars);
-    GetMem(pszSizeBuf,       2 * MaxChars);
-    try
-      if not Failed(GetCurrentThemeName(pszThemeFileName, MaxChars, pszColorBuff, MaxChars, pszSizeBuf, MaxChars)) then
-        if UpperCase(ExtractFileName(pszThemeFileName)) = 'LUNA.MSSTYLES' then begin
-          S := UpperCase(pszColorBuff);
-          if S = 'NORMALCOLOR' then
-            Result := lusBlue
-          else if S = 'METALLIC' then
-            Result := lusMetallic
-          else if S = 'HOMESTEAD' then
-            Result := lusGreen;
-        end;
-    finally
-      FreeMem(pszSizeBuf);
-      FreeMem(pszColorBuff);
-      FreeMem(pszThemeFileName);
-    end;
-  end;
 end;
 
 procedure SpFillGlassRect(ACanvas: TCanvas; ARect: TRect);
@@ -859,18 +953,22 @@ begin
   DeleteObject(RotatedFont);
 end;
 
-function SpCalcXPText(ACanvas: TCanvas; ARect: TRect; const Caption: string;
-    CaptionAlignment: TAlignment; Flags: Cardinal; GlyphSize, RightGlyphSize:
-    TSize; Layout: TSpGlyphLayout; PushedCaption: Boolean; out ACaptionRect,
-    AGlyphRect, ARightGlyphRect: TRect; RotationAngle: TSpTextRotationAngle =
-    tra0): Integer;
+function SpCalcXPText(ACanvas: TCanvas; ARect: TRect; Caption: string;
+  CaptionAlignment: TAlignment; Flags: Cardinal; GlyphSize, RightGlyphSize: TSize;
+  Layout: TSpGlyphLayout; PushedCaption: Boolean; DPI: Integer; out ACaptionRect,
+  AGlyphRect, ARightGlyphRect: TRect; RotationAngle: TSpTextRotationAngle = tra0): Integer;
+// RightGlyphSize and ARightGlyphRect mostly used by tab items
 var
+  CaptionInt: string;
   R: TRect;
   TextOffset, Spacing, RightSpacing: TPoint;
   CaptionSz: TSize;
-  CaptionInt: string;
+  PP1, PP2, PP4: Integer;
 begin
   Result := 0;
+  PP1 :=  SpPPIScale(1, DPI);
+  PP2 :=  SpPPIScale(2, DPI);
+  PP4 :=  SpPPIScale(4, DPI);
   ACaptionRect := Rect(0, 0, 0, 0);
   AGlyphRect := Rect(0, 0, 0, 0);
   ARightGlyphRect := Rect(0, 0, 0, 0);
@@ -882,9 +980,9 @@ begin
   else
    CaptionInt := Caption;
   if (Caption <> '') and (GlyphSize.cx > 0) and (GlyphSize.cy > 0) then
-    Spacing := Point(SpDPIScale(4), SpDPIScale(1));
+    Spacing := Point(PP4, PP1);
   if (Caption <> '') and (RightGlyphSize.cx > 0) and (RightGlyphSize.cy > 0) then
-    RightSpacing := Point(SpDPIScale(4), SpDPIScale(1));
+    RightSpacing := Point(PP4, PP1);
 
   Flags := Flags and not DT_CENTER;
   Flags := Flags and not DT_VCENTER;
@@ -900,12 +998,12 @@ begin
   // Get the caption size
   if ((Flags and DT_WORDBREAK) <> 0) or ((Flags and DT_END_ELLIPSIS) <> 0) or ((Flags and DT_PATH_ELLIPSIS) <> 0) then begin
     if (Layout in [ghlGlyphLeft, ghlGlyphNone]) then  // Glyph on left or right side
-      R := Rect(0, 0, ARect.Right - ARect.Left - GlyphSize.cx - Spacing.X - RightGlyphSize.cx - RightSpacing.X + SpDPIScale(2), SpDPIScale(1))
+      R := Rect(0, 0, ARect.Right - ARect.Left - GlyphSize.cx - Spacing.X - RightGlyphSize.cx - RightSpacing.X + PP2, PP1)
     else  // Glyph on top
-      R := Rect(0, 0, ARect.Right - ARect.Left + SpDPIScale(2), SpDPIScale(1));
+      R := Rect(0, 0, ARect.Right - ARect.Left + PP2, PP1);
   end
   else
-    R := Rect(0, 0, SpDPIScale(1), SpDPIScale(1));
+    R := Rect(0, 0, PP1, PP1);
 
   if (fsBold in ACanvas.Font.Style) and (RotationAngle = tra0) and (((Flags and DT_END_ELLIPSIS) <> 0) or ((Flags and DT_PATH_ELLIPSIS) <> 0)) then begin
     // [Bugfix] Windows bug:
@@ -945,10 +1043,10 @@ begin
     // try to fix it by padding the text 8 pixels to the right
     if (RotationAngle <> tra0) and (R.Right + 8 < ARect.Right) then
       if ((Flags and DT_END_ELLIPSIS) <> 0) or ((Flags and DT_PATH_ELLIPSIS) <> 0) then
-        R.Right := R.Right + SpDPIScale(8);
+        R.Right := R.Right + SpPPIScale(8, DPI);
 
     if PushedCaption then
-      OffsetRect(R, SpDPIScale(1), SpDPIScale(1));
+      OffsetRect(R, PP1, PP1);
 
     ACaptionRect := R;
   end;
@@ -995,7 +1093,7 @@ begin
     AGlyphRect.Bottom := AGlyphRect.Top + GlyphSize.cy;
 
     if PushedCaption then
-      OffsetRect(AGlyphRect, SpDPIScale(1), SpDPIScale(1));
+      OffsetRect(AGlyphRect, PP1, PP1);
   end;
 
   // Move the text according to the icon position
@@ -1022,8 +1120,24 @@ begin
   end;
 end;
 
-function SpDrawXPGlassText(ACanvas: TCanvas; const Caption: string; var ARect:
-    TRect; Flags: Cardinal; CaptionGlowSize: Integer): Integer;
+function SpCalcXPText(ACanvas: TCanvas; ARect: TRect; Caption: string;
+  CaptionAlignment: TAlignment; Flags: Cardinal; GlyphSize: TSize;
+  Layout: TSpGlyphLayout; PushedCaption: Boolean; DPI: Integer;
+  out ACaptionRect, AGlyphRect: TRect; RotationAngle: TSpTextRotationAngle = tra0): Integer;
+var
+  DummyRightGlyphSize: TSize;
+  DummyRightGlyphRect: TRect;
+begin
+  DummyRightGlyphSize.cx := 0;
+  DummyRightGlyphSize.cy := 0;
+  DummyRightGlyphRect := Rect(0, 0, 0, 0);
+  Result := SpCalcXPText(ACanvas, ARect, Caption, CaptionAlignment, Flags, GlyphSize,
+    DummyRightGlyphSize, Layout, PushedCaption, DPI, ACaptionRect, AGlyphRect,
+    DummyRightGlyphRect, RotationAngle);
+end;
+
+function SpDrawXPGlassText(ACanvas: TCanvas; Caption: string; var ARect: TRect;
+  Flags: Cardinal; CaptionGlowSize: Integer): Integer;
 
   function InternalDraw(C: TCanvas; var R: TRect): Integer;
   var
@@ -1069,10 +1183,9 @@ begin
     Result := InternalDraw(ACanvas, ARect);
 end;
 
-function SpDrawXPText(ACanvas: TCanvas; const Caption: string; var ARect:
-    TRect; Flags: Cardinal; CaptionGlow: TSpGlowDirection = gldNone;
-    CaptionGlowColor: TColor = clYellow; RotationAngle: TSpTextRotationAngle =
-    tra0): Integer;
+function SpDrawXPText(ACanvas: TCanvas; Caption: string; var ARect: TRect;
+  Flags: Cardinal; CaptionGlow: TSpGlowDirection = gldNone;
+  CaptionGlowColor: TColor = clYellow; RotationAngle: TSpTextRotationAngle = tra0): Integer; overload;
 
   function IsCalcRect: Boolean;
   begin
@@ -1147,53 +1260,6 @@ begin
   end;
 end;
 
-function SpDrawXPText(ACanvas: TCanvas; ARect: TRect; const Caption: string;
-    CaptionGlow: TSpGlowDirection; CaptionGlowColor: TColor; CaptionAlignment:
-    TAlignment; Flags: Cardinal; GlyphSize: TSize; Layout: TSpGlyphLayout;
-    PushedCaption: Boolean; out ACaptionRect, AGlyphRect: TRect; RotationAngle:
-    TSpTextRotationAngle = tra0): Integer;
-var
-  DummyRightGlyphSize: TSize;
-  DummyRightGlyphRect: TRect;
-begin
-  DummyRightGlyphSize.cx := 0;
-  DummyRightGlyphSize.cy := 0;
-  DummyRightGlyphRect := Rect(0, 0, 0, 0);
-  Result := SpCalcXPText(ACanvas, ARect, Caption, CaptionAlignment, Flags, GlyphSize, DummyRightGlyphSize,
-    Layout, PushedCaption, ACaptionRect, AGlyphRect, DummyRightGlyphRect, RotationAngle);
-  SpDrawXPText(ACanvas, Caption, ACaptionRect, Flags and not DT_CALCRECT, CaptionGlow, CaptionGlowColor, RotationAngle);
-end;
-
-function SpDrawXPText(ACanvas: TCanvas; ARect: TRect; const Caption: string;
-    CaptionGlow: TSpGlowDirection; CaptionGlowColor: TColor; CaptionAlignment:
-    TAlignment; Flags: Cardinal; IL: TCustomImageList; ImageIndex: Integer;
-    Layout: TSpGlyphLayout; Enabled, PushedCaption, DisabledIconCorrection:
-    Boolean; out ACaptionRect, AGlyphRect: TRect; RotationAngle:
-    TSpTextRotationAngle = tra0): Integer;
-var
-  GlyphSize, DummyRightGlyphSize: TSize;
-  DummyRightGlyphRect: TRect;
-begin
-  GlyphSize.cx := 0;
-  GlyphSize.cy := 0;
-  DummyRightGlyphSize.cx := 0;
-  DummyRightGlyphSize.cy := 0;
-  DummyRightGlyphRect := Rect(0, 0, 0, 0);
-
-  if Assigned(IL) and (ImageIndex > -1) and (ImageIndex < IL.Count) then begin
-    GlyphSize.cx := IL.Width;
-    GlyphSize.cy := IL.Height;
-  end;
-
-  Result := SpCalcXPText(ACanvas, ARect, Caption, CaptionAlignment, Flags, GlyphSize, DummyRightGlyphSize,
-    Layout, PushedCaption, ACaptionRect, AGlyphRect, DummyRightGlyphRect, RotationAngle);
-
-  SpDrawXPText(ACanvas, Caption, ACaptionRect, Flags and not DT_CALCRECT, CaptionGlow, CaptionGlowColor, RotationAngle);
-
-  if Assigned(IL) and (ImageIndex > -1) and (ImageIndex < IL.Count) then
-    SpDrawImageList(ACanvas, AGlyphRect, IL, ImageIndex, Enabled, DisabledIconCorrection);
-end;
-
 function SpGetTextSize(DC: HDC; S: string; NoPrefix: Boolean): TSize;
 // Returns the size of the string, if NoPrefix is True, it first removes "&"
 // characters as necessary.
@@ -1215,8 +1281,7 @@ begin
   Result := Sz.cy;
 end;
 
-function SpGetControlTextSize(AControl: TControl; AFont: TFont; const S:
-    string): TSize;
+function SpGetControlTextSize(AControl: TControl; AFont: TFont; S: string): TSize;
 // Returns the control text size based on the font
 var
   ACanvas: TControlCanvas;
@@ -1225,6 +1290,7 @@ begin
   try
     ACanvas.Control := AControl;
     ACanvas.Font.Assign(AFont);
+    // newpy MulDiv(ACanvas.Font.Height, AControl.CurrentPPI, AFont.PixelsPerInch);
     Result := SpGetTextSize(ACanvas.Handle, S, False);
   finally
     ACanvas.Free;
@@ -1312,7 +1378,12 @@ begin
     cttDefault:
       Result := ColorToString(Color);
     cttHTML:
-      Result := SpColorToHTML(Color);
+      // Use resourcestring only when clNone or clDefault
+      if Color = clNone then Result := SSpTBXColorNone
+      else
+        if Color = clDefault then Result := SSpTBXColorDefault
+        else
+          Result := SpColorToHTML(Color);
     cttIdentAndHTML:
       begin
         Result := ColorToString(Color);
@@ -1330,6 +1401,19 @@ begin
   Color := clDefault;
   L := Length(S);
   if L < 2 then Exit;
+
+  // Try to convert clNone and clDefault resourcestring
+  if S = SSpTBXColorNone then begin
+    Color := clNone;
+    Result := True;
+    Exit;
+  end
+  else
+    if S = SSpTBXColorDefault then begin
+      Color := clDefault;
+      Result := True;
+      Exit;
+    end;
 
   if (S[1] = '#') and (L = 7) then begin  // HTML format: #FFFFFF
     S[1] := '$';
@@ -1726,14 +1810,74 @@ begin
   end;
 end;
 
-procedure SpDrawImageList(ACanvas: TCanvas; const ARect: TRect; ImageList: TCustomImageList;
-  ImageIndex: Integer; Enabled, DisabledIconCorrection: Boolean);
+procedure SpDrawImageList(ACanvas: TCanvas; const ARect: TRect;
+  ImageList: TCustomImageList; ImageIndex: Integer; Enabled: Boolean);
 begin
   if Assigned(ImageList) and (ImageIndex > -1) and (ImageIndex < ImageList.Count) then
-    if not Enabled and DisabledIconCorrection then
-      SpDrawIconShadow(ACanvas, ARect, ImageList, ImageIndex)
+    ImageList.Draw(ACanvas, ARect.Left, ARect.Top, ImageIndex, Enabled);
+end;
+
+procedure SpLoadGlyphs(IL: TCustomImageList; GlyphPath: string);
+// Finds png files on GlyphPath and adds them to IL
+// If IL is a TVirtualImageList it adds all the PNGs sizes.
+// Otherwise it adds only the PNGs that matches the size of the IL
+// Notation of files must be filename-16x16.png
+var
+  Files: TStringDynArray;
+  FilenameS, S, ILSize: string;
+  I: Integer;
+  P: TPngImage;
+  B: TBitmap;
+begin
+  ILSize := Format('%dX%d', [IL.Width, IL.Height]);
+  Files := TDirectory.GetFiles(GlyphPath, '*.png');
+  TArray.Sort<string>(Files, TStringComparer.Ordinal);
+
+  for S in Files do begin
+    {$IF CompilerVersion >= 33} // for Delphi Rio and up
+    // TImageCollection and TVirtualImagelist introduced on Rio
+    if IL is TVirtualImageList then begin
+      if Assigned(TVirtualImageList(IL).ImageCollection) and (TVirtualImageList(IL).ImageCollection is TImageCollection) then begin
+        FilenameS := TPath.GetFileName(S);
+        I := LastDelimiter('-_', FilenameS);
+        if I > 1 then
+          FilenameS := Copy(FilenameS, 1, I-1);
+        // Add all the sizes of the png with 1 name on ImageCollection
+        TImageCollection(TVirtualImageList(IL).ImageCollection).Add(FilenameS, S);
+      end;
+    end
     else
-      ImageList.Draw(ACanvas, ARect.Left, ARect.Top, ImageIndex, Enabled);
+    {$IFEND}
+    begin
+      // Try to add only PNGs with the same size as the Image List
+      // Notation of files must be filename-16x16.png
+      FilenameS := TPath.GetFileNameWithoutExtension(S);
+      I := LastDelimiter('-_', FilenameS) + 1;
+      if I > 2 then begin
+        FilenameS := Copy(FilenameS, I, Length(ILSize));
+        if UpperCase(FilenameS) <> ILSize then
+          FilenameS := '';
+      end;
+      if FilenameS <> '' then begin
+        P := TPNGImage.Create;
+        B := TBitmap.Create;
+        try
+          P.LoadFromFile(S);
+          B.Assign(P);
+          IL.ColorDepth := cd32Bit;
+          IL.Add(B, nil);
+        finally
+          P.Free;
+          B.Free;
+        end;
+      end;
+    end;
+  end;
+
+  {$IF CompilerVersion >= 33} // for Delphi Rio and up
+  if IL is TVirtualImageList then
+    TVirtualImageList(IL).AutoFill := True;
+  {$IFEND}
 end;
 
 //WMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWM
@@ -1953,7 +2097,8 @@ begin
   end;
 end;
 
-procedure SpDrawGlyphPattern(ACanvas: TCanvas; ARect: TRect; Pattern: TSpTBXGlyphPattern; PatternColor: TColor);
+procedure SpDrawGlyphPattern(ACanvas: TCanvas; ARect: TRect;
+  Pattern: TSpTBXGlyphPattern; PatternColor: TColor; DPI: Integer);
 var
   Size: Integer;
   PenStyle: Cardinal;
@@ -1992,35 +2137,37 @@ begin
   --x----              -xxx---         --xx--
   -------              --x----
   }
-
-  ACanvas.Pen.Width := SpDPIScale(1);
+  ACanvas.Pen.Width := SpPPIScale(1, DPI);
   PenStyle := PS_GEOMETRIC or PS_ENDCAP_SQUARE or PS_SOLID or PS_JOIN_MITER;
   case Pattern of
     gptClose: begin
-         Size := SpDPIScale(7);
+         Size := SpPPIScale(7, DPI);
          // Round EndCap/Join
          PenStyle := PS_GEOMETRIC or PS_ENDCAP_ROUND or PS_SOLID or PS_JOIN_ROUND;
        end;
-    gptMaximize: Size := SpDPIScale(8);
-    gptMinimize: Size := SpDPIScale(8);
-    gptRestore: Size := SpDPIScale(9);
+    gptMaximize: Size := SpPPIScale(8, DPI);
+    gptMinimize: Size := SpPPIScale(8, DPI);
+    gptRestore: Size := SpPPIScale(9, DPI);
     gptToolbarClose: begin
-         Size := SpDPIScale(6);
+         Size := SpPPIScale(6, DPI);
          // Round EndCap/Join
          PenStyle := PS_GEOMETRIC or PS_ENDCAP_ROUND or PS_SOLID or PS_JOIN_ROUND;
        end;
-    gptChevron: Size := SpDPIScale(8);
-    gptVerticalChevron: Size := SpDPIScale(8);
-    gptMenuCheckmark: Size := SpDPIScale(7);
-    gptCheckmark: Size := SpDPIScale(7);
+    gptChevron: Size := SpPPIScale(8, DPI);
+    gptVerticalChevron: Size := SpPPIScale(8, DPI);
+    gptMenuCheckmark, gptCheckmark: begin
+        Size := SpPPIScale(7, DPI);
+        if DPI > 96 then
+          inc(Size);
+      end;
     gptMenuRadiomark: begin
-         Size := SpDPIScale(7);
+         Size := SpPPIScale(7, DPI);
          // Round EndCap/Join
          PenStyle := PS_GEOMETRIC or PS_ENDCAP_ROUND or PS_SOLID or PS_JOIN_ROUND;
          ACanvas.Pen.Width := 1; // always 1 pixel
        end;
   else
-    Size := SpDPIScale(8);
+    Size := SpPPIScale(8, DPI);
   end;
 
   // Create a pen with a Square endcap
@@ -2068,8 +2215,8 @@ begin
     gptMaximize:
       begin
         ACanvas.Polyline([
-          Point(R.Left, R.Top + SpDPIScale(1)),
-          Point(R.Right, R.Top + SpDPIScale(1))
+          Point(R.Left, R.Top + SpPPIScale(1, DPI)),
+          Point(R.Right, R.Top + SpPPIScale(1, DPI))
         ]);
         ACanvas.Polyline([
           Point(R.Left, R.Top),
@@ -2082,36 +2229,36 @@ begin
     gptMinimize:
       begin
         ACanvas.Polyline([
-          Point(R.Left + SpDPIScale(1), R.Bottom - SpDPIScale(2)),
-          Point(R.Right - SpDPIScale(1), R.Bottom - SpDPIScale(2)),
-          Point(R.Right - SpDPIScale(1), R.Bottom - SpDPIScale(1)),
-          Point(R.Left + SpDPIScale(1), R.Bottom - SpDPIScale(1)),
-          Point(R.Left + SpDPIScale(1), R.Bottom - SpDPIScale(2))
+          Point(R.Left + SpPPIScale(1, DPI), R.Bottom - SpPPIScale(2, DPI)),
+          Point(R.Right - SpPPIScale(1, DPI), R.Bottom - SpPPIScale(2, DPI)),
+          Point(R.Right - SpPPIScale(1, DPI), R.Bottom - SpPPIScale(1, DPI)),
+          Point(R.Left + SpPPIScale(1, DPI), R.Bottom - SpPPIScale(1, DPI)),
+          Point(R.Left + SpPPIScale(1, DPI), R.Bottom - SpPPIScale(2, DPI))
         ]);
       end;
     gptRestore:
       begin
         ACanvas.Polyline([
-          Point(R.Left + SpDPIScale(2), R.Top + SpDPIScale(2)),
-          Point(R.Left + SpDPIScale(2), R.Top),
-          Point(R.Left + SpDPIScale(7), R.Top),
-          Point(R.Left + SpDPIScale(7), R.Top + SpDPIScale(5)),
-          Point(R.Left + SpDPIScale(6), R.Top + SpDPIScale(5))
+          Point(R.Left + SpPPIScale(2, DPI), R.Top + SpPPIScale(2, DPI)),
+          Point(R.Left + SpPPIScale(2, DPI), R.Top),
+          Point(R.Left + SpPPIScale(7, DPI), R.Top),
+          Point(R.Left + SpPPIScale(7, DPI), R.Top + SpPPIScale(5, DPI)),
+          Point(R.Left + SpPPIScale(6, DPI), R.Top + SpPPIScale(5, DPI))
         ]);
         ACanvas.Polyline([
-          Point(R.Left + SpDPIScale(2), R.Top + SpDPIScale(1)),
-          Point(R.Left + SpDPIScale(7), R.Top + SpDPIScale(1))
+          Point(R.Left + SpPPIScale(2, DPI), R.Top + SpPPIScale(1, DPI)),
+          Point(R.Left + SpPPIScale(7, DPI), R.Top + SpPPIScale(1, DPI))
         ]);
         ACanvas.Polyline([
-          Point(R.Left, R.Top + SpDPIScale(3)),
-          Point(R.Left + SpDPIScale(5), R.Top + SpDPIScale(3)),
-          Point(R.Left + SpDPIScale(5), R.Bottom),
+          Point(R.Left, R.Top + SpPPIScale(3, DPI)),
+          Point(R.Left + SpPPIScale(5, DPI), R.Top + SpPPIScale(3, DPI)),
+          Point(R.Left + SpPPIScale(5, DPI), R.Bottom),
           Point(R.Left, R.Bottom),
-          Point(R.Left, R.Top + SpDPIScale(3))
+          Point(R.Left, R.Top + SpPPIScale(3, DPI))
         ]);
         ACanvas.Polyline([
-          Point(R.Left, R.Top + SpDPIScale(4)),
-          Point(R.Left + SpDPIScale(5), R.Top + SpDPIScale(4))
+          Point(R.Left, R.Top + SpPPIScale(4, DPI)),
+          Point(R.Left + SpPPIScale(5, DPI), R.Top + SpPPIScale(4, DPI))
         ]);
       end;
     gptToolbarClose:
@@ -2137,77 +2284,77 @@ begin
       begin
         ACanvas.Polyline([
           Point(R.Left, R.Top),
-          Point(R.Left + SpDPIScale(2), R.Top + SpDPIScale(2)),
-          Point(R.Left, R.Top + SpDPIScale(2) * 2)
+          Point(R.Left + SpPPIScale(2, DPI), R.Top + SpPPIScale(2, DPI)),
+          Point(R.Left, R.Top + SpPPIScale(2, DPI) * 2)
         ]);
         ACanvas.Polyline([
           Point(R.Left + 1, R.Top),
-          Point(R.Left + SpDPIScale(2) + 1, R.Top + SpDPIScale(2)),
-          Point(R.Left + 1, R.Top + SpDPIScale(2) * 2)
+          Point(R.Left + SpPPIScale(2, DPI) + 1, R.Top + SpPPIScale(2, DPI)),
+          Point(R.Left + 1, R.Top + SpPPIScale(2, DPI) * 2)
         ]);
         ACanvas.Polyline([
-          Point(R.Left + SpDPIScale(4), R.Top),
-          Point(R.Left + SpDPIScale(6), R.Top + SpDPIScale(2)),
-          Point(R.Left + SpDPIScale(4), R.Top + SpDPIScale(2) * 2)
+          Point(R.Left + SpPPIScale(4, DPI), R.Top),
+          Point(R.Left + SpPPIScale(6, DPI), R.Top + SpPPIScale(2, DPI)),
+          Point(R.Left + SpPPIScale(4, DPI), R.Top + SpPPIScale(2, DPI) * 2)
         ]);
         ACanvas.Polyline([
-          Point(R.Left + SpDPIScale(4) + 1, R.Top),
-          Point(R.Left + SpDPIScale(6) + 1, R.Top + SpDPIScale(2)),
-          Point(R.Left + SpDPIScale(4) + 1, R.Top + SpDPIScale(2) * 2)
+          Point(R.Left + SpPPIScale(4, DPI) + 1, R.Top),
+          Point(R.Left + SpPPIScale(6, DPI) + 1, R.Top + SpPPIScale(2, DPI)),
+          Point(R.Left + SpPPIScale(4, DPI) + 1, R.Top + SpPPIScale(2, DPI) * 2)
         ]);
       end;
     gptVerticalChevron:
       begin
         ACanvas.Polyline([
           Point(R.Left, R.Top),
-          Point(R.Left + SpDPIScale(2), R.Top + SpDPIScale(2)),
-          Point(R.Left + SpDPIScale(2) * 2, R.Top)
+          Point(R.Left + SpPPIScale(2, DPI), R.Top + SpPPIScale(2, DPI)),
+          Point(R.Left + SpPPIScale(2, DPI) * 2, R.Top)
         ]);
         ACanvas.Polyline([
           Point(R.Left, R.Top + 1),
-          Point(R.Left + SpDPIScale(2), R.Top + SpDPIScale(2) + 1),
-          Point(R.Left + SpDPIScale(2) * 2, R.Top + 1)
+          Point(R.Left + SpPPIScale(2, DPI), R.Top + SpPPIScale(2, DPI) + 1),
+          Point(R.Left + SpPPIScale(2, DPI) * 2, R.Top + 1)
         ]);
 
         ACanvas.Polyline([
-          Point(R.Left, R.Top + SpDPIScale(4)),
-          Point(R.Left + SpDPIScale(2), R.Top + SpDPIScale(6)),
-          Point(R.Left + SpDPIScale(2) * 2, R.Top + SpDPIScale(4))
+          Point(R.Left, R.Top + SpPPIScale(4, DPI)),
+          Point(R.Left + SpPPIScale(2, DPI), R.Top + SpPPIScale(6, DPI)),
+          Point(R.Left + SpPPIScale(2, DPI) * 2, R.Top + SpPPIScale(4, DPI))
         ]);
         ACanvas.Polyline([
-          Point(R.Left, R.Top + SpDPIScale(4) + 1),
-          Point(R.Left + SpDPIScale(2), R.Top + SpDPIScale(6) + 1),
-          Point(R.Left + SpDPIScale(2) * 2, R.Top + SpDPIScale(4) + 1)
+          Point(R.Left, R.Top + SpPPIScale(4, DPI) + 1),
+          Point(R.Left + SpPPIScale(2, DPI), R.Top + SpPPIScale(6, DPI) + 1),
+          Point(R.Left + SpPPIScale(2, DPI) * 2, R.Top + SpPPIScale(4, DPI) + 1)
         ]);
       end;
     gptMenuCheckmark:
       begin
         ACanvas.Polyline([
-          Point(R.Left, R.Top + SpDPIScale(2)),
-          Point(R.Left + SpDPIScale(2), R.Top + SpDPIScale(2) * 2),
+          Point(R.Left, R.Top + SpPPIScale(2, DPI)),
+          Point(R.Left + SpPPIScale(2, DPI), R.Top + SpPPIScale(2, DPI) * 2),
           Point(R.Right, R.Top)
         ]);
         ACanvas.Polyline([
-          Point(R.Left, R.Top + SpDPIScale(2) + 1),
-          Point(R.Left + SpDPIScale(2), R.Top + SpDPIScale(2) * 2 + 1),
+          Point(R.Left, R.Top + SpPPIScale(2, DPI) + 1),
+          Point(R.Left + SpPPIScale(2, DPI), R.Top + SpPPIScale(2, DPI) * 2 + 1),
           Point(R.Right, R.Top + 1)
         ]);
       end;
     gptCheckmark:
       begin
         ACanvas.Polyline([
-          Point(R.Left, R.Top + SpDPIScale(2)),
-          Point(R.Left + SpDPIScale(2), R.Top + SpDPIScale(2) * 2),
+          Point(R.Left, R.Top + SpPPIScale(2, DPI)),
+          Point(R.Left + SpPPIScale(2, DPI), R.Top + SpPPIScale(2, DPI) * 2),
           Point(R.Right, R.Top)
         ]);
         ACanvas.Polyline([
-          Point(R.Left, R.Top + SpDPIScale(2) + 1),
-          Point(R.Left + SpDPIScale(2), R.Top + SpDPIScale(2) * 2 + 1),
+          Point(R.Left, R.Top + SpPPIScale(2, DPI) + 1),
+          Point(R.Left + SpPPIScale(2, DPI), R.Top + SpPPIScale(2, DPI) * 2 + 1),
           Point(R.Right, R.Top + 1)
         ]);
         ACanvas.Polyline([
-          Point(R.Left, R.Top + SpDPIScale(2) + 2),
-          Point(R.Left + SpDPIScale(2), R.Top + SpDPIScale(2) * 2 + 2),
+          Point(R.Left, R.Top + SpPPIScale(2, DPI) + 2),
+          Point(R.Left + SpPPIScale(2, DPI), R.Top + SpPPIScale(2, DPI) * 2 + 2),
           Point(R.Right, R.Top + 2)
         ]);
       end;
@@ -2224,7 +2371,7 @@ begin
 end;
 
 procedure SpDrawXPButton(ACanvas: TCanvas; ARect: TRect; Enabled, Pushed,
-  HotTrack, Checked, Focused, Defaulted: Boolean);
+  HotTrack, Checked, Focused, Defaulted: Boolean; DPI: Integer);
 var
   C: TColor;
   State: TSpTBXSkinStatesType;
@@ -2249,7 +2396,7 @@ begin
         ACanvas.Brush.Color := C;
       end;
     sknWindows, sknDelphiStyle:
-      CurrentSkin.PaintThemedElementBackground(ACanvas, ARect, skncButton, Enabled, Pushed, HotTrack, Checked, Focused, Defaulted, False);
+      CurrentSkin.PaintThemedElementBackground(ACanvas, ARect, skncButton, Enabled, Pushed, HotTrack, Checked, Focused, Defaulted, False, DPI);
     sknSkin:
       begin
         State := CurrentSkin.GetState(Enabled, Pushed, HotTrack, Checked);
@@ -2264,7 +2411,7 @@ begin
 end;
 
 procedure SpDrawXPCheckBoxGlyph(ACanvas: TCanvas; ARect: TRect; Enabled: Boolean;
-  State: TCheckBoxState; HotTrack, Pushed: Boolean);
+  State: TCheckBoxState; HotTrack, Pushed: Boolean; DPI: Integer);
 var
   Flags: Cardinal;
   SknState: TSpTBXSkinStatesType;
@@ -2286,18 +2433,18 @@ begin
         DrawFrameControl(ACanvas.Handle, ARect, DFC_BUTTON, Flags);
       end;
     sknWindows, sknDelphiStyle:
-      CurrentSkin.PaintThemedElementBackground(ACanvas, ARect, skncCheckBox, Enabled, Pushed, HotTrack, State = cbChecked, False, False, State = cbGrayed);
+      CurrentSkin.PaintThemedElementBackground(ACanvas, ARect, skncCheckBox, Enabled, Pushed, HotTrack, State = cbChecked, False, False, State = cbGrayed, DPI);
     sknSkin:
       begin
         SknState := CurrentSkin.GetState(Enabled, Pushed, HotTrack, State in [cbChecked, cbGrayed]);
         CurrentSkin.PaintBackground(ACanvas, ARect, skncCheckBox, SknState, True, True);
         if State = cbChecked then begin
           CheckColor := CurrentSkin.GetTextColor(skncCheckBox, SknState);
-          SpDrawGlyphPattern(ACanvas, ARect, gptCheckmark, CheckColor);
+          SpDrawGlyphPattern(ACanvas, ARect, gptCheckmark, CheckColor, DPI);
         end
         else
           if State = cbGrayed then begin
-            InflateRect(ARect, -SpDPIScale(3), -SpDPIScale(3));
+            InflateRect(ARect, -SpPPIScale(3, DPI), -SpPPIScale(3, DPI));
             CheckColor := CurrentSkin.Options(skncCheckBox, sknsChecked).Borders.Color1;
             SpFillRect(ACanvas, ARect, CheckColor);
           end;
@@ -2306,7 +2453,7 @@ begin
 end;
 
 procedure SpDrawXPRadioButtonGlyph(ACanvas: TCanvas; ARect: TRect; Enabled: Boolean;
-  Checked, HotTrack, Pushed: Boolean);
+  Checked, HotTrack, Pushed: Boolean; DPI: Integer);
 var
   Size, Flags: Integer;
   SknState: TSpTBXSkinStatesType;
@@ -2324,12 +2471,12 @@ begin
         DrawFrameControl(ACanvas.Handle, ARect, DFC_BUTTON, Flags);
       end;
     sknWindows, sknDelphiStyle:
-      CurrentSkin.PaintThemedElementBackground(ACanvas, ARect, skncRadioButton, Enabled, Pushed, HotTrack, Checked, False, False, False);
+      CurrentSkin.PaintThemedElementBackground(ACanvas, ARect, skncRadioButton, Enabled, Pushed, HotTrack, Checked, False, False, False, DPI);
     sknSkin:
       begin
         SknState := CurrentSkin.GetState(Enabled, Pushed, HotTrack, Checked);
         // Keep it simple make the radio 13x13
-        ARect := SpCenterRect(ARect, SpDPIScale(13), SpDPIScale(13));
+        ARect := SpCenterRect(ARect, SpPPIScale(13, DPI), SpPPIScale(13, DPI));
 
         // Background
         BeginPath(ACanvas.Handle);
@@ -2347,15 +2494,16 @@ begin
         if Checked then begin
           ACanvas.Brush.Color := CurrentSkin.GetTextColor(skncRadioButton, SknState);
           ACanvas.Pen.Color := ACanvas.Brush.Color;
-          Size := SpDpiScale(5);
+          Size := SpPPIScale(5, DPI);
           ACanvas.Ellipse(SpCenterRect(ARect, Size, Size));
         end;
       end;
   end;
 end;
 
-procedure SpDrawXPEditFrame(ACanvas: TCanvas; ARect: TRect; Enabled, HotTrack: Boolean;
-  ClipContent: Boolean; AutoAdjust: Boolean);
+procedure SpDrawXPEditFrame(ACanvas: TCanvas; ARect: TRect; Enabled, HotTrack,
+  ClipContent, AutoAdjust: Boolean; DPI: Integer);
+  //  ClipContent: Boolean = False; AutoAdjust: Boolean = False;
 var
   BorderR: TRect;
   State: TSpTBXSkinStatesType;
@@ -2378,7 +2526,7 @@ begin
           SpDrawRectangle(ACanvas, ARect, 0, clBtnFace, clBtnFace, clBtnFace, clBtnFace);
       sknWindows, sknDelphiStyle:
         begin
-          CurrentSkin.PaintThemedElementBackground(ACanvas, ARect, skncEditFrame, Enabled, False, HotTrack, False, False, False, False);
+          CurrentSkin.PaintThemedElementBackground(ACanvas, ARect, skncEditFrame, Enabled, False, HotTrack, False, False, False, False, DPI);
         end;
       sknSkin:
         begin
@@ -2406,8 +2554,9 @@ begin
   end;
 end;
 
-procedure SpDrawXPEditFrame(AWinControl: TWinControl; HotTracking: Boolean;
-  AutoAdjust, HideFrame: Boolean);
+procedure SpDrawXPEditFrame(AWinControl: TWinControl; HotTracking,
+  AutoAdjust, HideFrame: Boolean; DPI: Integer);
+  //AutoAdjust: Boolean = False; HideFrame: Boolean = False;
 var
   R: TRect;
   DC: HDC;
@@ -2434,7 +2583,7 @@ begin
 //        PerformEraseBackground(AWinControl, ACanvas.Handle);
         SpDrawParentBackground(AWinControl, ACanvas.Handle, R);
 
-        SpDrawXPEditFrame(ACanvas, R, AWinControl.Enabled, HotTracking, False, AutoAdjust);
+        SpDrawXPEditFrame(ACanvas, R, AWinControl.Enabled, HotTracking, False, AutoAdjust, DPI);
       end;
     finally
       ACanvas.Handle := 0;
@@ -2445,7 +2594,7 @@ begin
   end;
 end;
 
-procedure SpDrawXPGrip(ACanvas: TCanvas; ARect: TRect; LoC, HiC: TColor);
+procedure SpDrawXPGrip(ACanvas: TCanvas; ARect: TRect; LoC, HiC: TColor; DPI: Integer);
 var
   I, J: Integer;
   XCellCount, YCellCount: Integer;
@@ -2459,28 +2608,28 @@ begin
   //  ----
 
   C := ACanvas.Brush.Color;
-  XCellCount := (ARect.Right - ARect.Left) div SpDPIScale(4);
-  YCellCount := (ARect.Bottom - ARect.Top) div SpDPIScale(4);
+  XCellCount := (ARect.Right - ARect.Left) div SpPPIScale(4, DPI);
+  YCellCount := (ARect.Bottom - ARect.Top) div SpPPIScale(4, DPI);
   if XCellCount = 0 then XCellCount := 1;
   if YCellCount = 0 then YCellCount := 1;
-  
+
   for J := 0 to YCellCount - 1 do
     for I := 0 to XCellCount - 1 do begin
-      R.Left := ARect.Left + (I * SpDPIScale(4)) + SpDPIScale(1);
-      R.Right := R.Left + SpDPIScale(2);
-      R.Top := ARect.Top + (J * SpDPIScale(4)) + SpDPIScale(1);
-      R.Bottom := R.Top + SpDPIScale(2);
+      R.Left := ARect.Left + (I * SpPPIScale(4, DPI)) + SpPPIScale(1, DPI);
+      R.Right := R.Left + SpPPIScale(2, DPI);
+      R.Top := ARect.Top + (J * SpPPIScale(4, DPI)) + SpPPIScale(1, DPI);
+      R.Bottom := R.Top + SpPPIScale(2, DPI);
 
       ACanvas.Brush.Color := HiC;
       ACanvas.FillRect(R);
-      OffsetRect(R, -SpDPIScale(1), -SpDPIScale(1));
+      OffsetRect(R, -SpPPIScale(1, DPI), -SpPPIScale(1, DPI));
       ACanvas.Brush.Color := LoC;
       ACanvas.FillRect(R);
     end;
   ACanvas.Brush.Color := C;
 end;
 
-procedure SpDrawXPHeader(ACanvas: TCanvas; ARect: TRect; HotTrack, Pushed: Boolean);
+procedure SpDrawXPHeader(ACanvas: TCanvas; ARect: TRect; HotTrack, Pushed: Boolean; DPI: Integer);
 var
   State: TSpTBXSkinStatesType;
 begin
@@ -2491,7 +2640,7 @@ begin
       end;
     sknWindows, sknDelphiStyle:
       begin
-        CurrentSkin.PaintThemedElementBackground(ACanvas, ARect, skncHeader, True, Pushed, HotTrack, False, False, False, False);
+        CurrentSkin.PaintThemedElementBackground(ACanvas, ARect, skncHeader, True, Pushed, HotTrack, False, False, False, False, DPI);
       end;
     sknSkin:
       begin
@@ -2626,6 +2775,11 @@ begin
   Result := (Win32Platform = VER_PLATFORM_WIN32_NT) and (Win32MajorVersion >= 6);
 end;
 
+function SpIsWin10OrUp: Boolean;
+begin
+  Result := (Win32Platform = VER_PLATFORM_WIN32_NT) and (Win32MajorVersion >= 10);
+end;
+
 function SpGetDirectories(Path: string; L: TStringList): Boolean;
 var
   SearchRec: TSearchRec;
@@ -2647,20 +2801,28 @@ begin
   end;
 end;
 
-function SpDPIScale(I: Integer): Integer;
+//WMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWM
+{ DPI }
+
+function SpPPIScale(Value, DPI: Integer): Integer;
 begin
-  Result := MulDiv(I, Screen.PixelsPerInch, 96);
+  if DPI <= 0 then DPI := 96;
+  Result := MulDiv(Value, DPI, 96);
 end;
 
-procedure SpDPIResizeBitmap(Bitmap: TBitmap; const NewWidth, NewHeight: Integer);
+function SpPPIScaleToDPI(PPIScale: TPPIScale): Integer;
+begin
+  Result := PPIScale(96);
+end;
+
+procedure SpDPIResizeBitmap(Bitmap: TBitmap; const NewWidth, NewHeight, DPI: Integer);
 var
   B: TBitmap;
 begin
   B := TBitmap.Create;
   try
     B.SetSize(NewWidth, NewHeight);
-
-    if Screen.PixelsPerInch * 100 / 96 >= 150 then begin // Stretch if >= 150%
+    if DPI * 100 / 96 >= 150 then begin // Stretch if >= 150%
       SetStretchBltMode(B.Canvas.Handle, STRETCH_HALFTONE);
       B.Canvas.StretchDraw(Rect(0, 0, NewWidth, NewHeight), Bitmap);
     end
@@ -2674,20 +2836,62 @@ begin
   end;
 end;
 
-procedure SpDPIScaleImageList(const ImageList: TCustomImageList);
+// newpy check with newer version of SpDPIScaleImageList
+{
+procedure SpDPIScaleImageList(const ImageList: TCustomImageList; M, D: Integer);
+const
+  ANDbits: array[0..2*16-1] of  Byte = ($FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,
+                                        $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,
+                                        $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,
+                                        $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF);
+  XORbits: array[0..2*16-1] of  Byte = ($00,$00,$00,$00,$00,$00,$00,$00,
+                                        $00,$00,$00,$00,$00,$00,$00,$00,
+                                        $00,$00,$00,$00,$00,$00,$00,$00,
+                                        $00,$00,$00,$00,$00,$00,$00,$00);
+var
+  I: integer;
+  Icon: HIcon;
+  TempIL : TCustomImageList;
+begin
+  if M = D then
+    Exit;
+  TempIL := TCustomImageList.CreateSize(MulDiv(ImageList.Width, M, D), MulDiv(ImageList.Height, M, D));
+  try
+    TempIL.ColorDepth := cd32Bit;
+    TempIL.DrawingStyle := ImageList.DrawingStyle;
+    TempIL.BkColor := ImageList.BkColor;
+    TempIL.BlendColor := ImageList.BlendColor;
+    for I := 0 to ImageList.Count-1 do
+    begin
+      Icon := ImageList_GetIcon(ImageList.Handle, I, LR_DEFAULTCOLOR);
+      if Icon = 0 then
+      begin
+        Icon := CreateIcon(hInstance,16,16,1,1,@ANDbits,@XORbits);
+      end;
+      ImageList_AddIcon(TempIL.Handle, Icon);
+      DestroyIcon(Icon);
+    end;
+    ImageList.Assign(TempIL);
+  finally
+    TempIL.Free;
+  end;
+end;
+
+}
+procedure SpDPIScaleImageList(const ImageList: TCustomImageList; M, D: Integer);
 var
   I: integer;
   Bimage, Bmask: TBitmap;
   TempIL : TImageList;
 begin
-  if Screen.PixelsPerInch = 96 then Exit;
+   if M = D then Exit;
 
   TempIL := TImageList.Create(nil);
   try
     // Set size to match DPI (like 250% of 16px = 40px)
     TempIL.Assign(ImageList);
     ImageList.Clear;
-    ImageList.SetSize(MulDiv(ImageList.Width, Screen.PixelsPerInch, 96), MulDiv(ImageList.Height, Screen.PixelsPerInch, 96));
+    ImageList.SetSize(MulDiv(ImageList.Width, M, D), MulDiv(ImageList.Height, M, D));
 
     // Add images back to original ImageList
     for I := 0 to -1 + TempIL.Count do begin
@@ -2698,13 +2902,13 @@ begin
         Bimage.SetSize(TempIL.Width, TempIL.Height);
         Bimage.Canvas.FillRect(Bimage.Canvas.ClipRect);
         ImageList_DrawEx(TempIL.Handle, I, Bimage.Canvas.Handle, 0, 0, Bimage.Width, Bimage.Height, CLR_NONE, CLR_NONE, ILD_NORMAL);
-        SpDPIResizeBitmap(Bimage, ImageList.Width, ImageList.Height); // Resize
+        SpDPIResizeBitmap(Bimage, ImageList.Width, ImageList.Height, M); // Resize
 
         // Get the mask bitmap
         Bmask.SetSize(TempIL.Width, TempIL.Height);
         Bmask.Canvas.FillRect(Bmask.Canvas.ClipRect);
         ImageList_DrawEx(TempIL.Handle, I, Bmask.Canvas.Handle, 0, 0, Bmask.Width, Bmask.Height, CLR_NONE, CLR_NONE, ILD_MASK);
-        SpDPIResizeBitmap(Bmask, ImageList.Width, ImageList.Height); // Resize
+        SpDPIResizeBitmap(Bmask, ImageList.Width, ImageList.Height, M); // Resize
 
         // Add the bitmaps
         ImageList.Add(Bimage, Bmask);
@@ -3100,61 +3304,42 @@ begin
   if SkinManager.GetSkinType = sknSkin then
     Result := FFloatingWindowBorderSize
   else
-    Result := SpDPIScale(4);
+    Result := 4;
 end;
 
 procedure TSpTBXSkinOptions.SetFloatingWindowBorderSize(const Value: Integer);
 begin
   FFloatingWindowBorderSize := Value;
   if FFloatingWindowBorderSize < 0 then FFloatingWindowBorderSize := 0;
-  if FFloatingWindowBorderSize > SpDPIScale(4) then FFloatingWindowBorderSize := SpDPIScale(4);
-end;
-
-procedure TSpTBXSkinOptions.GetDropDownArrowSize(out DropDownArrowSize,
-  DropDownArrowMargin, SplitBtnArrowSize: Integer);
-begin
-  DropDownArrowSize := SpDPIScale(8); // TB2Item.tbDropdownArrowWidth
-  DropDownArrowMargin := SpDPIScale(3); // TB2Item.tbDropdownArrowMargin
-
-  SplitBtnArrowSize := SpDPIScale(12); // TB2Item.tbDropdownComboArrowWidth + 1
-  if SkinManager.GetSkinType in [sknWindows, sknDelphiStyle] then
-    SplitBtnArrowSize := SpDPIScale(12+1);
+  if FFloatingWindowBorderSize > 4 then FFloatingWindowBorderSize := 4;
 end;
 
 procedure TSpTBXSkinOptions.GetMenuItemMargins(ACanvas: TCanvas; ImgSize: Integer;
-  out MarginsInfo: TSpTBXMenuItemMarginsInfo);
+  out MarginsInfo: TSpTBXMenuItemMarginsInfo; DPI: Integer);
 var
   TextMetric: TTextMetric;
   H, M2: Integer;
   SkinType: TSpTBXSkinType;
 begin
   if ImgSize = 0 then
-    ImgSize := SpDPIScale(16);
+    ImgSize := SpPPIScale(16, DPI);
 
   FillChar(MarginsInfo, SizeOf(MarginsInfo), 0);
   SkinType := SkinManager.GetSkinType;
 
-  if ((SkinType = sknWindows) and SpIsWinVistaOrUp) or (SkinType = sknDelphiStyle) then begin
-    // Vista-like spacing
-    MarginsInfo.Margins := Rect(SpDPIScale(1), SpDPIScale(3), SpDPIScale(1), SpDPIScale(3)); // MID_MENUITEM
-    MarginsInfo.ImageTextSpace := SpDPIScale(5 + 1);     // TMI_MENU_IMGTEXTSPACE
-    MarginsInfo.LeftCaptionMargin := SpDPIScale(3);      // TMI_MENU_LCAPTIONMARGIN
-    MarginsInfo.RightCaptionMargin := SpDPIScale(3);     // TMI_MENU_RCAPTIONMARGIN
+  if ((SkinType = sknWindows) and not SpIsWinVistaOrUp) or (SkinType = sknNone) then begin
+    MarginsInfo.Margins := Rect(0, SpPPIScale(2, DPI), 0, SpPPIScale(2, DPI)); // MID_MENUITEM
+    MarginsInfo.ImageTextSpace := SpPPIScale(1, DPI);         // TMI_MENU_IMGTEXTSPACE
+    MarginsInfo.LeftCaptionMargin := SpPPIScale(2, DPI);      // TMI_MENU_LCAPTIONMARGIN
+    MarginsInfo.RightCaptionMargin := SpPPIScale(2, DPI);     // TMI_MENU_RCAPTIONMARGIN
   end
-  else
-    if (SkinType = sknSkin) then begin
-      // Office-like spacing
-      MarginsInfo.Margins := Rect(SpDPIScale(1), SpDPIScale(3), SpDPIScale(1), SpDPIScale(3)); // MID_MENUITEM
-      MarginsInfo.ImageTextSpace := SpDPIScale(5);         // TMI_MENU_IMGTEXTSPACE
-      MarginsInfo.LeftCaptionMargin := SpDPIScale(3);      // TMI_MENU_LCAPTIONMARGIN
-      MarginsInfo.RightCaptionMargin := SpDPIScale(3);     // TMI_MENU_RCAPTIONMARGIN
-    end
-    else begin
-      MarginsInfo.Margins := Rect(0, SpDPIScale(2), 0, SpDPIScale(2)); // MID_MENUITEM
-      MarginsInfo.ImageTextSpace := SpDPIScale(1);         // TMI_MENU_IMGTEXTSPACE
-      MarginsInfo.LeftCaptionMargin := SpDPIScale(2);      // TMI_MENU_LCAPTIONMARGIN
-      MarginsInfo.RightCaptionMargin := SpDPIScale(2);     // TMI_MENU_RCAPTIONMARGIN
-    end;
+  else begin
+    // Vista-like spacing
+    MarginsInfo.Margins := Rect(SpPPIScale(1, DPI), SpPPIScale(3, DPI), SpPPIScale(1, DPI), SpPPIScale(3, DPI)); // MID_MENUITEM
+    MarginsInfo.ImageTextSpace := SpPPIScale(5 + 1, DPI);     // TMI_MENU_IMGTEXTSPACE
+    MarginsInfo.LeftCaptionMargin := SpPPIScale(3, DPI);      // TMI_MENU_LCAPTIONMARGIN
+    MarginsInfo.RightCaptionMargin := SpPPIScale(3, DPI);     // TMI_MENU_RCAPTIONMARGIN
+  end;
 
   GetTextMetrics(ACanvas.Handle, TextMetric);
   M2 := MarginsInfo.Margins.Top + MarginsInfo.Margins.Bottom;
@@ -3614,10 +3799,10 @@ begin
   Result := GetThemedElementDetails(Component, Enabled, Pushed, HotTrack, Checked, False, False, False, Details);
 end;
 
-function TSpTBXSkinOptions.GetThemedElementSize(ACanvas: TCanvas; Details: TThemedElementDetails): TSize;
+function TSpTBXSkinOptions.GetThemedElementSize(ACanvas: TCanvas; Details: TThemedElementDetails; DPI: Integer): TSize;
 begin
   {$IF CompilerVersion >= 23} // for Delphi XE2 and up
-  SpTBXThemeServices.GetElementSize(ACanvas.Handle, Details, esActual, Result);
+  SpTBXThemeServices.GetElementSize(ACanvas.Handle, Details, esActual, Result{$IF CompilerVersion >= 33}, DPI{$IFEND}); // DPI param introduced on 10.3 Rio
   {$ELSE}
   GetThemePartSize(SpTBXThemeServices.Theme[Details.Element], ACanvas.Handle, Details.Part, Details.State, nil, TS_TRUE, Result);
   {$IFEND}
@@ -3669,13 +3854,13 @@ begin
 end;
 
 procedure TSpTBXSkinOptions.PaintThemedElementBackground(ACanvas: TCanvas;
-  ARect: TRect; Details: TThemedElementDetails);
+  ARect: TRect; Details: TThemedElementDetails; DPI: Integer);
 var
   SaveIndex: Integer;
 begin
   SaveIndex := SaveDC(ACanvas.Handle);  // XE2 Styles changes the font
   try
-    SpTBXThemeServices.DrawElement(ACanvas.Handle, Details, ARect, nil);
+    SpTBXThemeServices.DrawElement(ACanvas.Handle, Details, ARect, nil{$IF CompilerVersion >= 33}, DPI{$IFEND}); // DPI param introduced on 10.3 Rio DPI);
   finally
     RestoreDC(ACanvas.Handle, SaveIndex);
   end;
@@ -3683,26 +3868,26 @@ end;
 
 procedure TSpTBXSkinOptions.PaintThemedElementBackground(ACanvas: TCanvas;
   ARect: TRect; Component: TSpTBXSkinComponentsType; Enabled, Pushed, HotTrack,
-  Checked, Focused, Defaulted, Grayed: Boolean);
+  Checked, Focused, Defaulted, Grayed: Boolean; DPI: Integer);
 var
   Details: TThemedElementDetails;
 begin
   if GetThemedElementDetails(Component, Enabled, Pushed, HotTrack, Checked, Focused, Defaulted, Grayed, Details) then
-    PaintThemedElementBackground(ACanvas, ARect, Details);
+    PaintThemedElementBackground(ACanvas, ARect, Details, DPI);
 end;
 
 procedure TSpTBXSkinOptions.PaintThemedElementBackground(ACanvas: TCanvas;
   ARect: TRect; Component: TSpTBXSkinComponentsType;
-  State: TSpTBXSkinStatesType);
+  State: TSpTBXSkinStatesType; DPI: Integer);
 var
   Details: TThemedElementDetails;
 begin
   if GetThemedElementDetails(Component, State, Details) then
-    PaintThemedElementBackground(ACanvas, ARect, Details);
+    PaintThemedElementBackground(ACanvas, ARect, Details, DPI);
 end;
 
 procedure TSpTBXSkinOptions.PaintMenuCheckMark(ACanvas: TCanvas; ARect: TRect;
-  Checked, Grayed: Boolean; State: TSpTBXSkinStatesType);
+  Checked, Grayed: Boolean; State: TSpTBXSkinStatesType; DPI: Integer);
 var
   CheckColor: TColor;
   VistaCheckSize: TSize;
@@ -3711,8 +3896,7 @@ var
 begin
   SkinType := SkinManager.GetSkinType;
   // VCL Styles does not DPI scale menu checkmarks, Windows does
-  if ((SkinType = sknWindows) and SpIsWinVistaOrUp) or
-    ((SkinType = sknDelphiStyle) and (Screen.PixelsPerInch = 96)) then
+  if ((SkinType = sknWindows) and SpIsWinVistaOrUp) or (SkinType = sknDelphiStyle) then
   begin
     // [Old-Themes]
     {$IF CompilerVersion >= 23} //for Delphi XE2 and up
@@ -3724,21 +3908,21 @@ begin
     if State = sknsDisabled then Details.State := MC_CHECKMARKDISABLED
     else Details.State := MC_CHECKMARKNORMAL;
     {$IFEND}
-    VistaCheckSize := GetThemedElementSize(ACanvas, Details);
+    VistaCheckSize := GetThemedElementSize(ACanvas, Details, DPI); // Returns a scaled value
     ARect := SpCenterRect(ARect, VistaCheckSize.cx, VistaCheckSize.cy);
-    PaintThemedElementBackground(ACanvas, ARect, Details);
+    PaintThemedElementBackground(ACanvas, ARect, Details, DPI);
   end
   else begin
     if SkinType = sknNone then
       CheckColor := clMenuText // On sknNone it's clMenuText even when disabled
     else
       CheckColor := GetTextColor(skncMenuItem, State);
-    SpDrawGlyphPattern(ACanvas, ARect, gptMenuCheckmark, CheckColor);
+    SpDrawGlyphPattern(ACanvas, ARect, gptMenuCheckmark, CheckColor, DPI);
   end;
 end;
 
 procedure TSpTBXSkinOptions.PaintMenuRadioMark(ACanvas: TCanvas; ARect: TRect;
-  Checked: Boolean; State: TSpTBXSkinStatesType);
+  Checked: Boolean; State: TSpTBXSkinStatesType; DPI: Integer);
 var
   CheckColor: TColor;
   VistaCheckSize: TSize;
@@ -3760,16 +3944,16 @@ begin
     if State = sknsDisabled then Details.State := MC_BULLETDISABLED
     else Details.State := MC_BULLETNORMAL;
     {$IFEND}
-    VistaCheckSize := GetThemedElementSize(ACanvas, Details);
+    VistaCheckSize := GetThemedElementSize(ACanvas, Details, DPI); // Returns a scaled value
     ARect := SpCenterRect(ARect, VistaCheckSize.cx, VistaCheckSize.cy);
-    PaintThemedElementBackground(ACanvas, ARect, Details);
+    PaintThemedElementBackground(ACanvas, ARect, Details, DPI);
   end
   else begin
     if SkinType = sknNone then
       CheckColor := clMenuText // On sknNone it's clMenuText even when disabled
     else
       CheckColor := GetTextColor(skncMenuItem, State);
-    SpDrawGlyphPattern(ACanvas, ARect, gptMenuRadiomark, CheckColor);
+    SpDrawGlyphPattern(ACanvas, ARect, gptMenuRadiomark, CheckColor, DPI);
   end;
 end;
 

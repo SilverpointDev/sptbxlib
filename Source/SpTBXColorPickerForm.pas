@@ -46,7 +46,7 @@ interface
 uses
   Windows, Messages, Classes, SysUtils, Controls, Graphics, Forms,
   Menus, StdCtrls, ExtCtrls, ActnList, Dialogs, ImgList,
-  TB2Dock, TB2Toolbar, TB2Item, TB2ExtItems,
+  TB2Common, TB2Dock, TB2Toolbar, TB2Item, TB2ExtItems,
   SpTBXSkins, SpTBXItem, SpTBXControls, SpTBXEditors, SpTBXFormPopupMenu,
   SpTBXExtEditors, SpTBXTabs;
   // Delphi XE8 and up will automatically add System.ImageList, make sure to delete it
@@ -126,6 +126,7 @@ type
     FPrevLabelColor: TColor;
     FColorPickerDragObject: TSpTBXColorPickerDragObject;
     procedure CenterImages;
+    procedure ChangeScale(M, D: Integer{$if CompilerVersion >= 31}; isDpiChange: Boolean{$ifend}); override;
   public
     function GetSelectedColor: TColor;
     procedure SetSelectedColor(AColor: TColor);
@@ -141,7 +142,6 @@ const
   crSpTBXEyeDropper = 103;   // Cursor ID used for Eye Dropper cursor
 
 resourcestring
-  SSpTBXTransparentColor = 'Transparent Color';
   SSpTBXColorPicker = 'Color Picker';
   SSpTBXClickAndDrag = 'Drag && Drop';
 
@@ -247,8 +247,6 @@ procedure TSpTBXColorPickerForm.FormCreate(Sender: TObject);
 begin
   btnColorPicker.Caption := SSpTBXClickAndDrag;
   imgPalette.Cursor := crSpTBXEyeDropper;
-
-  SpDPIScaleImageList(ImageList1);
 end;
 
 procedure TSpTBXColorPickerForm.FormDestroy(Sender: TObject);
@@ -268,7 +266,7 @@ begin
   Bitmap := TBitmap.Create;
   try
     Bitmap.Assign(imgPalette.Picture.Bitmap);
-    SpDPIResizeBitmap(Bitmap, SpDPIScale(ImgPalette.Width), SpDPIScale(ImgPalette.Height));
+    SpDPIResizeBitmap(Bitmap, PPIScale(ImgPalette.Width), PPIScale(ImgPalette.Height), CurrentPPI);
     imgPalette.Picture.Assign(Bitmap);
   finally
     Bitmap.Free;
@@ -291,13 +289,19 @@ begin
   end;
 end;
 
+procedure TSpTBXColorPickerForm.ChangeScale(M, D: Integer{$if CompilerVersion >= 31}; isDpiChange: Boolean{$ifend});
+begin
+  inherited;
+  SpDPIScaleImageList(ImageList1, M, D);
+end;
+
 procedure TSpTBXColorPickerForm.btnColorDraw(Sender: TObject;
   ACanvas: TCanvas; ARect: TRect; const PaintStage: TSpTBXPaintStage;
   var PaintDefault: Boolean);
 begin
   if PaintStage = pstPrePaint then begin
     PaintDefault := False;
-    InflateRect(ARect, -SpDPIScale(3), -SpDPIScale(3));
+    InflateRect(ARect, -PPIScale(3), -PPIScale(3));
     if btnColor.CaptionGlowColor = clNone then
       SpDrawCheckeredBackground(ACanvas, ARect)
     else begin
@@ -450,7 +454,7 @@ procedure TSpTBXColorPickerForm.SpTBXPanel1DrawBackground(Sender: TObject;
 begin
   if PaintStage = pstPrePaint then begin
     PaintDefault := False;
-    SpDrawXPDock(ACanvas, ARect);
+    SpDrawXPDock(ACanvas, ARect, False, CurrentPPI);
     SpDrawXPToolbar(ACanvas, ARect, True, False, False, True, False);
   end;
 end;
@@ -514,10 +518,11 @@ end;
 procedure TSpTBXColorPickerForm.UpdateColorLabel(AColor: TColor; AButtonType: Integer = -1);
 begin
   btnColor.CaptionGlowColor := AColor;
-  if AColor = clNone then
-    btnLabel.Caption := SSpTBXTransparentColor
+  if AColor = clNone then btnLabel.Caption := SSpTBXColorNone
   else
-    btnLabel.Caption := SpColorToHTML(AColor);
+    if AColor = clDefault then btnLabel.Caption := SSpTBXColorDefault
+    else
+      btnLabel.Caption := SpColorToHTML(AColor);
 end;
 
 end.
