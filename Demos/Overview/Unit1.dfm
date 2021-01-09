@@ -2,8 +2,8 @@ object Form1: TForm1
   Left = 279
   Top = 147
   Caption = 'SpTBXLib Demo - Per Monitor V2 High DPI Enabled'
-  ClientHeight = 555
-  ClientWidth = 716
+  ClientHeight = 561
+  ClientWidth = 723
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -19,14 +19,14 @@ object Form1: TForm1
   object SpTBXSplitter1: TSpTBXSplitter
     Left = 273
     Top = 75
-    Height = 453
+    Height = 463
     Cursor = crSizeWE
     ParentColor = False
   end
   object SpTBXSplitter2: TSpTBXSplitter
-    Left = 575
+    Left = 582
     Top = 75
-    Height = 453
+    Height = 463
     Cursor = crSizeWE
     Align = alRight
     ParentColor = False
@@ -35,7 +35,7 @@ object Form1: TForm1
     Left = 0
     Top = 75
     Width = 273
-    Height = 453
+    Height = 463
     object SpTBXDockablePanel1: TSpTBXDockablePanel
       Left = 0
       Top = 0
@@ -56,17 +56,68 @@ object Form1: TForm1
         Height = 275
         Align = alClient
         OnResize = SpTBXTabControl2Resize
-        ActiveTabIndex = 2
+        ActiveTabIndex = 0
         HiddenItems = <>
         object SpTBXTabItem1: TSpTBXTabItem
           Caption = 'Controls'
+          Checked = True
         end
         object SpTBXTabItem6: TSpTBXTabItem
           Caption = 'Editors'
         end
         object SpTBXTabItem3: TSpTBXTabItem
           Caption = 'Misc'
-          Checked = True
+        end
+        object SpTBXTabSheet3: TSpTBXTabSheet
+          Left = 0
+          Top = 25
+          Width = 269
+          Height = 250
+          Caption = 'Misc'
+          ImageIndex = -1
+          DesignSize = (
+            269
+            250)
+          TabItem = 'SpTBXTabItem3'
+          object SpTBXGroupBox5: TSpTBXGroupBox
+            Left = 8
+            Top = 8
+            Width = 252
+            Height = 133
+            Caption = 'Links'
+            Anchors = [akLeft, akTop, akRight]
+            TabOrder = 0
+            object SpTBXLabel2: TSpTBXLabel
+              Left = 8
+              Top = 24
+              Width = 151
+              Height = 19
+              Caption = 'Go to Silverpoint Development'
+              LinkText = 'http://www.silverpointdevelopment.com'
+            end
+            object SpTBXLabel3: TSpTBXLabel
+              Left = 8
+              Top = 48
+              Width = 156
+              Height = 19
+              Caption = 'Go to Toolbar2000 newsgroups'
+              LinkText = 'news://news.jrsoftware.org'
+            end
+            object SpTBXLabel4: TSpTBXLabel
+              Left = 8
+              Top = 72
+              Width = 119
+              Height = 19
+              Caption = 'Open Documents folder'
+            end
+            object SpTBXLabel5: TSpTBXLabel
+              Left = 8
+              Top = 96
+              Width = 184
+              Height = 19
+              Caption = 'Open Documents folder with the tree'
+            end
+          end
         end
         object SpTBXTabSheet6: TSpTBXTabSheet
           Left = 0
@@ -83,7 +134,7 @@ object Form1: TForm1
             Left = 8
             Top = 112
             Width = 252
-            Height = 0
+            Height = 102
             Anchors = [akLeft, akTop, akRight, akBottom]
             TabOrder = 4
             HotTrack = True
@@ -91,200 +142,16 @@ object Form1: TForm1
               Left = 2
               Top = 22
               Width = 248
-              Height = 7
+              Height = 78
               Align = alClient
               BorderStyle = bsNone
               Lines.Strings = (
-                'T'
-                'o '
-                'a'
-                'd'
-                'd '
-                'h'
-                'o'
-                't'
-                't'
-                'r'
-                'a'
-                'c'
-                'k '
-                'b'
-                'o'
-                'r'
-                'd'
-                'e'
-                'r'
-                's '
-                't'
-                'o '
-                'y'
-                'o'
-                'u'
-                'r '
-                'c'
-                'o'
-                'n'
-                't'
-                'r'
-                'o'
-                'l'
-                's'
-                ':'
-                '1'
-                ') '
-                'D'
-                'r'
-                'o'
-                'p '
-                'a '
-                'T'
-                'S'
-                'p'
-                'T'
-                'B'
-                'X'
-                'P'
-                'a'
-                'n'
-                'e'
-                'l '
-                'a'
-                'n'
-                'd '
-                's'
-                'e'
-                't '
-                'H'
-                'o'
-                't'
-                'T'
-                'r'
-                'a'
-                'c'
-                'k '
-                't'
-                'o '
-                't'
-                'r'
-                'u'
-                'e'
-                '2'
-                ') '
-                'D'
-                'r'
-                'o'
-                'p '
-                'a '
-                'c'
-                'o'
-                'n'
-                't'
-                'r'
-                'o'
-                'l '
-                'i'
-                'n'
-                's'
-                'i'
-                'd'
-                'e'
-                '3'
-                ') '
-                'S'
-                'e'
-                't '
-                't'
-                'h'
-                'e '
-                'c'
-                'o'
-                'n'
-                't'
-                'r'
-                'o'
-                'l '
-                'A'
-                'l'
-                'i'
-                'g'
-                'n '
-                't'
-                'o '
-                'a'
-                'l'
-                'C'
-                'l'
-                'i'
-                'e'
-                'n'
-                't'
-                '4'
-                ') '
-                'S'
-                'e'
-                't '
-                't'
-                'h'
-                'e '
-                'c'
-                'o'
-                'n'
-                't'
-                'r'
-                'o'
-                'l '
-                'B'
-                'o'
-                'r'
-                'd'
-                'e'
-                'r'
-                'S'
-                't'
-                'y'
-                'l'
-                'e '
-                't'
-                'o '
-                'b'
-                's'
-                'N'
-                'o'
-                'n'
-                'e'
-                '4'
-                ') '
-                'C'
-                'h'
-                'a'
-                'n'
-                'g'
-                'e '
-                't'
-                'h'
-                'e '
-                's'
-                'k'
-                'i'
-                'n '
-                't'
-                'o '
-                'o'
-                't'
-                'h'
-                'e'
-                'r '
-                't'
-                'h'
-                'a'
-                'n '
-                'D'
-                'e'
-                'f'
-                'a'
-                'u'
-                'l'
-                't')
+                'To add hottrack borders to your controls:'
+                '1) Drop a TSpTBXPanel and set HotTrack to true'
+                '2) Drop a control inside'
+                '3) Set the control Align to alClient'
+                '4) Set the control BorderStyle to bsNone'
+                '4) Change the skin to other than Default')
               TabOrder = 0
             end
             object Panel2: TPanel
@@ -515,75 +382,24 @@ object Form1: TForm1
               'Center')
           end
         end
-        object SpTBXTabSheet3: TSpTBXTabSheet
-          Left = 0
-          Top = 25
-          Width = 269
-          Height = 250
-          Caption = 'Misc'
-          ImageIndex = -1
-          DesignSize = (
-            269
-            250)
-          TabItem = 'SpTBXTabItem3'
-          object SpTBXGroupBox5: TSpTBXGroupBox
-            Left = 8
-            Top = 8
-            Width = 252
-            Height = 133
-            Caption = 'Links'
-            Anchors = [akLeft, akTop, akRight]
-            TabOrder = 0
-            object SpTBXLabel2: TSpTBXLabel
-              Left = 8
-              Top = 24
-              Width = 151
-              Height = 19
-              Caption = 'Go to Silverpoint Development'
-              LinkText = 'http://www.silverpointdevelopment.com'
-            end
-            object SpTBXLabel3: TSpTBXLabel
-              Left = 8
-              Top = 48
-              Width = 156
-              Height = 19
-              Caption = 'Go to Toolbar2000 newsgroups'
-              LinkText = 'news://news.jrsoftware.org'
-            end
-            object SpTBXLabel4: TSpTBXLabel
-              Left = 8
-              Top = 72
-              Width = 119
-              Height = 19
-              Caption = 'Open Documents folder'
-            end
-            object SpTBXLabel5: TSpTBXLabel
-              Left = 8
-              Top = 96
-              Width = 184
-              Height = 19
-              Caption = 'Open Documents folder with the tree'
-            end
-          end
-        end
       end
     end
     object SpTBXDockablePanel2: TSpTBXDockablePanel
       Left = 0
       Top = 298
       Width = 273
-      Height = 155
+      Height = 165
       Caption = 'Skins Options'
       DockPos = 298
       TabOrder = 1
       DesignSize = (
         269
-        151)
+        161)
       object SpTBXGroupBox3: TSpTBXGroupBox
         Left = 13
         Top = 26
         Width = 241
-        Height = 114
+        Height = 124
         Caption = 'Skin Type'
         Anchors = [akLeft, akTop, akRight, akBottom]
         TabOrder = 2
@@ -633,7 +449,7 @@ object Form1: TForm1
   object SpTBXDock1: TSpTBXDock
     Left = 0
     Top = 0
-    Width = 716
+    Width = 723
     Height = 75
     object SpTBXToolbar1: TSpTBXToolbar
       Left = 0
@@ -689,7 +505,7 @@ object Form1: TForm1
       TabOrder = 1
       Caption = 'SpTBXToolbar3'
       DesignSize = (
-        1108
+        713
         21)
       object SpTBXLabelItem3: TSpTBXLabelItem
         Caption = '&Address:'
@@ -709,7 +525,7 @@ object Form1: TForm1
       object SpTBXComboBox1: TSpTBXComboBox
         Left = 55
         Top = 0
-        Width = 1022
+        Width = 600
         Height = 21
         Anchors = [akLeft, akTop, akRight]
         ItemHeight = 13
@@ -737,21 +553,21 @@ object Form1: TForm1
       object SpTBXItem4: TSpTBXItem
         Caption = 'Anchored Item'
         Anchored = True
-        CustomWidth = 495
+        CustomWidth = 500
       end
     end
   end
   object SpTBXMultiDock3: TSpTBXMultiDock
-    Left = 580
+    Left = 587
     Top = 75
     Width = 136
-    Height = 453
+    Height = 463
     Position = dpxRight
     object DP1: TSpTBXDockablePanel
       Left = 0
       Top = 286
       Width = 136
-      Height = 167
+      Height = 177
       Caption = 'Panel1'
       DockPos = 286
       TabOrder = 0
@@ -871,8 +687,8 @@ object Form1: TForm1
   object Panel1: TPanel
     Left = 278
     Top = 75
-    Width = 297
-    Height = 453
+    Width = 304
+    Height = 463
     Align = alClient
     BevelOuter = bvNone
     TabOrder = 2
@@ -1566,13 +1382,13 @@ object Form1: TForm1
     object SpTBXTabControl1: TSpTBXTabControl
       Left = 0
       Top = 0
-      Width = 297
-      Height = 453
+      Width = 304
+      Height = 463
       Align = alClient
       ActiveTabIndex = -1
       HiddenItems = <>
       object SpTBXRightAlignSpacerItem1: TSpTBXRightAlignSpacerItem
-        CustomWidth = 261
+        CustomWidth = 268
       end
       object SpTBXSubmenuItem2: TSpTBXSubmenuItem
         Options = [tboDropdownArrow]
@@ -1594,12 +1410,12 @@ object Form1: TForm1
   end
   object SpTBXStatusBar1: TSpTBXStatusBar
     Left = 0
-    Top = 528
-    Width = 716
-    Height = 27
+    Top = 538
+    Width = 723
+    Height = 23
     ParentShowHint = False
     ShowHint = True
-    ExplicitTop = 530
+    ExplicitTop = 536
     object TBControlItem2: TTBControlItem
       Control = SpTBXProgressBar2
     end
@@ -1622,7 +1438,7 @@ object Form1: TForm1
     end
     object SpTBXProgressBar2: TSpTBXProgressBar
       Left = 0
-      Top = 2
+      Top = 0
       Width = 140
       Height = 19
       Caption = '30%'

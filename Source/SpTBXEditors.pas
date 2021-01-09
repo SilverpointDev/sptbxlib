@@ -297,7 +297,6 @@ type
     procedure CMSPFontChanged(var Message: TMessage); message CM_SPFONTCHANGED;
     procedure CNDrawItem(var Message: TWMDrawItem); message CN_DRAWITEM;
     procedure WMMouseMove(var Message: TWMMouseMove); message WM_MOUSEMOVE;
-    procedure WMNCCalcSize(var Message: TWMNCCalcSize); message WM_NCCALCSIZE;
     procedure WMPaint(var Message: TWMPaint); message WM_PAINT;
     procedure WMSetFont(var Message: TWMSetFont); message WM_SETFONT;
     procedure WMSpSkinChange(var Message: TMessage); message WM_SPSKINCHANGE;
@@ -1927,12 +1926,6 @@ procedure TSpTBXComboBox.WMMouseMove(var Message: TWMMouseMove);
 begin
   inherited;
   UpdateDropDownButton;
-end;
-
-procedure TSpTBXComboBox.WMNCCalcSize(var Message: TWMNCCalcSize);
-begin
-  // [Bugfix] Delphi 2006 bug:
-  // Do nothing, fix Delphi 2005/2006 bug: http://qc.borland.com/wc/qcmain.aspx?d=13852
 end;
 
 procedure TSpTBXComboBox.WMPaint(var Message: TWMPaint);

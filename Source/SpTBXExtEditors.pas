@@ -100,7 +100,6 @@ type
   end;
 
   { TSpTBXFontComboBox }
-  TSpTBXPreviewPanel = class(TPanel);
 
   TSpTBXFontComboBoxPreview = class(TCustomControl)
   private
