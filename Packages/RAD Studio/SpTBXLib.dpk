@@ -30,9 +30,7 @@ requires
   vcl,
   tb2k_d12,
   rtl,
-  vclx,
-  vclimg,
-  vclwinx;
+  vclx;
 
 contains
   SpTBXItem in '..\..\Source\SpTBXItem.pas',

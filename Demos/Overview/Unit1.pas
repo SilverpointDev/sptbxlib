@@ -9,13 +9,7 @@ uses
   TB2Item, TB2Toolbar, TB2Dock, TB2ExtItems,
   // SpTBXLib
   SpTBXSkins, SpTBXItem, SpTBXDkPanels, SpTBXTabs, SpTBXEditors, SpTBXControls,
-  SpTBXExtEditors,
-  {$IF CompilerVersion >= 33} // for Delphi Rio and up
-  // TImageCollection and TVirtualImagelist introduced on Rio
-  Vcl.VirtualImageList, Vcl.BaseImageCollection, Vcl.ImageCollection,
-  {$IFEND}
-  System.ImageList;
-
+  SpTBXExtEditors, SpTBXImageList;
 
 type
   TForm1 = class(TForm)
@@ -157,11 +151,7 @@ type
     procedure WMSpSkinChange(var Message: TMessage); message WM_SPSKINCHANGE;
   public
     AppPath: string;
-    {$IF CompilerVersion >= 33} // for Delphi Rio and up
-    // TImageCollection and TVirtualImagelist introduced on Rio
-    IC: TImageCollection;
-    {$IFEND}
-    IL: TCustomImageList;
+    IL: TSpTBXImageList;
   end;
 
 var
@@ -170,7 +160,7 @@ var
 implementation
 
 uses
-  Themes, Registry, IOUtils;
+  Themes, IOUtils;
 
 {$R *.dfm}
 
@@ -212,25 +202,12 @@ procedure TForm1.FormCreate(Sender: TObject);
 begin
   FLastSkin := 'Aluminum';
   SkinManager.AddSkinNotification(Self);
-
-  {$IF CompilerVersion >= 33} // for Delphi Rio and up
-  // TImageCollection and TVirtualImagelist introduced on Rio
-  IC := TImageCollection.Create(Self);
-  IL := TVirtualImageList.Create(Self);
-  TVirtualImageList(IL).ImageCollection := IC;
-  {$ELSE}
-  IL := TImageList.Create(Self);
-  {$IFEND}
+  IL := TSpTBXImageList.Create(Self);
 end;
 
 procedure TForm1.FormDestroy(Sender: TObject);
 begin
   SkinManager.RemoveSkinNotification(Self);
-
-  {$IF CompilerVersion >= 33} // for Delphi Rio and up
-  // TImageCollection and TVirtualImagelist introduced on Rio
-  IC.Free;
-  {$IFEND}
   IL.Free;
 end;
 
@@ -268,13 +245,13 @@ begin
 
   // Load PNGs
   // Use ImageCollection/TVirtualImagelist on Rio and up
-  SpLoadGlyphs(IL, AppPath + 'Glyphs');
+  IL.LoadGlyphs(AppPath + 'Glyphs');
 
-  SpTBXTabControl1.Images := IL;
-  SpTBXToolbar3.Images := IL;
-  SpTBXStatusBar1.Images := IL;
-  DP2.Images := IL;
-  DP3.Images := IL;
+  SpTBXTabControl1.Images := IL.ImageList;
+  SpTBXToolbar3.Images := IL.ImageList;
+  SpTBXStatusBar1.Images := IL.ImageList;
+  DP2.Images := IL.ImageList;
+  DP3.Images := IL.ImageList;
 
   // Initialize the link labels
   S := TPath.GetDocumentsPath;

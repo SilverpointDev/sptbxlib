@@ -524,7 +524,6 @@ procedure SpPaintTo(WinControl: TWinControl; ACanvas: TCanvas; X, Y: Integer);
 { ImageList painting }
 procedure SpDrawIconShadow(ACanvas: TCanvas; const ARect: TRect; ImageList: TCustomImageList; ImageIndex: Integer);
 procedure SpDrawImageList(ACanvas: TCanvas; const ARect: TRect; ImageList: TCustomImageList; ImageIndex: Integer; Enabled: Boolean);
-procedure SpLoadGlyphs(IL: TCustomImageList; GlyphPath: string);
 
 { Gradients }
 procedure SpGradient(ACanvas: TCanvas; const ARect: TRect; StartPos, EndPos, ChunkSize: Integer; C1, C2: TColor; const Vertical: Boolean);
@@ -572,10 +571,7 @@ implementation
 uses
   UxTheme, Forms, Math, TypInfo,
   SpTBXDefaultSkins, CommCtrl,
-  {$IF CompilerVersion >= 33} // for Delphi Rio and up
-  ImageCollection, VirtualImageList,
-  {$IFEND}
-  Rtti, IOUtils, pngimage, Generics.Defaults;
+  Rtti, IOUtils, Generics.Defaults;
 
 const
   ROP_DSPDxax = $00E20746;
@@ -1808,69 +1804,6 @@ procedure SpDrawImageList(ACanvas: TCanvas; const ARect: TRect;
 begin
   if Assigned(ImageList) and (ImageIndex > -1) and (ImageIndex < ImageList.Count) then
     ImageList.Draw(ACanvas, ARect.Left, ARect.Top, ImageIndex, Enabled);
-end;
-
-procedure SpLoadGlyphs(IL: TCustomImageList; GlyphPath: string);
-// Finds png files on GlyphPath and adds them to IL
-// If IL is a TVirtualImageList it adds all the PNGs sizes.
-// Otherwise it adds only the PNGs that matches the size of the IL
-// Notation of files must be filename-16x16.png
-var
-  Files: TStringDynArray;
-  FilenameS, S, ILSize: string;
-  I: Integer;
-  P: TPngImage;
-  B: TBitmap;
-begin
-  ILSize := Format('%dX%d', [IL.Width, IL.Height]);
-  Files := TDirectory.GetFiles(GlyphPath, '*.png');
-  TArray.Sort<string>(Files, TStringComparer.Ordinal);
-
-  for S in Files do begin
-    {$IF CompilerVersion >= 33} // for Delphi Rio and up
-    // TImageCollection and TVirtualImagelist introduced on Rio
-    if IL is TVirtualImageList then begin
-      if Assigned(TVirtualImageList(IL).ImageCollection) and (TVirtualImageList(IL).ImageCollection is TImageCollection) then begin
-        FilenameS := TPath.GetFileName(S);
-        I := LastDelimiter('-_', FilenameS);
-        if I > 1 then
-          FilenameS := Copy(FilenameS, 1, I-1);
-        // Add all the sizes of the png with 1 name on ImageCollection
-        TImageCollection(TVirtualImageList(IL).ImageCollection).Add(FilenameS, S);
-      end;
-    end
-    else
-    {$IFEND}
-    begin
-      // Try to add only PNGs with the same size as the Image List
-      // Notation of files must be filename-16x16.png
-      FilenameS := TPath.GetFileNameWithoutExtension(S);
-      I := LastDelimiter('-_', FilenameS) + 1;
-      if I > 2 then begin
-        FilenameS := Copy(FilenameS, I, Length(ILSize));
-        if UpperCase(FilenameS) <> ILSize then
-          FilenameS := '';
-      end;
-      if FilenameS <> '' then begin
-        P := TPNGImage.Create;
-        B := TBitmap.Create;
-        try
-          P.LoadFromFile(S);
-          B.Assign(P);
-          IL.ColorDepth := cd32Bit;
-          IL.Add(B, nil);
-        finally
-          P.Free;
-          B.Free;
-        end;
-      end;
-    end;
-  end;
-
-  {$IF CompilerVersion >= 33} // for Delphi Rio and up
-  if IL is TVirtualImageList then
-    TVirtualImageList(IL).AutoFill := True;
-  {$IFEND}
 end;
 
 //WMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWM

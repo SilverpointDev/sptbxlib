@@ -1029,6 +1029,7 @@ type
     function GetFloatingWindowParentClass: TTBFloatingWindowParentClass; override;
 
     // Sizing
+    procedure ChangeScale(M, D: Integer{$IF CompilerVersion >= 31}; isDpiChange: Boolean{$IFEND}); override;
     function CalcSize(ADock: TTBDock): TPoint; virtual;
     function DoArrange(CanMoveControls: Boolean; PreviousDockType: TTBDockType; NewFloating: Boolean; NewDock: TTBDock): TPoint; override;
     procedure GetBaseSize(var ASize: TPoint); override;
@@ -5973,14 +5974,11 @@ end;
 procedure TSpTBXDock.ChangeScale(M, D: Integer{$IF CompilerVersion >= 31}; isDpiChange: Boolean{$IFEND});
 begin
   FScaling := True;
-  try
-    // Reset anchor prev size
-    FPrevSize.cx := 0;
-    FPrevSize.cy := 0;
-    inherited;
-  finally
-    FScaling := False;
-  end;
+  // Reset anchor prev size
+  FPrevSize.cx := 0;
+  FPrevSize.cy := 0;
+  inherited;
+  FScaling := False;
 end;
 
 constructor TSpTBXDock.Create(AOwner: TComponent);
@@ -6058,7 +6056,8 @@ begin
   // For anchored and right aligned items
   for I := 0 to ToolbarCount - 1 do
     if Toolbars[I] is TSpTBXToolbar then begin
-      TSpTBXToolbar(Toolbars[I]).Resize;
+
+      TSpTBXToolbar(Toolbars[I]).RightAlignItems;
 
       if (ComponentState * [csReading, csLoading, csDestroying] = []) and
         (FPrevSize.cx > 0) and (FPrevSize.cy > 0) then
@@ -6200,9 +6199,8 @@ begin
   Dec(FUpdating);
   inherited EndUpdate;
   if FUpdating = 0 then
-    if Assigned(Owner) and (Owner is TSpTBXToolbar) then begin
+    if Assigned(Owner) and (Owner is TSpTBXToolbar) then
       TSpTBXToolbar(Owner).RightAlignItems;
-    end;
 end;
 
 function TSpTBXToolbarView.IsUpdating: Boolean;
@@ -6262,29 +6260,22 @@ procedure TSpTBXToolbar.DoItemNotification(Ancestor: TTBCustomItem;
 begin
   if (csDestroying in ComponentState) or (csReading in ComponentState) then Exit;
 
-  if not (tstResizing in FState) and not IsItemMoving then begin
-    if Assigned(FOnItemNotification) then FOnItemNotification(Self, Ancestor, Relayed, Action, Index, Item);
-
-    case Action of
-      tbicInserted:
-        RightAlignItems;
-      tbicDeleting:
-        RightAlignItems;
-      tbicInvalidateAndResize:
-        RightAlignItems;
-    end;
+  if not (tstResizing in FState) and not (tstRightAligning in FState) and
+    not IsItemMoving then
+  begin
+    if Assigned(FOnItemNotification) then
+      FOnItemNotification(Self, Ancestor, Relayed, Action, Index, Item);
+    if Action in [tbicInserted, tbicDeleting, tbicInvalidateAndResize] then
+      RightAlignItems;
   end;
 end;
 
 procedure TSpTBXToolbar.Resize;
 begin
   FState := FState + [tstResizing];
-  try
-    RightAlignItems;
-  finally
-    FState := FState - [tstResizing];
-  end;
   inherited;
+  RightAlignItems;
+  FState := FState - [tstResizing];
 end;
 
 procedure TSpTBXToolbar.AnchorItems(Delta: Integer);
@@ -6293,7 +6284,6 @@ var
   SpIV: TSpTBXItemViewer;
   CI: TTBControlItem;
 begin
-
   if (Delta = 0) or (tstAnchoring in FState) or not Assigned(CurrentDock) or
     (CurrentDock.Width = 0) or (CurrentDock.Height = 0) or
     not Stretch or (ShrinkMode <> tbsmNone) or IsUpdating then
@@ -6376,7 +6366,7 @@ begin
         Spacer.Item.CustomWidth := I;
       end;
     end;
-    View.UpdatePositions;
+//    View.UpdatePositions; // not needed
   finally
     View.EndUpdate;
     FState := FState - [tstRightAligning];
@@ -6663,8 +6653,10 @@ var
   R: TRect;
 begin
   inherited;
-
-  if Docked and ((CurrentDock is TSpTBXDock) and not TSpTBXDock(CurrentDock).FResizing) then begin
+  // Ported from TBX, assume we are using a background and invalidate when resizing
+  if not (csLoading in ComponentState) and Docked and
+    (CurrentDock is TSpTBXDock) and not TSpTBXDock(CurrentDock).FResizing then
+  begin
     for I := 0 to View.ViewerCount - 1 do begin
       V := View.Viewers[I];
       if V.Show and not IsRectEmpty(V.BoundsRect) and not (V.Item is TTBControlItem) then
@@ -6824,7 +6816,7 @@ begin
     DockPos := MulDiv(DockPos, M, D);
 
   // Scale CustomWidth/CustomHeight
- for I := 0 to Items.Count - 1 do
+  for I := 0 to Items.Count - 1 do
     if Items[I] is TSpTBXCustomItem then begin
       T := TSpTBXCustomItem(Items[I]);
       W := MulDiv(T.CustomWidth, M, D);
@@ -7041,6 +7033,13 @@ destructor TSpTBXCustomToolWindow.Destroy;
 begin
   SkinManager.RemoveSkinNotification(Self);
   inherited;
+end;
+
+procedure TSpTBXCustomToolWindow.ChangeScale(M, D: Integer{$IF CompilerVersion >= 31}; isDpiChange: Boolean{$IFEND});
+begin
+  inherited;
+  FBarSize.cx := MulDiv(FBarSize.cx, M, D);
+  FBarSize.cy := MulDiv(FBarSize.cy, M, D);
 end;
 
 function TSpTBXCustomToolWindow.CalcSize(ADock: TTBDock): TPoint;
