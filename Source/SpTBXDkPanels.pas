@@ -1111,7 +1111,7 @@ end;
 //WMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWM
 { Toolbar Load/Save Position helpers }
 
-procedure SpTBUpdateMultiDocksAfterLoad(const M: TSpTBXMultiDock);
+procedure SpTBUpdateMultiDocksAfterLoad(const M: TSpTBXCustomMultiDock);
 // TBCustomLoadPositions doesn't correctly position the DPs after they are loaded.
 // To reproduce:
 // 1) Drop a top aligned MultiDock with 3 DPs (DP1, DP2, DP3), and drop a left
@@ -1608,7 +1608,8 @@ end;
 procedure TSpTBXCustomMultiDock.SetBounds(ALeft, ATop, AWidth, AHeight: Integer);
 begin
   inherited;
-  UpdateDPLateralSize(AWidth, AHeight);
+  if not (csLoading in ComponentState) then
+    UpdateDPLateralSize(AWidth, AHeight);
 end;
 
 procedure TSpTBXCustomMultiDock.SetLimitToOneRow(const Value: Boolean);

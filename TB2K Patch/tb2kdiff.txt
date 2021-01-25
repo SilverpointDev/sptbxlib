@@ -147,7 +147,7 @@
  initialization
    InitGradientFillFunc;
 --- TB2Dock.pas	Wed Sep 17 15:12:26 2008
-+++ TB2Dock.pas	Fri Dec 11 15:36:26 2020
++++ TB2Dock.pas	Wed Jan 20 16:05:53 2021
 @@ -37,7 +37,12 @@
  {$I TB2Ver.inc}
  
@@ -300,19 +300,24 @@
  function GetMDIParent(const Form: TTBCustomForm): TTBCustomForm;
  { Returns the parent of the specified MDI child form. But, if Form isn't a
    MDI child, it simply returns Form. }
-@@ -913,6 +948,11 @@
+@@ -913,6 +948,16 @@
        Style := Style and not(CS_HREDRAW or CS_VREDRAW);
  end;
  
 +function TTBDock.DefaultScalingFlags: TScalingFlags;
 +begin
-+  Result := [];
++  // Result := [];
++  // Reverted to old behavior, it was causing incorrect aligning when changing
++  // DPI, to reproduce right align a dock with a toolbar, and right align
++  // a splitter, the splitter should be on the left side of the toolbar,
++  // changing DPI causes incorrect splitter alignment.
++  Result := inherited;
 +end;
 +
  destructor TTBDock.Destroy;
  begin
    if Assigned(FBackground) then
-@@ -1023,6 +1063,11 @@
+@@ -1023,6 +1068,11 @@
    end;
  end;
  
@@ -324,7 +329,7 @@
  function TTBDock.GetHighestRow(const HighestEffective: Boolean): Integer;
  { Returns highest used row number, or -1 if no rows are used }
  var
-@@ -1323,7 +1368,7 @@
+@@ -1323,7 +1373,7 @@
            PosData[I].MinimumSize := 0;
            T.GetMinShrinkSize(PosData[I].MinimumSize);
            if PosData[I].MinimumSize > PosData[I].FullSize then
@@ -333,7 +338,7 @@
              PosData[I].MinimumSize := PosData[I].FullSize;
            if PosData[I].ShrinkMode = tbsmChevron then
              Inc(MinRealPos, PosData[I].MinimumSize)
-@@ -1565,7 +1610,7 @@
+@@ -1565,7 +1615,7 @@
          end;
        end;
        if CurRowSize <> -1 then
@@ -342,7 +347,7 @@
        else
          CurRowSize := 0;
        for I := 0 to NewDockList.Count-1 do begin
-@@ -1643,6 +1688,16 @@
+@@ -1643,6 +1693,16 @@
    ToolbarVisibilityChanged(Bar, False);
  end;
  
@@ -359,7 +364,7 @@
  procedure TTBDock.ToolbarVisibilityChanged(const Bar: TTBCustomDockableWindow;
    const ForceRemove: Boolean);
  var
-@@ -2069,8 +2124,160 @@
+@@ -2069,8 +2129,160 @@
  end;*)
  
  
@@ -520,7 +525,7 @@
  procedure TTBFloatingWindowParent.CreateParams(var Params: TCreateParams);
  const
    ThickFrames: array[Boolean] of DWORD = (0, WS_THICKFRAME);
-@@ -2089,7 +2296,7 @@
+@@ -2089,7 +2301,7 @@
        thick frame or border is not drawn by Windows; TCustomToolWindow97
        handles all border drawing by itself. }
      if not(csDesigning in ComponentState) then
@@ -529,7 +534,7 @@
      else
        Style := Style or WS_BORDER or ThickFrames[FDockableWindow.FResizable];
      { The WS_EX_TOOLWINDOW style is needed so there isn't a taskbar button
-@@ -2195,6 +2402,11 @@
+@@ -2195,6 +2407,11 @@
    Result.Left := Result.Right - (GetSmallCaptionHeight-1);
  end;
  
@@ -541,7 +546,7 @@
  procedure TTBFloatingWindowParent.WMNCCalcSize(var Message: TWMNCCalcSize);
  
    procedure ApplyToRect(var R: TRect);
-@@ -2445,6 +2657,17 @@
+@@ -2445,6 +2662,17 @@
    FDockableWindow.Moved;
  end;
  
@@ -559,7 +564,7 @@
  procedure TTBFloatingWindowParent.DrawNCArea(const DrawToDC: Boolean;
    const ADC: HDC; const Clip: HRGN; RedrawWhat: TTBToolWindowNCRedrawWhat);
  { Redraws all the non-client area (the border, title bar, and close button) of
-@@ -2517,7 +2740,7 @@
+@@ -2517,7 +2745,7 @@
          if twrdCaption in RedrawWhat then begin
            R := GetCaptionRect(True, FDockableWindow.FCloseButton);
            DrawSmallWindowCaption(Handle, DC, R, Caption,
@@ -568,7 +573,7 @@
  
            { Line below caption }
            R := GetCaptionRect(True, False);
-@@ -2535,8 +2758,8 @@
+@@ -2535,8 +2763,8 @@
        if FDockableWindow.FCloseButton then begin
          R := GetCloseButtonRect(True);
          R2 := R;
@@ -579,7 +584,7 @@
          if twrdCaption in RedrawWhat then begin
            SaveIndex := SaveDC(DC);
            ExcludeClipRect(DC, R2.Left, R2.Top, R2.Right, R2.Bottom);
-@@ -2545,7 +2768,7 @@
+@@ -2545,7 +2773,7 @@
            RestoreDC(DC, SaveIndex);
          end;
          if twrdCloseButton in RedrawWhat then
@@ -588,7 +593,7 @@
              CloseButtonState[FCloseButtonDown]);
        end;
      end;
-@@ -2663,7 +2886,7 @@
+@@ -2663,7 +2891,7 @@
        Bmp := CreateCompatibleBitmap(DC, CR.Right, CR.Bottom);
        SelectObject(BmpDC, Bmp);
        SendMessage(W, WM_NCPAINT, 0, 0);
@@ -597,15 +602,7 @@
        SendMessage(W, WM_PAINT, WPARAM(BmpDC), 0);
        BitBlt(DC, 0, 0, CR.Right, CR.Bottom, BmpDC, 0, 0, SRCCOPY);
      finally
-@@ -3185,6 +3408,7 @@
-   OldCurrentDock, NewCurrentDock: TTBDock;
-   NewFloating: Boolean;
-   SaveHandle: HWND;
-+  NewPPI: Integer;
- begin
-   OldCurrentDock := ParentToCurrentDock(Parent);
-   NewCurrentDock := ParentToCurrentDock(AParent);
-@@ -3256,6 +3480,29 @@
+@@ -3256,6 +3484,14 @@
                SetWindowPos(SaveHandle, 0, 0, 0, 0, 0, SWP_FRAMECHANGED or
                  SWP_NOACTIVATE or SWP_NOMOVE or SWP_NOSIZE or SWP_NOZORDER);
              end;
@@ -614,28 +611,13 @@
 +            // CustomDocakbleWindow has a FreeNotification (see TControl.SetParent)
 +            if Assigned(AParent) and not(csLoading in ComponentState)
 +              and (csFreeNotification in ComponentState)
-+            then begin
-+              if AParent is TTBFloatingWindowParent then
-+              begin
-+                NewPPI := Screen.MonitorFromPoint(Point(FloatingPosition.X,
-+                  FloatingPosition.Y)).PixelsPerInch;
-+                // The form font is initialized with the font size of the main monitor
-+                // If the main monitor has PPI > 96 and we then scale them
-+                // child controls with ParentFont property would have wrong font size
-+                // after we scale the form.  Hence the following:
-+                TTBFloatingWindowParent(AParent).Font.Height :=
-+                  MulDiv(TTBFloatingWindowParent(AParent).Font.Height, 96,
-+                  Screen.PixelsPerInch);
-+                AParent.ScaleForPPI(NewPPI);
-+              end else
-+                NewPPI := AParent.CurrentPPI;
-+              ScaleForPPI(NewPPI);
-+            end;
++            then
++              ScaleForPPI(AParent.CurrentPPI);
 +            {$IFEND}
              inherited;
            except
              { Failure is rare, but just in case, restore these back. }
-@@ -3353,12 +3600,12 @@
+@@ -3353,12 +3589,12 @@
    BottomRight.X := Z;
    BottomRight.Y := Z;
    if not LeftRight then begin
@@ -650,7 +632,7 @@
      //if FShowChevron then
      //  Inc(BottomRight.Y, tbChevronSize);
    end;
-@@ -3372,8 +3619,8 @@
+@@ -3372,8 +3608,8 @@
    XMetrics: array[Boolean] of Integer = (SM_CXDLGFRAME, SM_CXFRAME);
    YMetrics: array[Boolean] of Integer = (SM_CYDLGFRAME, SM_CYFRAME);
  begin
@@ -661,7 +643,7 @@
  end;
  
  procedure TTBCustomDockableWindow.GetFloatingNCArea(var TopLeft, BottomRight: TPoint);
-@@ -3382,24 +3629,29 @@
+@@ -3382,24 +3618,29 @@
      TopLeft.X := X;
      TopLeft.Y := Y;
      if ShowCaption then
@@ -695,7 +677,7 @@
    end;
    Result := Bounds(X, Y, Z, Z);
  end;
-@@ -3413,10 +3665,10 @@
+@@ -3413,10 +3654,10 @@
      Result.Y := 0;
    end
    else begin
@@ -709,7 +691,7 @@
        if not(CurrentDock.Position in PositionLeftOrRight) then
          Inc(Result.X, Z)
        else
-@@ -3433,7 +3685,7 @@
+@@ -3433,7 +3674,7 @@
    begin
      InflateRect(R, -DockedBorderSize, -DockedBorderSize);
      if CurrentDock.FAllowDrag then begin
@@ -718,7 +700,7 @@
        if not(CurrentDock.Position in PositionLeftOrRight) then
          Inc(R.Left, Z)
        else
-@@ -3475,7 +3727,7 @@
+@@ -3475,7 +3716,7 @@
        I := P.X - R.Left
      else
        I := P.Y - R.Top;
@@ -727,7 +709,7 @@
        SetCursor(LoadCursor(0, IDC_SIZEALL));
        Message.Result := 1;
        Exit;
-@@ -3591,31 +3843,32 @@
+@@ -3591,31 +3832,32 @@
        else
          Y2 := ClientWidth;
        Inc(Y2, DockedBorderSize);
@@ -768,7 +750,7 @@
          end;
        end;
        if not UsingBackground then begin
-@@ -3635,9 +3888,9 @@
+@@ -3635,9 +3877,9 @@
            DrawEdge(DC, R2, BDR_SUNKENOUTER, BF_RECT)
          else if FCloseButtonHover then
            DrawRaisedEdge(R2, False);
@@ -780,7 +762,7 @@
          DrawButtonBitmap(CreateCloseButtonBitmap);
        end;
      end;
-@@ -3727,6 +3980,22 @@
+@@ -3727,6 +3969,22 @@
    end;
  end;
  
@@ -803,7 +785,7 @@
  procedure TTBCustomDockableWindow.DrawDraggingOutline(const DC: HDC;
    const NewRect, OldRect: TRect; const NewDocking, OldDocking: Boolean);
  var
-@@ -3874,7 +4143,7 @@
+@@ -3874,7 +4132,7 @@
              C := FirstPos.X - LastPos.X
            else
              C := FirstPos.Y - LastPos.Y;
@@ -812,7 +794,7 @@
              WatchForSplit := False;
              FDragSplitting := True;
              SetCursor(LoadCursor(0, SplitCursors[SplitVertical]));
-@@ -3941,15 +4210,15 @@
+@@ -3941,15 +4199,15 @@
        with Control do begin
          Result := False;
  
@@ -831,7 +813,7 @@
            Exit;
  
          { Don't try to dock to the left or right if pointer is above or below
-@@ -3960,8 +4229,8 @@
+@@ -3960,8 +4218,8 @@
  
          { And also distribute ~25 pixels of extra dock detection area to
            the top or bottom side }
@@ -842,7 +824,7 @@
            Exit;
  
          Result := IntersectRect(Temp, R, S);
-@@ -4022,7 +4291,7 @@
+@@ -4022,7 +4280,7 @@
        R2 := GetRectOfMonitorContainingPoint(Pos, True);
        R := R2;
        with GetFloatingBorderSize do
@@ -851,7 +833,7 @@
        if MoveRect.Bottom < R.Top then
          OffsetRect(MoveRect, 0, R.Top-MoveRect.Bottom);
        if MoveRect.Top > R.Bottom then
-@@ -4033,7 +4302,7 @@
+@@ -4033,7 +4291,7 @@
          OffsetRect(MoveRect, R.Right-MoveRect.Left, 0);
  
        GetFloatingNCArea(TL, BR);
@@ -860,7 +842,7 @@
        if MoveRect.Top < I then
          OffsetRect(MoveRect, 0, I-MoveRect.Top);
      end;
-@@ -4394,7 +4663,7 @@
+@@ -4394,7 +4652,7 @@
    else
    if Assigned(DefaultDock) then begin
      FDockRow := ForceDockAtTopRow;
@@ -869,23 +851,28 @@
      Parent := DefaultDock;
    end;
  end;
-@@ -5037,6 +5306,7 @@
+@@ -5033,10 +5291,20 @@
+         NewFloatParent := GetFloatingWindowParentClass.CreateNew(nil);
+         try
+           with NewFloatParent do begin
++            // The form font is initialized with the font size of the main monitor
++            // If the main monitor has PPI > 96 and we then scale
++            // child controls with ParentFont property would have wrong font size
++            // after we scale the form.  Hence the following:
++            ParentFont := False;
++            Font.Assign(ParentFrm.Font);
++            Font.Height := MulDiv(Font.Height, 96, ParentFrm.CurrentPPI);
+             FDockableWindow := Self;
              BorderStyle := bsToolWindow;
              ShowHint := True;
              Visible := True;
-+            ParentFont := False;
++            {$IF CompilerVersion > 31}
++            ScaleForCurrentDPI;
++            {$IFEND}
              { Note: The above line doesn't actually make it visible at this
                point since FShouldShow is still False. }
            end;
-@@ -5051,6 +5321,7 @@
-       FFloatParent.Caption := Caption;
-       Parent := FFloatParent;
-       SetBounds(0, 0, Width, Height);
-+      //FFloatParent.ScaleForCurrentDpi;
-     end
-     else
-       Parent := TBValidToolWindowParentForm(Self);
-@@ -5215,8 +5486,7 @@
+@@ -5215,8 +5483,7 @@
    if FBitmapCache = nil then begin
      FBitmapCache := TBitmap.Create;
      FBitmapCache.Palette := CopyPalette(FBitmap.Palette);
@@ -895,7 +882,7 @@
      if not FTransparent then begin
        { Copy from a possible DIB to our DDB }
        BitBlt(FBitmapCache.Canvas.Handle, 0, 0, FBitmapCache.Width,
-@@ -5411,8 +5681,8 @@
+@@ -5411,8 +5678,8 @@
        Data.ReadIntProc := ReadIntProc;
        Data.ReadStringProc := ReadStringProc;
        Data.ExtraData := ExtraData;
