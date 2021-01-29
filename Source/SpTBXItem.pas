@@ -1045,10 +1045,10 @@ type
 
     property ClientAreaHeight: Integer read GetClientAreaHeight write SetClientAreaHeight;
     property ClientAreaWidth: Integer read GetClientAreaWidth write SetClientAreaWidth;
-    property MaxClientHeight: Integer read FMaxClientHeight write FMaxClientHeight default 0; // UnScaled
-    property MaxClientWidth: Integer read FMaxClientWidth write FMaxClientWidth default 0; // UnScaled
-    property MinClientHeight: Integer read FMinClientHeight write FMinClientHeight default 32; // UnScaled
-    property MinClientWidth: Integer read FMinClientWidth write FMinClientWidth default 32; // UnScaled
+    property MaxClientHeight: Integer read FMaxClientHeight write FMaxClientHeight default 0;
+    property MaxClientWidth: Integer read FMaxClientWidth write FMaxClientWidth default 0;
+    property MinClientHeight: Integer read FMinClientHeight write FMinClientHeight default 32;
+    property MinClientWidth: Integer read FMinClientWidth write FMinClientWidth default 32;
     property OnDrawBackground: TSpTBXDrawEvent read FOnDrawBackground write FOnDrawBackground;
   public
     constructor Create(AOwner: TComponent); override;
@@ -1323,7 +1323,6 @@ type
     FMinimize: Boolean;
     FMaximize: Boolean;
     FButtonBorders: Boolean;
-    FTitleBarMaxSize: Integer;
     procedure SetCaptionImageIndex(Value: Integer);
     procedure SetCloseImageIndex(Value: Integer);
     procedure SetCaptionLabel(const Value: string);
@@ -1334,6 +1333,7 @@ type
     procedure SetClose(const Value: Boolean);
     procedure SetMaximize(const Value: Boolean);
     procedure SetMinimize(const Value: Boolean);
+    function GetTitleBarMaxSize: Integer;
     procedure SetTitleBarMaxSize(const Value: Integer);
   protected
     FParentControl: TWinControl;
@@ -1371,7 +1371,7 @@ type
     property MinimizeImageIndex: Integer read FMinimizeImageIndex write SetMinimizeImageIndex default -1;
     property MaximizeImageIndex: Integer read FMaximizeImageIndex write SetMaximizeImageIndex default -1;
     property RestoreImageIndex: Integer read FRestoreImageIndex write SetRestoreImageIndex default -1;
-    property TitleBarMaxSize: Integer read FTitleBarMaxSize write SetTitleBarMaxSize default 21; // Unscaled
+    property TitleBarMaxSize: Integer read GetTitleBarMaxSize write SetTitleBarMaxSize default 21;
   end;
 
   { TSpTBXStatusBar }
@@ -3120,13 +3120,13 @@ begin
             // WindowsXP themes where the gripper pattern repeats itself every 4 pixels
             if Vertical then begin
               Details := SpTBXThemeServices.GetElementDetails(trGripperVert);
-              GripR := SpCenterRectVert(GripR, 6);  // Do not DPIScale, Windows paints the grip with 4 pixels
+              GripR := SpCenterRectVert(GripR, 6);  // Do not scale, Windows paints the grip with 4 pixels
               GripR.Right := GripR.Left + ((GripR.Right - GripR.Left) div 4) * 4;
               OffsetRect(GripR, 0, PP1);
             end
             else begin
               Details := SpTBXThemeServices.GetElementDetails(trGripper);
-              GripR := SpCenterRectHoriz(GripR, 6);  // Do not DPIScale, Windows paints the grip with 4 pixels
+              GripR := SpCenterRectHoriz(GripR, 6);  // Do not scale, Windows paints the grip with 4 pixels
               GripR.Bottom := GripR.Top + ((GripR.Bottom - GripR.Top) div 4) * 4;
               OffsetRect(GripR, PP1, 0);
             end;
@@ -4373,7 +4373,7 @@ begin
   end;
 
   // Handle Spacer, anchored and custom sized items
-  // Do not scale CustomWidth/CustomHeight, it's scaled in ChangeScale
+  // Do not scale CustomWidth/CustomHeight, it's scaled in TSpTBXToolbar.ChangeScale
   // No min size for Anchored items
   // 0 is the min size for SpacerItem
   if IsRotated then begin
@@ -4394,7 +4394,8 @@ begin
   // Apply View.MaxSize to the height of the item
   if View.Window is TSpTBXToolbar then begin
     TB := View.Window as TSpTBXToolbar;
-    I := PPIScale(TB.MaxSize) - TB.NonClientHeight;
+    // Do not scale MaxSize, it's scaled in TSpTBXToolbar.ChangeScale
+    I := TB.MaxSize - TB.NonClientHeight;
     if (I > -1) and (H > I) then
       H := I;
   end;
@@ -6841,6 +6842,10 @@ begin
       if Assigned(CI) and (CI.Control.Tag <> 0) then
         CI.Control.Tag := MulDiv(CI.Control.Tag, M, D);  // Scale prev size of the anchored ControlItem
     end;
+
+  // Scale MaxSize
+  if MaxSize > -1 then
+    MaxSize := MulDiv(MaxSize, M, D);
 end;
 
 procedure TSpTBXToolbar.MouseMove(Shift: TShiftState; X, Y: Integer);
@@ -7038,8 +7043,12 @@ end;
 procedure TSpTBXCustomToolWindow.ChangeScale(M, D: Integer{$IF CompilerVersion >= 31}; isDpiChange: Boolean{$IFEND});
 begin
   inherited;
-  FBarSize.cx := MulDiv(FBarSize.cx, M, D);
-  FBarSize.cy := MulDiv(FBarSize.cy, M, D);
+  // No need to scale FBarSize, it's updated in TSpTBXCustomToolWindow.SizeChanging
+  // with Width/Height values which are already scaled
+  FMaxClientHeight := MulDiv(FMaxClientHeight, M, D);
+  FMaxClientWidth := MulDiv(FMaxClientWidth, M, D);
+  FMinClientHeight := MulDiv(FMinClientHeight, M, D);
+  FMinClientWidth := MulDiv(FMinClientWidth, M, D);
 end;
 
 function TSpTBXCustomToolWindow.CalcSize(ADock: TTBDock): TPoint;
@@ -7050,9 +7059,9 @@ begin
     // If docked and stretching, return the minimum size so that the
     // toolbar can shrink below FBarSize
     if SpIsVerticalToolbar(Self) then
-      Result.Y := PPIScale(FMinClientHeight)
+      Result.Y := FMinClientHeight
     else
-      Result.X := PPIScale(FMinClientWidth);
+      Result.X := FMinClientWidth;
   end;
 end;
 
@@ -7071,10 +7080,10 @@ procedure TSpTBXCustomToolWindow.GetMinMaxSize(var AMinClientWidth, AMinClientHe
   AMaxClientWidth, AMaxClientHeight: Integer);
 begin
   // GetMinMaxSize is used only when the window is floating
-  AMinClientWidth := PPIScale(FMinClientWidth);
-  AMinClientHeight := PPIScale(FMinClientHeight);
-  AMaxClientWidth := PPIScale(FMaxClientWidth);
-  AMaxClientHeight := PPIScale(FMaxClientHeight);
+  AMinClientWidth := FMinClientWidth;
+  AMinClientHeight := FMinClientHeight;
+  AMaxClientWidth := FMaxClientWidth;
+  AMaxClientHeight := FMaxClientHeight;
 end;
 
 function TSpTBXCustomToolWindow.IsVertical: Boolean;
@@ -8542,7 +8551,7 @@ begin
   FMinimizeImageIndex := -1;
   FMaximizeImageIndex := -1;
   FRestoreImageIndex := -1;
-  FTitleBarMaxSize := 21;
+  TitleBarMaxSize := 21;
   FButtonBorders := True;
   CreateButtons;
 end;
@@ -8568,8 +8577,6 @@ begin
   FCloseButton := TSpTBXItem.Create(nil);
   SetupButton(FCloseButton);
   FCloseButton.Visible := FClose;
-
-  SetTitleBarMaxSize(FTitleBarMaxSize);
 end;
 
 procedure TSpTBXButtonOptions.MoveItemToTheLeft(B: TTBCustomItem);
@@ -8587,7 +8594,7 @@ end;
 procedure TSpTBXButtonOptions.SetupButton(B: TSpTBXCustomItem);
 begin
   B.CustomWidth := 17;
-  B.CustomHeight := FTitleBarMaxSize;
+  B.CustomHeight := TitleBarMaxSize;
   B.DisplayMode := nbdmImageAndText;
   B.OnDrawImage := ButtonsDrawImage;
   B.OnDrawItem := ButtonsDrawItem;
@@ -8751,10 +8758,18 @@ begin
   SetupButtonIcon(FMaximizeButton);
 end;
 
+function TSpTBXButtonOptions.GetTitleBarMaxSize: Integer;
+begin
+  if Assigned(FToolbar) then
+    Result := FToolbar.MaxSize
+  else
+    Result := -1;
+end;
+
 procedure TSpTBXButtonOptions.SetTitleBarMaxSize(const Value: Integer);
 begin
-  FTitleBarMaxSize := Value;
-  TSpTBXToolbarView(FToolbar.View).MaxSize := Value;
+  if Assigned(FToolbar) then
+    FToolbar.MaxSize := Value;
 end;
 
 //WMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWM
