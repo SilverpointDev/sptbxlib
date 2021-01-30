@@ -293,8 +293,8 @@ type
     property CaptionGlow: TSpGlowDirection read FCaptionGlow write SetCaptionGlow default gldNone;
     property CaptionGlowColor: TColor read FCaptionGlowColor write SetCaptionGlowColor default clYellow;
     property Control: TControl read FControl write SetControl;
-    property CustomWidth: Integer read FCustomWidth write SetCustomWidth default -1;  // Unscaled
-    property CustomHeight: Integer read FCustomHeight write SetCustomHeight default -1;  // Unscaled
+    property CustomWidth: Integer read FCustomWidth write SetCustomWidth default -1;
+    property CustomHeight: Integer read FCustomHeight write SetCustomHeight default -1;
     property FontSettings: TSpTBXFontSettings read FFontSettings write SetFontSettings;
     property Margins: Integer read FMargins write SetMargins default 0; // Unscaled
     property MinHeight: Integer read FMinHeight write SetMinHeight default 0; // Unscaled
@@ -852,7 +852,7 @@ type
     procedure BeginUpdate; virtual; // Hides inherited BeginUpdate
     procedure EndUpdate; virtual; // Hides inherited EndUpdate
     function IsUpdating: Boolean;
-    property MaxSize: Integer read FMaxSize write SetMaxSize; // Unscaled
+    property MaxSize: Integer read FMaxSize write SetMaxSize;
   end;
 
   TSpTBXToolbar = class(TTBCustomToolbar)
@@ -936,7 +936,7 @@ type
     function IsCustomizing: Boolean;
     function IsItemMoving: Boolean;
     function IsVertical: Boolean;
-    property MaxSize: Integer read GetMaxSize write SetMaxSize default -1; // Unscaled
+    property MaxSize: Integer read GetMaxSize write SetMaxSize default -1;
   published
     property ActivateParent;
     property Align;
@@ -1029,6 +1029,7 @@ type
     function GetFloatingWindowParentClass: TTBFloatingWindowParentClass; override;
 
     // Sizing
+    function DefaultScalingFlags: TScalingFlags; override;
     procedure ChangeScale(M, D: Integer{$IF CompilerVersion >= 31}; isDpiChange: Boolean{$IFEND}); override;
     function CalcSize(ADock: TTBDock): TPoint; virtual;
     function DoArrange(CanMoveControls: Boolean; PreviousDockType: TTBDockType; NewFloating: Boolean; NewDock: TTBDock): TPoint; override;
@@ -4013,6 +4014,7 @@ end;
 
 procedure TSpTBXCustomItem.SetCustomWidth(Value: Integer);
 begin
+  if Value < 0 then Value := -1;
   if FCustomWidth <> Value then begin
     FCustomWidth := Value;
     Change(True);
@@ -4021,6 +4023,7 @@ end;
 
 procedure TSpTBXCustomItem.SetCustomHeight(Value: Integer);
 begin
+  if Value < 0 then Value := -1;
   if FCustomHeight <> Value then begin
     FCustomHeight := Value;
     Change(True);
@@ -6816,6 +6819,12 @@ begin
   else
     DockPos := MulDiv(DockPos, M, D);
 
+  // Scale MaxSize
+  if MaxSize > -1 then begin
+    HandleNeeded;  // not sure why this is needed when starting on a high DPI monitor
+    MaxSize := MulDiv(MaxSize, M, D);
+  end;
+
   // Scale CustomWidth/CustomHeight
   for I := 0 to Items.Count - 1 do
     if Items[I] is TSpTBXCustomItem then begin
@@ -6842,10 +6851,6 @@ begin
       if Assigned(CI) and (CI.Control.Tag <> 0) then
         CI.Control.Tag := MulDiv(CI.Control.Tag, M, D);  // Scale prev size of the anchored ControlItem
     end;
-
-  // Scale MaxSize
-  if MaxSize > -1 then
-    MaxSize := MulDiv(MaxSize, M, D);
 end;
 
 procedure TSpTBXToolbar.MouseMove(Shift: TShiftState; X, Y: Integer);
@@ -7040,11 +7045,27 @@ begin
   inherited;
 end;
 
+function TSpTBXCustomToolWindow.DefaultScalingFlags: TScalingFlags;
+begin
+  // Make sure Width/Height are not scaled, sclae FBarSize instead.
+  // There are 2 options:
+  // 1) Scaling Width/Height and leave FBarSize to update on SizeChanging:
+  //    it will not work when starting on a high DPI monitor, Width/Height
+  //    are not scaled on csLoading, so the size will be incorrect.
+  // 2) Scaling FBarSize and prevent from scaling Width/Height: FBarSize is
+  //    scaled when changing dpi, and updated when Width/Height is changed
+  //    at runtime. If we scale FBarSize and let VCL to scale Width/Height it
+  //    will make a double scaling.
+  Result := inherited;
+  Result := Result - [sfWidth, sfHeight];
+end;
+
 procedure TSpTBXCustomToolWindow.ChangeScale(M, D: Integer{$IF CompilerVersion >= 31}; isDpiChange: Boolean{$IFEND});
 begin
   inherited;
-  // No need to scale FBarSize, it's updated in TSpTBXCustomToolWindow.SizeChanging
-  // with Width/Height values which are already scaled
+  // Scale FBarSize (Width/Height are not scaled)
+  FBarSize.cx := MulDiv(FBarSize.cx, M, D);
+  FBarSize.cy := MulDiv(FBarSize.cy, M, D);
   FMaxClientHeight := MulDiv(FMaxClientHeight, M, D);
   FMaxClientWidth := MulDiv(FMaxClientWidth, M, D);
   FMinClientHeight := MulDiv(FMinClientHeight, M, D);
