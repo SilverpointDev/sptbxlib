@@ -42,7 +42,7 @@ interface
 
 {$BOOLEVAL OFF}   // Unit depends on short-circuit boolean evaluation
 {$IF CompilerVersion >= 25} // for Delphi XE4 and up
-  {$LEGACYIFEND ON} // XE4 and up requires $IF to be terminated with $ENDIF instead of $IFEND
+  {$LEGACYIFEND ON} // requires $IF to be terminated with $ENDIF instead of $IFEND
 {$IFEND}
 
 uses
@@ -77,7 +77,7 @@ procedure SpLoadGlyphs(IL: TCustomImageList; GlyphPath: string);
 implementation
 
 uses
-  IOUtils, pngimage, Generics.Collections, Generics.Defaults;
+  TB2Common, IOUtils, pngimage, Generics.Collections, Generics.Defaults;
 
 //WMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWM
 { Utils }

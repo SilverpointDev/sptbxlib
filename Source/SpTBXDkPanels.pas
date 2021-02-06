@@ -50,7 +50,7 @@ interface
 
 {$BOOLEVAL OFF}   // Unit depends on short-circuit boolean evaluation
 {$IF CompilerVersion >= 25} // for Delphi XE4 and up
-  {$LEGACYIFEND ON} // XE4 and up requires $IF to be terminated with $ENDIF instead of $IFEND
+  {$LEGACYIFEND ON} // requires $IF to be terminated with $ENDIF instead of $IFEND
 {$IFEND}
 
 uses
@@ -106,7 +106,9 @@ type
     procedure CMSPChangeScale(var Message: TMessage); message CM_SPCHANGESCALE;
   protected
     procedure AlignControls(AControl: TControl; var Rect: TRect); override;
+    {$IF CompilerVersion >= 27}  // for Delphi XE6 and up
     function DefaultScalingFlags: TScalingFlags; override;
+    {$IFEND}
     procedure ChangeScale(M, D: Integer{$IF CompilerVersion >= 31}; isDpiChange: Boolean{$IFEND}); override;
     procedure DoInsertRemoveBar(Sender: TObject; Inserting: Boolean; Bar: TTBCustomDockableWindow); virtual; // OnInsertRemoveBar is republished
     procedure DoRequestDock(Sender: TObject; Bar: TTBCustomDockableWindow; var Accept: Boolean); virtual; // OnRequestDock is republished
@@ -1449,12 +1451,14 @@ begin
     UpdateDPLateralSize(Width, Height);
 end;
 
+{$IF CompilerVersion >= 27}  // for Delphi XE6 and up
 function TSpTBXCustomMultiDock.DefaultScalingFlags: TScalingFlags;
 begin
   // Make sure Width and Height are not scaled
   Result := inherited;
   Result := Result - [sfWidth, sfHeight];
 end;
+{$IFEND}
 
 procedure TSpTBXCustomMultiDock.ChangeScale(M, D: Integer{$IF CompilerVersion >= 31}; isDpiChange: Boolean{$IFEND});
 begin

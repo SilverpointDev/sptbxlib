@@ -47,7 +47,7 @@ interface
 
 {$BOOLEVAL OFF}   // Unit depends on short-circuit boolean evaluation
 {$IF CompilerVersion >= 25} // for Delphi XE4 and up
-  {$LEGACYIFEND ON} // XE4 and up requires $IF to be terminated with $ENDIF instead of $IFEND
+  {$LEGACYIFEND ON} // requires $IF to be terminated with $ENDIF instead of $IFEND
 {$IFEND}
 
 uses
@@ -1216,21 +1216,20 @@ end;
 
 function TSpTBXTabItemViewer.GetRightImageSize: TSize;
 var
-  ImgList: TCustomImageList;
-  ImgIndex: Integer;
+  IL: TCustomImageList;
+  I: Integer;
 begin
   Result.cx := 0;
   Result.cy := 0;
-  GetTabCloseButtonImgList(ImgList, ImgIndex);
-  if Assigned(ImgList) then
-    if ImgList = MDIButtonsImgList then begin
+  GetTabCloseButtonImgList(IL, I);
+  if Assigned(IL) then
+    if IL = MDIButtonsImgList then begin
       Result.cx := PPIScale(15);
       Result.cy := PPIScale(15);
     end
-    else if (ImgIndex >= 0) and (ImgIndex < ImgList.Count) then begin
-      Result.cx := ImgList.Width;
-      Result.cy := ImgList.Height;
-    end;
+    else
+      if (I >= 0) and (I < IL.Count) then
+        Result := SpGetScaledVirtualImageListSize(View.Window, GetImageList);
 end;
 
 procedure TSpTBXTabItemViewer.GetTabCloseButtonImgList(var AImageList: TCustomImageList;

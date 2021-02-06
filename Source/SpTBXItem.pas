@@ -66,7 +66,7 @@ interface
 
 {$BOOLEVAL OFF}   // Unit depends on short-circuit boolean evaluation
 {$IF CompilerVersion >= 25} // for Delphi XE4 and up
-  {$LEGACYIFEND ON} // XE4 and up requires $IF to be terminated with $ENDIF instead of $IFEND
+  {$LEGACYIFEND ON} // requires $IF to be terminated with $ENDIF instead of $IFEND
 {$IFEND}
 
 uses
@@ -344,7 +344,6 @@ type
     // Painting methods
     function CaptionShown: Boolean; override;
     function GetImageShown: Boolean; virtual;
-    function GetImageSize: TSize; virtual;
     function GetRightImageSize: TSize; virtual;
     function GetTextColor(State: TSpTBXSkinStatesType): TColor; virtual;
     procedure DrawItemImage(ACanvas: TCanvas; ARect: TRect; ItemInfo: TSpTBXMenuItemInfo; ImgIndex: Integer); virtual;
@@ -1029,7 +1028,6 @@ type
     function GetFloatingWindowParentClass: TTBFloatingWindowParentClass; override;
 
     // Sizing
-    function DefaultScalingFlags: TScalingFlags; override;
     procedure ChangeScale(M, D: Integer{$IF CompilerVersion >= 31}; isDpiChange: Boolean{$IFEND}); override;
     function CalcSize(ADock: TTBDock): TPoint; virtual;
     function DoArrange(CanMoveControls: Boolean; PreviousDockType: TTBDockType; NewFloating: Boolean; NewDock: TTBDock): TPoint; override;
@@ -2586,13 +2584,11 @@ begin
       SpDrawIconShadow(ACanvas, ARect, ImageList, ImageIndex);
       OffsetRect(ARect, -2, -2);
     end;
-    SpDrawImageList(ACanvas, ARect, ImageList, ImageIndex, ItemInfo.Enabled);
   end
-  else begin
-    if ItemInfo.IsSunkenCaption then
-      OffsetRect(ARect, 1, 1);
-    SpDrawImageList(ACanvas, ARect, ImageList, ImageIndex, ItemInfo.Enabled);
-  end;
+  else
+    if ItemInfo.IsSunkenCaption then OffsetRect(ARect, 1, 1);
+
+  SpDrawVirtualImageList(ACanvas, ARect, ImageList, ImageIndex, ItemInfo.Enabled);
 end;
 
 procedure SpDrawXPMenuGutter(ACanvas: TCanvas; ARect: TRect; DPI: Integer);
@@ -3041,6 +3037,7 @@ begin
     InflateRect(GripR, 0, -2);
   end;
 
+  W.PPIScale(1);
   PP1 := SpPPIScale(1, W.CurrentPPI);
   PP2 := SpPPIScale(2, W.CurrentPPI);
   PP3 := SpPPIScale(3, W.CurrentPPI);
@@ -4127,21 +4124,6 @@ begin
       Result := False;
 end;
 
-function TSpTBXItemViewer.GetImageSize: TSize;
-var
-  IL: TCustomImageList;
-begin
-  IL := GetImageList;
-  if Assigned(IL) then begin
-    Result.cx := IL.Width;
-    Result.cy := IL.Height;
-  end
-  else begin
-    Result.cx := 0;
-    Result.cy := 0;
-  end;
-end;
-
 function TSpTBXItemViewer.GetRightImageSize: TSize;
 begin
   Result.cx := 0;
@@ -4496,8 +4478,8 @@ const
     else
       R := Rect(0, 0, 1, 1);
     SpDrawXPText(ACanvas, TextInfo.Text, R, TextFlags or DT_CALCRECT, gldNone, clYellow, TextInfo.TextAngle);
-    Result.CX := R.Right;
-    Result.CY := R.Bottom;
+    Result.cx := R.Right;
+    Result.cy := R.Bottom;
   end;
 
 begin
@@ -5540,7 +5522,7 @@ var
 begin
   if not Item.CustomImages then begin
     I := GetImageIndex(Col, Row);
-    SpDrawImageList(ACanvas, ARect, Item.Images, I, ItemInfo.Enabled);
+    SpDrawVirtualImageList(ACanvas, ARect, Item.Images, I, ItemInfo.Enabled);
   end;
   Item.DoDrawCellImage(ACanvas, ARect, Col, Row, ItemInfo);
 end;
@@ -5603,11 +5585,9 @@ begin
     IL := nil
   else
     IL := Item.Images;
-    
-  if Assigned(IL) then begin
-    Result.cx := IL.Width;
-    Result.cy := IL.Height;
-  end
+
+  if Assigned(IL) then
+    Result := SpGetScaledVirtualImageListSize(View.Window, IL)
   else begin
     Result.cx := PPIScale(12);
     Result.cy := PPIScale(12);
@@ -7033,7 +7013,10 @@ begin
   inherited;
   FMinClientWidth := 32;
   FMinClientHeight := 32;
-  SetBounds(Left, Top, FMinClientWidth, FMinClientHeight);
+  // Make sure Width/Height are included in ScalingFlags on
+  // TControl.ChangeScale when csLoading
+  Width := FMinClientWidth;
+  Height := FMinClientHeight;
 
   Color := clNone;
   SkinManager.AddSkinNotification(Self);
@@ -7045,27 +7028,10 @@ begin
   inherited;
 end;
 
-function TSpTBXCustomToolWindow.DefaultScalingFlags: TScalingFlags;
-begin
-  // Make sure Width/Height are not scaled, sclae FBarSize instead.
-  // There are 2 options:
-  // 1) Scaling Width/Height and leave FBarSize to update on SizeChanging:
-  //    it will not work when starting on a high DPI monitor, Width/Height
-  //    are not scaled on csLoading, so the size will be incorrect.
-  // 2) Scaling FBarSize and prevent from scaling Width/Height: FBarSize is
-  //    scaled when changing dpi, and updated when Width/Height is changed
-  //    at runtime. If we scale FBarSize and let VCL to scale Width/Height it
-  //    will make a double scaling.
-  Result := inherited;
-  Result := Result - [sfWidth, sfHeight];
-end;
-
 procedure TSpTBXCustomToolWindow.ChangeScale(M, D: Integer{$IF CompilerVersion >= 31}; isDpiChange: Boolean{$IFEND});
 begin
   inherited;
-  // Scale FBarSize (Width/Height are not scaled)
-  FBarSize.cx := MulDiv(FBarSize.cx, M, D);
-  FBarSize.cy := MulDiv(FBarSize.cy, M, D);
+  // Do not scale FBarSize, it's updated with scaled Width/Height values in SizeChanging
   FMaxClientHeight := MulDiv(FMaxClientHeight, M, D);
   FMaxClientWidth := MulDiv(FMaxClientWidth, M, D);
   FMinClientHeight := MulDiv(FMinClientHeight, M, D);

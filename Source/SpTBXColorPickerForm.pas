@@ -40,7 +40,7 @@ interface
 
 {$BOOLEVAL OFF}   // Unit depends on short-circuit boolean evaluation
 {$IF CompilerVersion >= 25} // for Delphi XE4 and up
-  {$LEGACYIFEND ON} // XE4 and up requires $IF to be terminated with $ENDIF instead of $IFEND
+  {$LEGACYIFEND ON} // requires $IF to be terminated with $ENDIF instead of $IFEND
 {$IFEND}
 
 uses
@@ -48,7 +48,7 @@ uses
   Menus, StdCtrls, ExtCtrls, ActnList, Dialogs, ImgList,
   TB2Common, TB2Dock, TB2Toolbar, TB2Item, TB2ExtItems,
   SpTBXSkins, SpTBXItem, SpTBXControls, SpTBXEditors, SpTBXFormPopupMenu,
-  SpTBXExtEditors, SpTBXTabs, System.ImageList;
+  SpTBXExtEditors, SpTBXTabs, ImageList;
   // Delphi XE8 and up will automatically add System.ImageList, make sure to delete it
   // Adding a compiler conditional doesn't work
 
@@ -91,6 +91,8 @@ type
     btnColorDialog: TSpTBXSpeedButton;
     btnColor: TSpTBXSpeedButton;
     btnLabel: TSpTBXLabel;
+    ImageList2: TImageList;
+    ImageList3: TImageList;
     procedure Timer1Timer(Sender: TObject);
     procedure imgPaletteMouseMove(Sender: TObject; Shift: TShiftState; X,
       Y: Integer);
@@ -126,7 +128,6 @@ type
     FPrevLabelColor: TColor;
     FColorPickerDragObject: TSpTBXColorPickerDragObject;
     procedure CenterImages;
-    procedure ChangeScale(M, D: Integer{$if CompilerVersion >= 31}; isDpiChange: Boolean{$ifend}); override;
   public
     function GetSelectedColor: TColor;
     procedure SetSelectedColor(AColor: TColor);
@@ -262,7 +263,10 @@ end;
 procedure TSpTBXColorPickerForm.FormShow(Sender: TObject);
 Var
   Bitmap : TBitmap;
+  I: Integer;
+  IL: TCustomImageList;
 begin
+  // Scale imgPalette
   Bitmap := TBitmap.Create;
   try
     Bitmap.Assign(imgPalette.Picture.Bitmap);
@@ -271,6 +275,16 @@ begin
   finally
     Bitmap.Free;
   end;
+
+  // Scale ImageList
+  I := PPIScale(16);
+  if I >= 32 then IL := ImageList3
+  else if I >= 24 then IL := ImageList2
+  else IL := ImageList1;
+  SpTBXTabControl1.Images := IL;
+  btnColorNone.Images := IL;
+  btnColorDialog.Images := IL;
+
   UpdateColorLabel(GetSelectedColor);
   CenterImages;
 end;
@@ -287,12 +301,6 @@ begin
          imgColorPicker.Picture := nil;
        end;
   end;
-end;
-
-procedure TSpTBXColorPickerForm.ChangeScale(M, D: Integer{$if CompilerVersion >= 31}; isDpiChange: Boolean{$ifend});
-begin
-  inherited;
-  SpDPIScaleImageList(ImageList1, M, D);
 end;
 
 procedure TSpTBXColorPickerForm.btnColorDraw(Sender: TObject;

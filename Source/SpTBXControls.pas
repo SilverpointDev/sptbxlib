@@ -41,7 +41,7 @@ interface
 
 {$BOOLEVAL OFF}   // Unit depends on short-circuit boolean evaluation
 {$IF CompilerVersion >= 25} // for Delphi XE4 and up
-  {$LEGACYIFEND ON} // XE4 and up requires $IF to be terminated with $ENDIF instead of $IFEND
+  {$LEGACYIFEND ON} // requires $IF to be terminated with $ENDIF instead of $IFEND
 {$IFEND}
 
 uses
@@ -1977,7 +1977,7 @@ begin
   IL := FImages;
   I := FImageIndex;
   DoGetImageIndex(IL, I);
-  SpDrawImageList(ACanvas, AGlyphRect, IL, I, Enabled);
+  SpDrawVirtualImageList(ACanvas, AGlyphRect, IL, I, Enabled);
 end;
 
 procedure TSpTBXTextObject.DoMouseEnter;
@@ -2056,10 +2056,8 @@ begin
   IL := FImages;
   I := FImageIndex;
   DoGetImageIndex(IL, I);
-  if Assigned(IL) and (I > -1) and (I < IL.Count) then begin
-    Result.cx := IL.Width;
-    Result.cy := IL.Height;
-  end
+  if Assigned(IL) and (I > -1) and (I < IL.Count) then
+    Result := SpGetScaledVirtualImageListSize(Self, IL)
   else begin
     Result.cx := 0;
     Result.cy := 0;

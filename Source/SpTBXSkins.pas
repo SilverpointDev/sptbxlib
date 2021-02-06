@@ -58,7 +58,7 @@ interface
 
 {$BOOLEVAL OFF}   // Unit depends on short-circuit boolean evaluation
 {$IF CompilerVersion >= 25} // for Delphi XE4 and up
-  {$LEGACYIFEND ON} // XE4 and up requires $IF to be terminated with $ENDIF instead of $IFEND
+  {$LEGACYIFEND ON} // requires $IF to be terminated with $ENDIF instead of $IFEND
 {$IFEND}
 
 uses
@@ -523,7 +523,6 @@ procedure SpPaintTo(WinControl: TWinControl; ACanvas: TCanvas; X, Y: Integer);
 
 { ImageList painting }
 procedure SpDrawIconShadow(ACanvas: TCanvas; const ARect: TRect; ImageList: TCustomImageList; ImageIndex: Integer);
-procedure SpDrawImageList(ACanvas: TCanvas; const ARect: TRect; ImageList: TCustomImageList; ImageIndex: Integer; Enabled: Boolean);
 
 { Gradients }
 procedure SpGradient(ACanvas: TCanvas; const ARect: TRect; StartPos, EndPos, ChunkSize: Integer; C1, C2: TColor; const Vertical: Boolean);
@@ -569,12 +568,8 @@ var
 implementation
 
 uses
-  UxTheme, Forms, Math, TypInfo,
-  SpTBXDefaultSkins, CommCtrl,
-  Rtti, IOUtils, Generics.Defaults;
-
-const
-  ROP_DSPDxax = $00E20746;
+  UxTheme, Forms, TypInfo, CommCtrl,
+  SpTBXDefaultSkins, Rtti, TB2Common;
 
 type
   TControlAccess = class(TControl);
@@ -1745,6 +1740,7 @@ end;
 
 procedure SpDrawIconShadow(ACanvas: TCanvas; const ARect: TRect;
   ImageList: TCustomImageList; ImageIndex: Integer);
+// Used by Office XP skin, to paint a shadow of the glyphs
 var
   ImageWidth, ImageHeight: Integer;
   I, J: Integer;
@@ -1754,11 +1750,6 @@ var
 begin
   ImageWidth := ARect.Right - ARect.Left;
   ImageHeight := ARect.Bottom - ARect.Top;
-  with ImageList do
-  begin
-    if Width < ImageWidth then ImageWidth := Width;
-    if Height < ImageHeight then ImageHeight :=  Height;
-  end;
 
   B1 := TBitmap.Create;
   B2 := TBitmap.Create;
@@ -1770,7 +1761,8 @@ begin
 
     BitBlt(B1.Canvas.Handle, 0, 0, ImageWidth, ImageHeight, ACanvas.Handle, ARect.Left, ARect.Top, SRCCOPY);
     BitBlt(B2.Canvas.Handle, 0, 0, ImageWidth, ImageHeight, ACanvas.Handle, ARect.Left, ARect.Top, SRCCOPY);
-    ImageList.Draw(B2.Canvas, 0, 0, ImageIndex, True);
+
+    SpDrawVirtualImageList(B2.Canvas, Rect(0, 0, ImageWidth, ImageHeight), ImageList, ImageIndex, True);
 
     for J := 0 to ImageHeight - 1 do
     begin
@@ -1797,13 +1789,6 @@ begin
     B1.Free;
     B2.Free;
   end;
-end;
-
-procedure SpDrawImageList(ACanvas: TCanvas; const ARect: TRect;
-  ImageList: TCustomImageList; ImageIndex: Integer; Enabled: Boolean);
-begin
-  if Assigned(ImageList) and (ImageIndex > -1) and (ImageIndex < ImageList.Count) then
-    ImageList.Draw(ACanvas, ARect.Left, ARect.Top, ImageIndex, Enabled);
 end;
 
 //WMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWM
