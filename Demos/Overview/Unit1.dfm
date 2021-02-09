@@ -711,8 +711,6 @@ object Form1: TForm1
     Align = alClient
     BevelOuter = bvNone
     TabOrder = 2
-    ExplicitWidth = 304
-    ExplicitHeight = 463
     object SpTBXTabControl1: TSpTBXTabControl
       Left = 0
       Top = 0
@@ -720,8 +718,6 @@ object Form1: TForm1
       Height = 459
       Align = alClient
       ActiveTabIndex = -1
-      ExplicitWidth = 304
-      ExplicitHeight = 463
       HiddenItems = <>
       object SpTBXRightAlignSpacerItem1: TSpTBXRightAlignSpacerItem
         CustomWidth = 281
@@ -750,7 +746,6 @@ object Form1: TForm1
     Height = 459
     Cursor = crSizeWE
     ParentColor = False
-    ExplicitHeight = 463
   end
   object SpTBXSplitter2: TSpTBXSplitter
     Left = 595
@@ -759,15 +754,12 @@ object Form1: TForm1
     Cursor = crSizeWE
     Align = alRight
     ParentColor = False
-    ExplicitLeft = 582
-    ExplicitHeight = 463
   end
   object SpTBXMultiDock1: TSpTBXMultiDock
     Left = 0
     Top = 75
     Width = 273
     Height = 459
-    ExplicitHeight = 463
     object SpTBXDockablePanel1: TSpTBXDockablePanel
       Left = 0
       Top = 0
@@ -1135,7 +1127,6 @@ object Form1: TForm1
         Caption = 'Skin Type'
         Anchors = [akLeft, akTop, akRight, akBottom]
         TabOrder = 2
-        ExplicitHeight = 124
         object radiobuttonSkin1: TSpTBXRadioButton
           Left = 16
           Top = 24
@@ -1184,7 +1175,6 @@ object Form1: TForm1
     Top = 0
     Width = 736
     Height = 75
-    ExplicitWidth = 723
     object SpTBXToolbar1: TSpTBXToolbar
       Left = 0
       Top = 0
@@ -1298,8 +1288,6 @@ object Form1: TForm1
     Width = 136
     Height = 459
     Position = dpxRight
-    ExplicitLeft = 587
-    ExplicitHeight = 463
     object DP1: TSpTBXDockablePanel
       Left = 0
       Top = 286
@@ -1428,8 +1416,7 @@ object Form1: TForm1
     Height = 27
     ParentShowHint = False
     ShowHint = True
-    ExplicitTop = 538
-    ExplicitWidth = 724
+    ExplicitTop = 536
     object TBControlItem2: TTBControlItem
       Control = SpTBXProgressBar2
     end

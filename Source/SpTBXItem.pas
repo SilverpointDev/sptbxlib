@@ -4577,19 +4577,22 @@ begin
   R := ClientAreaRect;
   if ItemInfo.ToolbarStyle then begin
     if ItemInfo.HasArrow then begin
+      ItemInfo.ComboRect := R;
       if ItemInfo.IsSplit then begin
-        ItemInfo.ComboRect := R;
         Dec(R.Right, SplitBtnArrowSize);
         ItemInfo.ComboRect.Left := R.Right;
       end
       else
         if not IsSpecialDropDown then begin
-          if View.Orientation <> tbvoVertical then
-            ItemInfo.ComboRect := Rect(R.Right - Self.tbDropdownArrowWidth - Self.tbDropdownArrowMargin, 0,
-              R.Right - tbDropdownArrowMargin, R.Bottom)
-          else
-            ItemInfo.ComboRect := Rect(0, R.Bottom - Self.tbDropdownArrowWidth - Self.tbDropdownArrowMargin,
-              R.Right, R.Bottom - Self.tbDropdownArrowMargin);
+          // If the caption is shown calculate the right margin, if the caption
+          // is not visible center the arrow
+          if TextInfo.IsCaptionShown then
+            if View.Orientation <> tbvoVertical then
+              ItemInfo.ComboRect := Rect(R.Right - Self.tbDropdownArrowWidth - Self.tbDropdownArrowMargin, 0,
+                R.Right - Self.tbDropdownArrowMargin, R.Bottom)
+            else
+              ItemInfo.ComboRect := Rect(0, R.Bottom - Self.tbDropdownArrowWidth - Self.tbDropdownArrowMargin,
+                R.Right, R.Bottom - Self.tbDropdownArrowMargin);
         end
         else begin
           // Special DropDown, toolbar item with arrow, image and text. The Image is above the caption
@@ -4611,8 +4614,8 @@ begin
 
     // Draw dropdown arrow
     if PaintDefault and ItemInfo.HasArrow then begin
-      P.X := (ItemInfo.ComboRect.Left + ItemInfo.ComboRect.Right) div 2 - PPIScale(1);
-      P.Y := (ItemInfo.ComboRect.Top + ItemInfo.ComboRect.Bottom) div 2 - PPIScale(1);
+      P.X := (ItemInfo.ComboRect.Left + ItemInfo.ComboRect.Right - 1) div 2;
+      P.Y := (ItemInfo.ComboRect.Top + ItemInfo.ComboRect.Bottom - 1) div 2;
       // Don't draw the arrow if is a split button in Windows, it's
       // painted by the Windows theme.
       if not (ItemInfo.IsSplit and (ItemInfo.SkinType in [sknWindows, sknDelphiStyle])) then begin
@@ -6831,6 +6834,9 @@ begin
       if Assigned(CI) and (CI.Control.Tag <> 0) then
         CI.Control.Tag := MulDiv(CI.Control.Tag, M, D);  // Scale prev size of the anchored ControlItem
     end;
+
+  // Needed for vertical stretched items
+  View.InvalidatePositions;
 end;
 
 procedure TSpTBXToolbar.MouseMove(Shift: TShiftState; X, Y: Integer);

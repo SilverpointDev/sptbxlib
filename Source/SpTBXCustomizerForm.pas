@@ -150,10 +150,10 @@ begin
       // Draw icon shadow
       if odSelected in State then begin
         OffsetRect(ILRect, L.PPIScale(1), L.PPIScale(1));
-        SpDrawImageList(ACanvas, ILRect, IL, Item.ImageIndex, False);
+        SpDrawVirtualImageList(ACanvas, ILRect, IL, Item.ImageIndex, False);
         OffsetRect(ILRect, L.PPIScale(-2), L.PPIScale(-2));
       end;
-      SpDrawImageList(ACanvas, ILRect, IL, Item.ImageIndex, True);
+      SpDrawVirtualImageList(ACanvas, ILRect, IL, Item.ImageIndex, True);
     end;
   end;
 

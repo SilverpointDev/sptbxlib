@@ -257,21 +257,14 @@ begin
   end
   else begin
     P := ffScalable;
-    case FontType of
-      // DEVICE_FONTTYPE not used
-      RASTER_FONTTYPE: T := ffRaster;
-      TRUETYPE_FONTTYPE:
-        begin
-          GlyphIndex := 1;
-          T := ffTrueType;
-        end;
-    end;
+    if FontType = RASTER_FONTTYPE then
+      T := ffRaster
+    else
+      T := ffTrueType;
   end;
 
   if (EnumLogFontExDV.elfEnumLogfontEx.elfLogFont.lfPitchAndFamily and FIXED_PITCH) = FIXED_PITCH then
-  begin
     P := ffMonospaced;
-  end;
 
   if not (P in FilterFontPitch) or not (T in FilterFontType) then
     exit;

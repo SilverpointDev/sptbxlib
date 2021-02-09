@@ -149,6 +149,8 @@ type
     FLastSkin: string;
     procedure LangClick(Sender: TObject);
     procedure WMSpSkinChange(var Message: TMessage); message WM_SPSKINCHANGE;
+  protected
+    procedure Loaded; override;
   public
     AppPath: string;
     IL: TSpTBXImageList;
@@ -202,13 +204,18 @@ procedure TForm1.FormCreate(Sender: TObject);
 begin
   FLastSkin := 'Aluminum';
   SkinManager.AddSkinNotification(Self);
-  IL := TSpTBXImageList.Create(Self);
 end;
 
 procedure TForm1.FormDestroy(Sender: TObject);
 begin
   SkinManager.RemoveSkinNotification(Self);
   IL.Free;
+end;
+
+procedure TForm1.Loaded;
+begin
+  IL := TSpTBXImageList.Create(Self);  // Create IL before it's loaded, before the Form is scaled
+  inherited;
 end;
 
 procedure TForm1.FormShow(Sender: TObject);
