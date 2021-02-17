@@ -1234,7 +1234,9 @@ type
 
   TSpTBXCustomContainer = class(TSpTBXCustomControl)
   private
+    FBorders: Boolean;
     FOnDrawBackground: TSpTBXDrawEvent;
+    procedure SetBorders(const Value: Boolean);
     procedure CMColorChanged(var Message: TMessage); message CM_COLORCHANGED;
     procedure CMFontChanged(var Message: TMessage); message CM_FONTCHANGED;
     procedure CMTextChanged(var Message: TMessage); message CM_TEXTCHANGED;
@@ -1246,6 +1248,7 @@ type
     procedure CreateParams(var Params: TCreateParams); override;
     procedure DoDrawBackground(ACanvas: TCanvas; ARect: TRect; const PaintStage: TSpTBXPaintStage; var PaintDefault: Boolean); virtual;
     procedure DrawBackground(ACanvas: TCanvas; ARect: TRect); virtual;
+    property Borders: Boolean read FBorders write SetBorders default True;
     property ParentColor default False;
     property OnDrawBackground: TSpTBXDrawEvent read FOnDrawBackground write FOnDrawBackground;
   public
@@ -8056,6 +8059,7 @@ begin
   Color := clNone;
   ParentColor := False;
   SkinManager.AddSkinNotification(Self);
+  FBorders := True;
 
   DoubleBuffered := True;
 end;
@@ -8132,6 +8136,15 @@ begin
   //
 end;
 
+procedure TSpTBXCustomContainer.SetBorders(const Value: Boolean);
+begin
+  if FBorders <> Value then begin
+    FBorders := Value;
+    Realign;
+    InvalidateBackground;
+  end;
+end;
+
 procedure TSpTBXCustomContainer.InvalidateBackground(InvalidateChildren: Boolean);
 begin
   // Force background repaint, calling invalidate doesn't repaint children controls
@@ -8141,9 +8154,9 @@ begin
   else
     if not (csDestroying in ComponentState) and HandleAllocated then
       if InvalidateChildren then
-        RedrawWindow(Handle, nil, 0, RDW_ERASE or RDW_INVALIDATE or RDW_ALLCHILDREN)
+        RedrawWindow(Handle, nil, 0, RDW_ERASE or RDW_INVALIDATE or RDW_ALLCHILDREN or RDW_FRAME)
       else
-        RedrawWindow(Handle, nil, 0, RDW_ERASE or RDW_INVALIDATE);
+        RedrawWindow(Handle, nil, 0, RDW_ERASE or RDW_INVALIDATE or RDW_FRAME);
 end;
 
 procedure TSpTBXCustomContainer.WMEraseBkgnd(var Message: TMessage);

@@ -92,16 +92,13 @@ type
 
   TSpTBXCustomPanel = class(TSpTBXCustomContainer)
   private
-    FBorders: Boolean;
     FBorderType: TSpTBXPanelBorder;
     FTBXStyleBackground: Boolean;
-    procedure SetBorders(const Value: Boolean);
     procedure SetBorderType(const Value: TSpTBXPanelBorder);
     procedure SetTBXStyleBackground(const Value: Boolean);
   protected
     procedure AdjustClientRect(var Rect: TRect); override;
     procedure DrawBackground(ACanvas: TCanvas; ARect: TRect); override;
-    property Borders: Boolean read FBorders write SetBorders default True;
     property BorderType: TSpTBXPanelBorder read FBorderType write SetBorderType default pbrEtched;
     property TBXStyleBackground: Boolean read FTBXStyleBackground write SetTBXStyleBackground default False;
   public
@@ -1509,7 +1506,6 @@ begin
   // TSpTBXCustomContainer.WMEraseBkgnd
   if SkinManager.GetSkinType <> sknNone then
     ControlStyle := ControlStyle + [csParentBackground] - [csOpaque];
-  FBorders := True;
   FBorderType := pbrEtched;
 end;
 
@@ -1517,16 +1513,7 @@ procedure TSpTBXCustomPanel.AdjustClientRect(var Rect: TRect);
 begin
   inherited AdjustClientRect(Rect);
   if Borders then
-    InflateRect(Rect, -PPIScale(2), -PPIScale(2));
-end;
-
-procedure TSpTBXCustomPanel.SetBorders(const Value: Boolean);
-begin
-  if FBorders <> Value then begin
-    FBorders := Value;
-    Realign;
-    InvalidateBackground;
-  end;
+    InflateRect(Rect, -SpDefaultBorderSize, -SpDefaultBorderSize); // Do not scale
 end;
 
 procedure TSpTBXCustomPanel.SetBorderType(const Value: TSpTBXPanelBorder);
@@ -1548,7 +1535,7 @@ end;
 procedure TSpTBXCustomPanel.DrawBackground(ACanvas: TCanvas; ARect: TRect);
 begin
   if not Borders then
-    InflateRect(ARect, PPIScale(3), PPIScale(3));
+    InflateRect(ARect, SpDefaultBorderSize + 1, SpDefaultBorderSize + 1);  // Do not scale
   SpDrawXPPanel(ACanvas, ARect, True, FTBXStyleBackground, FBorderType, CurrentPPI);
 end;
 

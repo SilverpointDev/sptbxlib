@@ -11,7 +11,7 @@
  type
    { Our declaration for IAccessible }
 --- TB2Common.pas	Wed Sep 17 14:46:30 2008
-+++ TB2Common.pas	Sat Feb  6 10:58:20 2021
++++ TB2Common.pas	Fri Feb 12 12:42:20 2021
 @@ -31,11 +31,13 @@
  {$I TB2Ver.inc}
  
@@ -142,11 +142,10 @@
      Pen := CreatePen(PS_SOLID, 1, GetTextColor(DC));
      SavePen := SelectObject(DC, Pen);
      MoveToEx(DC, X, Y + SU, nil);
-@@ -1560,6 +1597,163 @@
-   Result := Longint(I);
+@@ -1561,11 +1598,196 @@
  end;
  {$ENDIF}
-+
+ 
 +{ VirtualImage helpers}
 +
 +type
@@ -201,7 +200,8 @@
 +procedure SpDrawVirtualImageList(ACanvas: TCanvas; const ARect: TRect;
 +  ImageList: TCustomImageList; ImageIndex: Integer; Enabled: Boolean);
 +var
-+  IC, B: TObject;
++  RttiC: TRttiContext;
++  IC, ILItems, ILItem, B: TObject;
 +  V1, V2, V3: TValue;
 +  DisabledOpacity: Integer;
 +  DisabledGrayscale: Boolean;
@@ -218,13 +218,19 @@
 +    // Delphi versions. vclwinx was introduced in Delphi Seattle but
 +    // TImageCollection and TVirtualImagelist were introduced on Rio.
 +    if SpIsVirtualImageList(ImageList) then begin
-+      IC := TRttiContext.Create.GetType(ImageList.ClassType).GetProperty('ImageCollection').GetValue(ImageList).AsObject;
++      RttiC := TRttiContext.Create;
++      IC := RttiC.GetType(ImageList.ClassType).GetProperty('ImageCollection').GetValue(ImageList).AsObject;
 +      if Assigned(IC) then begin
++        // Replace ImageIndex with IL.Images[ImageIndex].CollectionIndex
++        ILItems := RttiC.GetType(ImageList.ClassType).GetProperty('Images').GetValue(ImageList).AsObject;
++        ILItem := RttiC.GetType(ILItems.ClassType).GetIndexedProperty('Items').GetValue(ILItems, [ImageIndex]).AsObject;
++        ImageIndex := RttiC.GetType(ILItem.ClassType).GetProperty('CollectionIndex').GetValue(ILItem).AsInteger;
++
 +        if Enabled then begin
 +          V1 := V1.From(ACanvas);
 +          V2 := V2.From(ARect);
 +          V3 := V3.From(ImageIndex);
-+          TRttiContext.Create.GetType(IC.ClassType).GetMethod('Draw').Invoke(IC, [V1, V2, V3, False]);
++          RttiC.GetType(IC.ClassType).GetMethod('Draw').Invoke(IC, [V1, V2, V3, False]);
 +        end
 +        else begin
 +          // Mimic TVirtualImageList disabled images painting, see TVirtualImageList.DoDraw
@@ -234,12 +240,16 @@
 +          V1 := V1.From(ACanvas);
 +          V2 := V2.From(ARect);
 +          V3 := V3.From(ImageIndex);
-+          B := TRttiContext.Create.GetType(IC.ClassType).GetMethod('GetBitmap').Invoke(IC, [ImageIndex, ARect.Width, ARect.Height]).AsObject;
-+          // Read DisabledOpacity and DisabledGrayscale properties from TVirtualImageList
-+          DisabledOpacity := TRttiContext.Create.GetType(ImageList.ClassType).GetProperty('DisabledOpacity').GetValue(ImageList).AsInteger;
-+          DisabledGrayscale := TRttiContext.Create.GetType(ImageList.ClassType).GetProperty('DisabledGrayscale').GetValue(ImageList).AsBoolean;
-+          // Paint disabled
-+          SpDrawDisabled(ACanvas, B as TBitmap, ARect.Left, ARect.Top, DisabledOpacity, DisabledGrayscale);
++          B := RttiC.GetType(IC.ClassType).GetMethod('GetBitmap').Invoke(IC, [ImageIndex, ARect.Width, ARect.Height]).AsObject;
++          try
++            // Read DisabledOpacity and DisabledGrayscale properties from TVirtualImageList
++            DisabledOpacity := RttiC.GetType(ImageList.ClassType).GetProperty('DisabledOpacity').GetValue(ImageList).AsInteger;
++            DisabledGrayscale := RttiC.GetType(ImageList.ClassType).GetProperty('DisabledGrayscale').GetValue(ImageList).AsBoolean;
++            // Paint disabled
++            SpDrawDisabled(ACanvas, B as TBitmap, ARect.Left, ARect.Top, DisabledOpacity, DisabledGrayscale);
++          finally
++            B.Free;  // Free it, GetBitmap creates a bitmap and copies the source TWICImage
++          end;
 +        end;
 +      end;
 +    end
@@ -303,9 +313,32 @@
 +begin
 +  Result := MulDiv(Value, 96, FCurrentPPI);
 +end;
- 
++
++// Kiriakos Vlahos: to keep the RTTI Pool alive and avoid continuously creating/destroying it
++// See also https://stackoverflow.com/questions/27368556/trtticontext-multi-thread-issue
++// Robert: performance gain but creates mem overhead
++var
++_RttiContext: TRttiContext;
++
++procedure _InitRttiPool;
++begin
++ _RttiContext := TRttiContext.Create;
++ _RttiContext.FindType('');
++end;
++
  initialization
++  _InitRttiPool;
    InitGradientFillFunc;
+   {$IFNDEF CLR}
+   InitMultiMonApis;
+   LockSetForegroundWindowFunc := GetProcAddress(GetModuleHandle(user32),
+     'LockSetForegroundWindow');
+   {$ENDIF}
++
++finalization
++  _RttiContext.Free();
++
+ end.
 --- TB2Dock.pas	Wed Sep 17 15:12:26 2008
 +++ TB2Dock.pas	Fri Feb  5 14:46:16 2021
 @@ -37,7 +37,7 @@

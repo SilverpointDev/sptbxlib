@@ -117,7 +117,6 @@ type
     procedure DrawNCArea(const DrawToDC: Boolean; const ADC: HDC; const Clip: HRGN); virtual;
     procedure HandleScrollTimer; virtual;
     procedure Loaded; override;
-    procedure RecalcNCArea;
     procedure Resizing; virtual;
     procedure UpdateButtons;
     property AutoRange: Boolean read FAutoRange write SetAutoRange default True;
@@ -647,12 +646,6 @@ begin
   UpdateButtons;
 end;
 
-procedure TSpTBXCustomPageScroller.RecalcNCArea;
-begin
-  SetWindowPos(Handle, 0, 0, 0, 0, 0,
-    SWP_FRAMECHANGED or SWP_NOACTIVATE or SWP_NOZORDER or SWP_NOMOVE or SWP_NOSIZE);
-end;
-
 procedure TSpTBXCustomPageScroller.Resizing;
 begin
   // do nothing by default
@@ -788,7 +781,7 @@ begin
     end;
     if FVisibleButtons <> OldVisibleButtons then
     begin
-      RecalcNCArea;
+      SpRecalcNCArea(Self);
       RealignNeeded := True;
     end;
   finally

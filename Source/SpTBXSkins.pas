@@ -75,6 +75,7 @@ resourcestring
 
 const
   WM_SPSKINCHANGE = WM_APP + 2007;   // Skin change notification message
+  SpDefaultBorderSize = 2;  // Do not scale
 
 type
   { Skins }
