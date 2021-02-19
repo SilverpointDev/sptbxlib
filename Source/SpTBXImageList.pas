@@ -48,7 +48,7 @@ interface
 uses
   Windows, Messages, Classes, SysUtils, Graphics,
   ImgList,
-  {$IF CompilerVersion >= 25} // for Delphi XE4 and up
+  {$IF CompilerVersion >= 24} // for Delphi XE3 and up
   System.UITypes,
   {$IFEND}
   {$IF CompilerVersion >= 33} // for Delphi Rio and up

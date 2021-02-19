@@ -209,7 +209,7 @@ implementation
 
 uses
   Dialogs, TB2Common,
-  {$IF CompilerVersion >= 25} // for Delphi XE4 and up
+  {$IF CompilerVersion >= 24} // for Delphi XE3 and up
   System.Types, System.UITypes,
   {$IFEND}
   SpTBXFormPopupMenu, SpTBXColorPickerForm;

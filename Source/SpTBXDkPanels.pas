@@ -464,7 +464,7 @@ implementation
 
 uses
   Types,
-  {$IF CompilerVersion >= 25} // for Delphi XE4 and up
+  {$IF CompilerVersion >= 24} // for Delphi XE3 and up
   System.UITypes,
   {$IFEND}
   Themes, ComCtrls, Registry, TB2Consts, TB2Common;

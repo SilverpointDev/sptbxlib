@@ -198,7 +198,7 @@ implementation
 
 uses
   SysUtils, Types, TB2Common,
-  {$IF CompilerVersion >= 25} // for Delphi XE4 and up
+  {$IF CompilerVersion >= 24} // for Delphi XE3 and up
   System.UITypes,
   {$IFEND}
   UxTheme, Themes;
