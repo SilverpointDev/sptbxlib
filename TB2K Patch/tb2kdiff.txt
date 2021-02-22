@@ -11,7 +11,7 @@
  type
    { Our declaration for IAccessible }
 --- TB2Common.pas	Wed Sep 17 14:46:30 2008
-+++ TB2Common.pas	Fri Feb 19 16:00:16 2021
++++ TB2Common.pas	Mon Feb 22 11:28:14 2021
 @@ -31,11 +31,13 @@
  {$I TB2Ver.inc}
  
@@ -39,7 +39,7 @@
  function DrawTextStr(const DC: HDC; const AText: String; var ARect: TRect;
    const AFormat: UINT): Integer;
  function EscapeAmpersands(const S: String): String;
-@@ -118,6 +120,38 @@
+@@ -118,6 +120,40 @@
    const AText: String): BOOL;
  function UsingMultipleMonitors: Boolean;
  
@@ -54,7 +54,9 @@
 +// TImageCollection and TVirtualImagelist were introduced on Rio.
 +// If we add vclwinx package and access TImageCollection and TVirtualImageList
 +// directly then we can delete the following helpers:
++{$IF CompilerVersion >= 33} // for Delphi Rio and up
 +procedure SpDrawDisabled(ACanvas: TCanvas; ABitmap: TBitmap; X, Y, DisabledOpacity: Integer; DisabledGrayscale: Boolean);
++{$IFEND}
 +function SpIsVirtualImageList(ImageList: TCustomImageList): Boolean;
 +procedure SpDrawVirtualImageList(ACanvas: TCanvas; const ARect: TRect; ImageList: TCustomImageList; ImageIndex: Integer; Enabled: Boolean);
 +function SpGetScaledVirtualImageListSize(C: TControl; IL: TCustomImageList): TSize;
@@ -78,7 +80,7 @@
  const
    PopupMenuWindowNCSize = 3;
    DT_HIDEPREFIX = $00100000;
-@@ -127,7 +161,11 @@
+@@ -127,7 +163,11 @@
  uses
    {$IFDEF CLR} Types, System.Security, System.Runtime.InteropServices,
      System.Text, MultiMon, {$ENDIF}
@@ -91,7 +93,7 @@
  
  function ApplicationIsActive: Boolean;
  { Returns True if the application is in the foreground }
-@@ -725,7 +763,7 @@
+@@ -725,7 +765,7 @@
  end;
  
  procedure DrawSmallWindowCaption(const Wnd: HWND; const DC: HDC;
@@ -100,7 +102,7 @@
  { Draws a (non-themed) small window caption bar.
    On Windows Vista, a custom routine is used to work around an ugly bug in
    DrawCaption that causes the text to be painted at the wrong coordinates.
-@@ -762,6 +800,7 @@
+@@ -762,6 +802,7 @@
    CaptionFont, SaveFont: HFONT;
    SaveBkMode: Integer;
    SaveTextColor: TColorRef;
@@ -108,7 +110,7 @@
  begin
    if ARect.Right <= ARect.Left then
      Exit;
-@@ -783,7 +822,9 @@
+@@ -783,7 +824,9 @@
      Inc(TextRect.Left, GetSystemMetrics(SM_CXEDGE));
      if (TextRect.Right > TextRect.Left) and
         GetSystemNonClientMetrics(NonClientMetrics) then begin
@@ -119,7 +121,7 @@
        if CaptionFont <> 0 then begin
          SaveFont := SelectObject(DC, CaptionFont);
          SaveBkMode := SetBkMode(DC, TRANSPARENT);
-@@ -827,7 +868,7 @@
+@@ -827,7 +870,7 @@
                SelectObject(BmpDC, Bmp);
                SaveIndex := SaveDC(BmpDC);
                SetWindowOrgEx(BmpDC, R.Left, R.Top, nil);
@@ -128,7 +130,7 @@
                SendMessage(Wnd, WM_PAINT, WPARAM(BmpDC), 0);
                RestoreDC(BmpDC, SaveIndex);
                BitBlt(WndDC, R.Left, R.Top, R.Right - R.Left, R.Bottom - R.Top,
-@@ -1248,7 +1289,7 @@
+@@ -1248,7 +1291,7 @@
  end;
  
  procedure DrawRotatedText(const DC: HDC; AText: String; const ARect: TRect;
@@ -137,7 +139,7 @@
  { Like DrawText, but draws the text at a 270 degree angle.
    The only format flag this function respects is DT_HIDEPREFIX. Text is always
    drawn centered. }
-@@ -1295,7 +1336,7 @@
+@@ -1295,7 +1338,7 @@
    if (P > 0) and (AFormat and DT_HIDEPREFIX = 0) then begin
      SU := GetTextWidth(DC, Copy(AText, 1, P-1), False);
      FU := SU + GetTextWidth(DC, AText[P], False);
@@ -146,12 +148,13 @@
      Pen := CreatePen(PS_SOLID, 1, GetTextColor(DC));
      SavePen := SelectObject(DC, Pen);
      MoveToEx(DC, X, Y + SU, nil);
-@@ -1561,11 +1602,193 @@
+@@ -1561,11 +1604,200 @@
  end;
  {$ENDIF}
  
 +{ VirtualImage helpers}
 +
++{$IF CompilerVersion >= 33} // for Delphi Rio and up
 +type
 +  PColorRecArray = ^TColorRecArray;
 +  TColorRecArray = array [0..0] of TColorRec;
@@ -195,6 +198,7 @@
 +      ABitmap.Canvas.Handle, 0, 0, ABitmap.Width, ABitmap.Height, BF);
 +  end;
 +end;
++{$IFEND}
 +
 +function SpIsVirtualImageList(ImageList: TCustomImageList): Boolean;
 +begin
@@ -210,8 +214,13 @@
 +  DisabledOpacity: Integer;
 +  DisabledGrayscale: Boolean;
 +begin
-+  // Do not use ImageList size, use ARect size instead, the ImageList might
-+  // need to be scaled.
++  // Do not call ImageList.Draw, the ImageList holds all the glyphs from the
++  // ImageCollection that have the correct size based on the DPI of the parent
++  // Form. For example if the Form has 96 DPI the IL points to 16x16 glyphs,
++  // when we need to paint 32x32 glyphs it will extract the 16x16 bitmap and
++  // stretch it.
++  // To prevent the blur caused by the stretching we need to extract the correct
++  // size of the glyph from the ImageCollection and paint it manually.
 +  if Assigned(ImageList) and (ImageIndex > -1) and (ImageIndex < ImageList.Count) then begin
 +    {$IF CompilerVersion >= 33} // for Delphi Rio and up
 +    // TImageCollection and TVirtualImagelist were introduced on Rio.
@@ -238,7 +247,7 @@
 +        end
 +        else begin
 +          // Mimic TVirtualImageList disabled images painting, see TVirtualImageList.DoDraw
-+          // Get the correct image from the ImageCollection, gets the bitmap
++          // Get the correct image from the ImageCollection, get the bitmap
 +          // with the specified size if there is one, otherwise it gets a
 +          // scaled image (the image is stretched using ImageCollection.InterpolationMode
 +          B := RttiC.GetType(IC.ClassType).GetMethod('GetBitmap').Invoke(IC, [ImageIndex, ARect.Width, ARect.Height]).AsObject;
