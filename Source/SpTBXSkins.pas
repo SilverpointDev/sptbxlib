@@ -64,10 +64,10 @@ interface
 uses
   Windows, Messages, Classes, SysUtils, Graphics, Controls, StdCtrls,
   ImgList, IniFiles, Types,
-  {$IF CompilerVersion >= 24} // for Delphi XE3 and up
-  System.UITypes,
+  {$IF CompilerVersion >= 23} // for Delphi XE2 and up
+  System.UITypes, Styles,
   {$IFEND}
-  Themes, Styles, Generics.Collections;
+  Themes, Generics.Collections;
 
 resourcestring
   SSpTBXColorNone = 'None';
@@ -592,6 +592,7 @@ function SpStyleGetElementObject(Style: TCustomStyleServices; const ControlName,
 // Use Bitmap Style Designer to browse the different controls and elements
 // of a style, and the class types of such elements.
 var
+  RttiC: TRttiContext;
   CustomStyle: TCustomStyle;
   SeStyle, SeStyleSource, SeStyleObject: TObject;
 begin
@@ -602,20 +603,20 @@ begin
     Exit;
 
   // Use RTTI to access fields, properties and methods of structures on StyleAPI.inc
-
+  RttiC := TRttiContext.Create;
   // Get Vcl.Styles.TCustomStyle.FSource which is a StyleAPI.inc.TSeStyle (actual Delphi style file)
-  SeStyle := TRttiContext.Create.GetType(CustomStyle.ClassType).GetField('FSource').GetValue(CustomStyle).AsObject;
+  SeStyle := RttiC.GetType(CustomStyle.ClassType).GetField('FSource').GetValue(CustomStyle).AsObject;
   // Get StyleAPI.inc.TSeStyle.FStyleSource which is a StyleAPI.inc.TSeStyleSource (structure that contains all the style options and bitmaps)
-  SeStyleSource := TRttiContext.Create.GetType(SeStyle.ClassType).GetField('FStyleSource').GetValue(SeStyle).AsObject;
+  SeStyleSource := RttiC.GetType(SeStyle.ClassType).GetField('FStyleSource').GetValue(SeStyle).AsObject;
 
   // Find the control (TSeStyleObject)
   // Call StyleAPI.inc.TSeStyleSource.GetObjectByName method that returns a StyleAPI.inc.TSeStyleObject
-  SeStyleObject := TRttiContext.Create.GetType(SeStyleSource.ClassType).GetMethod('GetObjectByName').Invoke(SeStyleSource, [ControlName]).AsObject;
+  SeStyleObject := RttiC.GetType(SeStyleSource.ClassType).GetMethod('GetObjectByName').Invoke(SeStyleSource, [ControlName]).AsObject;
 
   // Find the element of the control (TSeStyleObject/TSeBitmapObject/TSeButtonObject)
   // Call StyleAPI.inc.TSeStyleObject.FindObjectByName method that returns a StyleAPI.inc.TSeStyleObject
   if SeStyleObject <> nil then begin
-    SeStyleObject := TRttiContext.Create.GetType(SeStyleObject.ClassType).GetMethod('FindObjectByName').Invoke(SeStyleObject, [ElementName]).AsObject;
+    SeStyleObject := RttiC.GetType(SeStyleObject.ClassType).GetMethod('FindObjectByName').Invoke(SeStyleObject, [ElementName]).AsObject;
     if SeStyleObject <> nil then
       Result := SeStyleObject;
   end;
@@ -628,6 +629,7 @@ function SpStyleDrawBitmapElement(const ControlName, ElementName: string;
 // Used to paint a style element. For example:
 //   SpStyleDrawBitmapElement('CheckBox', 'Checked', sknsPushed, ACanvas.Handle, Rect(0, 0, 100, 100), nil, True, CurrentPPI);
 var
+  RttiC: TRttiContext;
   Element: TObject;
   V1, V2, V3: TValue;
   SeState: TValue; // TSeState = (ssNormal, ssDesign, ssMaximized, ssMinimized, ssRollup, ssHot, ssPressed, ssFocused, ssDisabled)
@@ -640,13 +642,13 @@ begin
   if Element <> nil then begin
     // Use RTTI to access fields, properties and methods of structures on StyleAPI.inc
     // Before calling StyleAPI.inc.TSeStyleObject.Draw we need to set BoundsRect, State and TileStyle properties
-
+    RttiC := TRttiContext.Create;
     // Set StyleAPI.inc.TSeStyleObject.BoundsRect
     V1 := V1.From(R);
-    TRttiContext.Create.GetType(Element.ClassType).GetProperty('BoundsRect').SetValue(Element, V1);
+    RttiC.GetType(Element.ClassType).GetProperty('BoundsRect').SetValue(Element, V1);
 
     // Set StyleAPI.inc.TSeStyleObject.State
-    SeState := TRttiContext.Create.GetType(Element.ClassType).GetProperty('State').GetValue(Element);
+    SeState := RttiC.GetType(Element.ClassType).GetProperty('State').GetValue(Element);
     case State of
       sknsDisabled: I := 7; // ssDisabled
       sknsHotTrack: I := 5; // ssHot
@@ -655,16 +657,16 @@ begin
       I := 0; // ssNormal
     end;
     SeState := SeState.FromOrdinal(SeState.TypeInfo, I);
-    TRttiContext.Create.GetType(Element.ClassType).GetProperty('State').SetValue(Element, SeState);
+    RttiC.GetType(Element.ClassType).GetProperty('State').SetValue(Element, SeState);
 
     // If Stretch then check if is a TSeBitmapObject and set StyleAPI.inc.TSeBitmapObject.TileStyle
     // to tsStretch, and after painting reset to original value
     IsBitmapObject := (Element.ClassName = 'TSeBitmapObject') or
       (Element.ClassName = 'TSeButtonObject') or (Element.ClassName = 'TSeActiveBitmap');
     if Stretch and IsBitmapObject then begin
-      scTileStyle := TRttiContext.Create.GetType(Element.ClassType).GetProperty('TileStyle').GetValue(Element);
+      scTileStyle := RttiC.GetType(Element.ClassType).GetProperty('TileStyle').GetValue(Element);
       V3 := V3.FromOrdinal(scTileStyle.TypeInfo, 1); // tsStretch = 1
-      TRttiContext.Create.GetType(Element.ClassType).GetProperty('TileStyle').SetValue(Element, V3);
+      RttiC.GetType(Element.ClassType).GetProperty('TileStyle').SetValue(Element, V3);
     end;
     try
       // Call StyleAPI.inc.TSeStyleObject.Draw
@@ -676,14 +678,14 @@ begin
           V2 := V2.From(ClipRect^)
         else
           V2 := V2.From(Rect(-1, -1, -1, -1));
-        TRttiContext.Create.GetType(Element.ClassType).GetMethod('Draw').Invoke(Element, [V1, V2, DPI]);
+        RttiC.GetType(Element.ClassType).GetMethod('Draw').Invoke(Element, [V1, V2, DPI]);
       finally
         Free;
       end;
     finally
       // Reset to original value
       if Stretch and IsBitmapObject then
-        TRttiContext.Create.GetType(Element.ClassType).GetProperty('TileStyle').SetValue(Element, scTileStyle);
+        RttiC.GetType(Element.ClassType).GetProperty('TileStyle').SetValue(Element, scTileStyle);
     end;
 
     Result := True;
