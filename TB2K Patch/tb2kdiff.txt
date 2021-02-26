@@ -11,7 +11,7 @@
  type
    { Our declaration for IAccessible }
 --- TB2Common.pas	Wed Sep 17 14:46:30 2008
-+++ TB2Common.pas	Mon Feb 22 11:28:14 2021
++++ TB2Common.pas	Fri Feb 26 13:24:06 2021
 @@ -31,11 +31,13 @@
  {$I TB2Ver.inc}
  
@@ -148,7 +148,7 @@
      Pen := CreatePen(PS_SOLID, 1, GetTextColor(DC));
      SavePen := SelectObject(DC, Pen);
      MoveToEx(DC, X, Y + SU, nil);
-@@ -1561,11 +1604,200 @@
+@@ -1561,11 +1604,202 @@
  end;
  {$ENDIF}
  
@@ -207,12 +207,14 @@
 +
 +procedure SpDrawVirtualImageList(ACanvas: TCanvas; const ARect: TRect;
 +  ImageList: TCustomImageList; ImageIndex: Integer; Enabled: Boolean);
++{$IF CompilerVersion >= 33} // for Delphi Rio and up
 +var
 +  RttiC: TRttiContext;
 +  IC, ILItems, ILItem, B: TObject;
 +  V1, V2, V3: TValue;
 +  DisabledOpacity: Integer;
 +  DisabledGrayscale: Boolean;
++{$IFEND}
 +begin
 +  // Do not call ImageList.Draw, the ImageList holds all the glyphs from the
 +  // ImageCollection that have the correct size based on the DPI of the parent

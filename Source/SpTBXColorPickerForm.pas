@@ -48,7 +48,7 @@ uses
   Menus, StdCtrls, ExtCtrls, ActnList, Dialogs, ImgList,
   TB2Common, TB2Dock, TB2Toolbar, TB2Item, TB2ExtItems,
   SpTBXSkins, SpTBXItem, SpTBXControls, SpTBXEditors, SpTBXFormPopupMenu,
-  SpTBXExtEditors, SpTBXTabs, ImageList;
+  SpTBXExtEditors, SpTBXTabs;
   // Delphi XE8 and up will automatically add System.ImageList, make sure to delete it
   // Adding a compiler conditional doesn't work
 

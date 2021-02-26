@@ -2750,7 +2750,7 @@ begin
     CurrentSkin.GetThemedElementDetails(skncCheckBox, Enabled, False, MouseInControl, State = cbChecked, False, False, State = cbGrayed, Details);
     // CurrentPPI introduced on 10.3 Rio, but we are using TB2Common.TControlHelper
     Result := CurrentSkin.GetThemedElementSize(Canvas, Details, CurrentPPI); // returns a scaled value
-    if not Result.IsZero then Exit;
+    if not ((Result.cx = 0) and (Result.cy = 0)) then Exit;
   end;
   Result := inherited GetGlyphSize;
 end;
@@ -2819,7 +2819,7 @@ begin
     // CurrentPPI introduced on 10.3 Rio, but we are using TB2Common.TControlHelper
     // GetThemedElementSize returns a scaled value
     Result := CurrentSkin.GetThemedElementSize(Canvas, Details, CurrentPPI);
-    if not Result.IsZero then Exit;
+    if not ((Result.cx = 0) and (Result.cy = 0)) then Exit;
   end;
   Result := inherited GetGlyphSize;
 end;
@@ -4051,8 +4051,8 @@ begin
   inherited;
   if GetWindowLong(Handle, GWL_STYLE) and TBS_NOTHUMB = 0 then
   begin
-    SendMessage(Handle, TBM_GETTHUMBRECT, 0, IntPtr(@R));
-    if R.Contains(Point(Message.XPos, Message.YPos)) then
+    SendMessage(Handle, TBM_GETTHUMBRECT, 0, LPARAM(@R));
+    if PtInRect(R, Point(Message.XPos, Message.YPos)) then
       InvalidateBackground;
   end;
 end;

@@ -969,7 +969,9 @@ function TSpTBXFormPopupMenu.InternalPopup(X, Y: Integer; ForceFocus: Boolean;
 var
   ClientR: TRect;
   FC: TCustomFormClass;
+  {$IF CompilerVersion > 32}
   PPI: Integer;
+  {$IFEND}
 begin
   Result := False;
   SetPopupPoint(Point(X, Y));
