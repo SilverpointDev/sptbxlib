@@ -1,7 +1,7 @@
 unit SpTBXEditors;
 
 {==============================================================================
-Version 2.5.7
+Version 2.5.8
 
 The contents of this file are subject to the SpTBXLib License; you may
 not use or distribute this file except in compliance with the

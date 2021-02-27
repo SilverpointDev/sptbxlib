@@ -1,3 +1,45 @@
+27/2 February 2021 - version 2.5.8
+  - Updated TB2K patch with Kiriakos Vlahos latest changes.
+  - TB2Common.pas changes: added various global function helpers to support 
+    TImageCollection and TVirtualImageList, using RTTI to access fields, 
+    properties and methods of structures on VirtualImageList and ImageCollection.
+    Otherwise we must include vclwinx.bpl package to the Requires section of the dpk, 
+    doing so we must create different packages for different  Delphi versions.
+    vclwinx was introduced in Delphi Seattle but TImageCollection and 
+    TVirtualImagelist were introduced on Rio.
+    If we add vclwinx package and access TImageCollection and TVirtualImageList 
+    directly then we can delete the helpers.
+    We must use SpGetScaledVirtualImageListSize to get the correct 
+    VirtualImageList size.
+    We must use SpDrawVirtualImageList to draw an image on the VirtualImageList.
+  - TB2Dock.pas changes: removed TTBVirtualImageList, it was added by 
+    Kiriakos Vlahos to scale the toolbar images when the floating toolbar was
+    placed on a different monitor. The scaling was done by stretching the images 
+    with HQ bicubic interpolation.
+    It was removed because TVirtualImageList support was added. In my opinion 
+    TVirtualImageList is a better solution, instead of stretching the images 
+    TVirtualImageList tries to find the images based on the size.
+  - TTBDock.GetDockedBorderSize: reverted, the borders should not be scaled.
+  - TTBDock.DefaultScalingFlags: reverted
+  - TTBCustomDockableWindow.GetDockedBorderSize: reverted, the borders should
+    not be scaled.
+  - TB2Ver.inc: added LEGACYIFEND compiler option.
+  - Removed Windows XP Luna theme check.
+  - Restored compatibility with older versions of Delphi, removed vclimg and vclwinx 
+    from the package requirements.
+  - Updated Overview demo, IL wasn't scaled when starting on a High DPI monitor
+  - Added missing Glyphs dir to the Overview Demo.
+  - Added TSpTBXDockablePanel DPI scaling.
+  - Added TSpTBXToolWindow DPI scaling.
+  - Fixed TSpTBXPageScroller to support High DPI.
+  - Fixed TSpTBXComboBox painting when Style is csDropDownList.
+  - Fixed incorrect floating window painting when using Styles.
+  - Fixed incorrect font preview painting on TSpTBXFontComboBox when using Styles.
+  - Fixed unexpected return value of SpCalcMaxDropDownWidth on 64bit.
+  - Fixed item anchoring.
+  - Fixed a DockablePanel aligning issue when the DFM was loaded and DPI was different.
+  - Fixed incorrect TSpTBXDockablePanel scaling.
+  
 24 December 2020 - version 2.5.7
   - Added RAD Studio 10.4 Sydney support
   - Added High DPI and Per Monitor V2 awareness. Added all the changes made by 

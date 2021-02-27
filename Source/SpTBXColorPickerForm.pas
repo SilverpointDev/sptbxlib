@@ -45,7 +45,7 @@ interface
 
 uses
   Windows, Messages, Classes, SysUtils, Controls, Graphics, Forms,
-  Menus, StdCtrls, ExtCtrls, ActnList, Dialogs, ImgList,
+  Menus, StdCtrls, ExtCtrls, Dialogs, ImgList,
   TB2Common, TB2Dock, TB2Toolbar, TB2Item, TB2ExtItems,
   SpTBXSkins, SpTBXItem, SpTBXControls, SpTBXEditors, SpTBXFormPopupMenu,
   SpTBXExtEditors, SpTBXTabs;
