@@ -1,7 +1,7 @@
 unit SpTBXControls;
 
 {==============================================================================
-Version 2.5.7
+Version 2.5.8
 
 The contents of this file are subject to the SpTBXLib License; you may
 not use or distribute this file except in compliance with the
@@ -41,7 +41,7 @@ interface
 
 {$BOOLEVAL OFF}   // Unit depends on short-circuit boolean evaluation
 {$IF CompilerVersion >= 25} // for Delphi XE4 and up
-  {$LEGACYIFEND ON} // XE4 and up requires $IF to be terminated with $ENDIF instead of $IFEND
+  {$LEGACYIFEND ON} // requires $IF to be terminated with $ENDIF instead of $IFEND
 {$IFEND}
 
 uses
@@ -92,16 +92,13 @@ type
 
   TSpTBXCustomPanel = class(TSpTBXCustomContainer)
   private
-    FBorders: Boolean;
     FBorderType: TSpTBXPanelBorder;
     FTBXStyleBackground: Boolean;
-    procedure SetBorders(const Value: Boolean);
     procedure SetBorderType(const Value: TSpTBXPanelBorder);
     procedure SetTBXStyleBackground(const Value: Boolean);
   protected
     procedure AdjustClientRect(var Rect: TRect); override;
     procedure DrawBackground(ACanvas: TCanvas; ARect: TRect); override;
-    property Borders: Boolean read FBorders write SetBorders default True;
     property BorderType: TSpTBXPanelBorder read FBorderType write SetBorderType default pbrEtched;
     property TBXStyleBackground: Boolean read FTBXStyleBackground write SetTBXStyleBackground default False;
   public
@@ -1511,7 +1508,6 @@ begin
   // TSpTBXCustomContainer.WMEraseBkgnd
   if SkinManager.GetSkinType <> sknNone then
     ControlStyle := ControlStyle + [csParentBackground] - [csOpaque];
-  FBorders := True;
   FBorderType := pbrEtched;
 end;
 
@@ -1519,16 +1515,7 @@ procedure TSpTBXCustomPanel.AdjustClientRect(var Rect: TRect);
 begin
   inherited AdjustClientRect(Rect);
   if Borders then
-    InflateRect(Rect, -PPIScale(2), -PPIScale(2));
-end;
-
-procedure TSpTBXCustomPanel.SetBorders(const Value: Boolean);
-begin
-  if FBorders <> Value then begin
-    FBorders := Value;
-    Realign;
-    InvalidateBackground;
-  end;
+    InflateRect(Rect, -SpDefaultBorderSize, -SpDefaultBorderSize); // Do not scale
 end;
 
 procedure TSpTBXCustomPanel.SetBorderType(const Value: TSpTBXPanelBorder);
@@ -1550,7 +1537,7 @@ end;
 procedure TSpTBXCustomPanel.DrawBackground(ACanvas: TCanvas; ARect: TRect);
 begin
   if not Borders then
-    InflateRect(ARect, PPIScale(3), PPIScale(3));
+    InflateRect(ARect, SpDefaultBorderSize + 1, SpDefaultBorderSize + 1);  // Do not scale
   SpDrawXPPanel(ACanvas, ARect, True, FTBXStyleBackground, FBorderType, CurrentPPI);
 end;
 
@@ -1979,7 +1966,7 @@ begin
   IL := FImages;
   I := FImageIndex;
   DoGetImageIndex(IL, I);
-  SpDrawImageList(ACanvas, AGlyphRect, IL, I, Enabled);
+  SpDrawVirtualImageList(ACanvas, AGlyphRect, IL, I, Enabled);
 end;
 
 procedure TSpTBXTextObject.DoMouseEnter;
@@ -2058,10 +2045,8 @@ begin
   IL := FImages;
   I := FImageIndex;
   DoGetImageIndex(IL, I);
-  if Assigned(IL) and (I > -1) and (I < IL.Count) then begin
-    Result.cx := IL.Width;
-    Result.cy := IL.Height;
-  end
+  if Assigned(IL) and (I > -1) and (I < IL.Count) then
+    Result := SpGetScaledVirtualImageListSize(Self, IL)
   else begin
     Result.cx := 0;
     Result.cy := 0;
@@ -2767,7 +2752,7 @@ begin
     CurrentSkin.GetThemedElementDetails(skncCheckBox, Enabled, False, MouseInControl, State = cbChecked, False, False, State = cbGrayed, Details);
     // CurrentPPI introduced on 10.3 Rio, but we are using TB2Common.TControlHelper
     Result := CurrentSkin.GetThemedElementSize(Canvas, Details, CurrentPPI); // returns a scaled value
-    if not Result.IsZero then Exit;
+    if not ((Result.cx = 0) and (Result.cy = 0)) then Exit;
   end;
   Result := inherited GetGlyphSize;
 end;
@@ -2836,7 +2821,7 @@ begin
     // CurrentPPI introduced on 10.3 Rio, but we are using TB2Common.TControlHelper
     // GetThemedElementSize returns a scaled value
     Result := CurrentSkin.GetThemedElementSize(Canvas, Details, CurrentPPI);
-    if not Result.IsZero then Exit;
+    if not ((Result.cx = 0) and (Result.cy = 0)) then Exit;
   end;
   Result := inherited GetGlyphSize;
 end;
@@ -4068,8 +4053,8 @@ begin
   inherited;
   if GetWindowLong(Handle, GWL_STYLE) and TBS_NOTHUMB = 0 then
   begin
-    SendMessage(Handle, TBM_GETTHUMBRECT, 0, IntPtr(@R));
-    if R.Contains(Point(Message.XPos, Message.YPos)) then
+    SendMessage(Handle, TBM_GETTHUMBRECT, 0, LPARAM(@R));
+    if PtInRect(R, Point(Message.XPos, Message.YPos)) then
       InvalidateBackground;
   end;
 end;

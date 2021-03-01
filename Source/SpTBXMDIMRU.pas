@@ -1,7 +1,7 @@
 unit SpTBXMDIMRU;
 
 {==============================================================================
-Version 2.5.7
+Version 2.5.8
 
 The contents of this file are subject to the SpTBXLib License; you may
 not use or distribute this file except in compliance with the
@@ -41,7 +41,7 @@ interface
 
 {$BOOLEVAL OFF}   // Unit depends on short-circuit boolean evaluation
 {$IF CompilerVersion >= 25} // for Delphi XE4 and up
-  {$LEGACYIFEND ON} // XE4 and up requires $IF to be terminated with $ENDIF instead of $IFEND
+  {$LEGACYIFEND ON} // requires $IF to be terminated with $ENDIF instead of $IFEND
 {$IFEND}
 
 uses
@@ -335,14 +335,13 @@ const
    XPFlags: array[TSpTBXSkinStatesType] of Integer = (CBS_NORMAL, CBS_DISABLED, CBS_HOT, CBS_PUSHED, CBS_PUSHED, CBS_PUSHED);
 var
   PPI : Integer;
-
-  function PPIScale(Value: Integer): Integer;
-  begin
-    Result := MulDiv(Value, PPI, 96);
-  end;
-
 begin
+  {$IF CompilerVersion <= 30}
+  // Seattle and below, TMonitor.PixelsPerInch was introduced in Seattle
+  PPI := Screen.PixelsPerInch;
+  {$ELSE}
   PPI := Screen.MonitorFromRect(ARect).PixelsPerInch;
+  {$IFEND}
 
   if (PaintStage = pstPrePaint) and (AImageList = MDIButtonsImgList) and
     (AImageIndex >= 0) and (AImageIndex <= 3) then
@@ -351,13 +350,13 @@ begin
       sknNone:
         begin
           PaintDefault := False;
-          ARect := SpCenterRect(ARect, PPIScale(16), PPIScale(16));
+          ARect := SpCenterRect(ARect, SpPPIScale(16, PPI), SpPPIScale(16, PPI));
           DrawFrameControl(ACanvas.Handle, ARect, DFC_CAPTION, ButtonIndexFlags[AImageIndex] or NoneFlags[State]);
         end;
       sknWindows:
         begin
           PaintDefault := False;
-          ARect := SpCenterRect(ARect, PPIScale(16), PPIScale(16));
+          ARect := SpCenterRect(ARect, SpPPIScale(16, PPI), SpPPIScale(16, PPI));
           DrawThemeBackground(SpTBXThemeServices.Theme[teWindow], ACanvas.Handle, XPPart[AImageIndex], XPFlags[State], ARect, nil);
         end;
     end;

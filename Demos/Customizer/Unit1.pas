@@ -355,7 +355,7 @@ begin
   FillLayoutList('LastLayout');
 
   // Enable high DPI on the image list
-  SpDPIScaleImageList(ImageList1);
+  // Use TVirtualImageList! SpDPIScaleImageList(ImageList1);
 end;
 
 end.

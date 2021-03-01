@@ -1,7 +1,7 @@
 unit SpTBXItem;
 
 {==============================================================================
-Version 2.5.7
+Version 2.5.8
 
 The contents of this file are subject to the SpTBXLib License; you may
 not use or distribute this file except in compliance with the
@@ -66,7 +66,7 @@ interface
 
 {$BOOLEVAL OFF}   // Unit depends on short-circuit boolean evaluation
 {$IF CompilerVersion >= 25} // for Delphi XE4 and up
-  {$LEGACYIFEND ON} // XE4 and up requires $IF to be terminated with $ENDIF instead of $IFEND
+  {$LEGACYIFEND ON} // requires $IF to be terminated with $ENDIF instead of $IFEND
 {$IFEND}
 
 uses
@@ -293,8 +293,8 @@ type
     property CaptionGlow: TSpGlowDirection read FCaptionGlow write SetCaptionGlow default gldNone;
     property CaptionGlowColor: TColor read FCaptionGlowColor write SetCaptionGlowColor default clYellow;
     property Control: TControl read FControl write SetControl;
-    property CustomWidth: Integer read FCustomWidth write SetCustomWidth default -1;  // Unscaled
-    property CustomHeight: Integer read FCustomHeight write SetCustomHeight default -1;  // Unscaled
+    property CustomWidth: Integer read FCustomWidth write SetCustomWidth default -1;
+    property CustomHeight: Integer read FCustomHeight write SetCustomHeight default -1;
     property FontSettings: TSpTBXFontSettings read FFontSettings write SetFontSettings;
     property Margins: Integer read FMargins write SetMargins default 0; // Unscaled
     property MinHeight: Integer read FMinHeight write SetMinHeight default 0; // Unscaled
@@ -326,9 +326,6 @@ type
     procedure CMHintShow(var Message: TMessage); message CM_HINTSHOW;
     procedure InternalCalcSize(const Canvas: TCanvas; CalcStretch: Boolean; var AWidth, AHeight: Integer);
   protected
-    FAnchorSize: TPoint;
-    FAnchorDelta: Integer;
-
     function IsOnToolBoxPopup: Boolean;
 
     // Custom Painting methods
@@ -347,7 +344,6 @@ type
     // Painting methods
     function CaptionShown: Boolean; override;
     function GetImageShown: Boolean; virtual;
-    function GetImageSize: TSize; virtual;
     function GetRightImageSize: TSize; virtual;
     function GetTextColor(State: TSpTBXSkinStatesType): TColor; virtual;
     procedure DrawItemImage(ACanvas: TCanvas; ARect: TRect; ItemInfo: TSpTBXMenuItemInfo; ImgIndex: Integer); virtual;
@@ -813,17 +809,15 @@ type
 
   TSpTBXDock = class(TTBDock)
   private
-    FMoving: Boolean;
     FResizing: Boolean;
-    FPrevWidth: Integer;
-    FPrevHeight: Integer;
+    FScaling: Boolean;
     FOnDrawBackground: TSpTBXDrawEvent;
     procedure WMEraseBkgnd(var Message: TWMEraseBkgnd); message WM_ERASEBKGND;
-    procedure WMMove(var Message: TWMMove); message WM_MOVE;
     procedure WMSize(var Message: TWMSize); message WM_SIZE;
     procedure WMSpSkinChange(var Message: TMessage); message WM_SPSKINCHANGE;
   protected
-    function CanResize(var NewWidth: Integer; var NewHeight: Integer): Boolean; override;
+    FPrevSize: TSize;
+    procedure ChangeScale(M, D: Integer{$IF CompilerVersion >= 31}; isDpiChange: Boolean{$IFEND}); override;
     procedure DrawBackground(DC: HDC; const DrawRect: TRect); override;
     procedure DoDrawBackground(ACanvas: TCanvas; ARect: TRect; const PaintStage: TSpTBXPaintStage; var PaintDefault: Boolean); virtual;
     procedure Resize; override;
@@ -832,8 +826,6 @@ type
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
-    property PrevWidth: Integer read FPrevWidth;
-    property PrevHeight: Integer read FPrevHeight;
   published
     property Color default clNone;
     property OnCanResize;
@@ -859,7 +851,7 @@ type
     procedure BeginUpdate; virtual; // Hides inherited BeginUpdate
     procedure EndUpdate; virtual; // Hides inherited EndUpdate
     function IsUpdating: Boolean;
-    property MaxSize: Integer read FMaxSize write SetMaxSize; // Unscaled
+    property MaxSize: Integer read FMaxSize write SetMaxSize;
   end;
 
   TSpTBXToolbar = class(TTBCustomToolbar)
@@ -871,7 +863,6 @@ type
     FItemMovingCount: Integer;
     FDisplayMode: TSpTBXToolbarDisplayMode;
     FLastDropMark: TRect;
-    FLastSelectableWidth: Integer;
     FMenuBar: Boolean;
     FOnDrawBackground: TSpTBXDrawEvent;
     FOnItemNotification: TSpTBXItemNotificationEvent;
@@ -892,12 +883,11 @@ type
     procedure SetCustomizable(const Value: Boolean);
   protected
     FBeginDragIV: TTBItemViewer;
-    FAnchoredControlItems: TSpTBXItemCacheCollection;
     FState: TSpTBXToolbarStates;
 
     // Component
     procedure Resize; override;
-    procedure AnchorItems(UpdateControlItems: Boolean = True); virtual;
+    procedure AnchorItems(Delta: Integer); virtual;
     procedure RightAlignItems; virtual;
 
     // Painting
@@ -945,7 +935,7 @@ type
     function IsCustomizing: Boolean;
     function IsItemMoving: Boolean;
     function IsVertical: Boolean;
-    property MaxSize: Integer read GetMaxSize write SetMaxSize default -1; // Unscaled
+    property MaxSize: Integer read GetMaxSize write SetMaxSize default -1;
   published
     property ActivateParent;
     property Align;
@@ -1040,6 +1030,7 @@ type
     function GetFloatingWindowParentClass: TTBFloatingWindowParentClass; override;
 
     // Sizing
+    procedure ChangeScale(M, D: Integer{$IF CompilerVersion >= 31}; isDpiChange: Boolean{$IFEND}); override;
     function CalcSize(ADock: TTBDock): TPoint; virtual;
     function DoArrange(CanMoveControls: Boolean; PreviousDockType: TTBDockType; NewFloating: Boolean; NewDock: TTBDock): TPoint; override;
     procedure GetBaseSize(var ASize: TPoint); override;
@@ -1055,10 +1046,10 @@ type
 
     property ClientAreaHeight: Integer read GetClientAreaHeight write SetClientAreaHeight;
     property ClientAreaWidth: Integer read GetClientAreaWidth write SetClientAreaWidth;
-    property MaxClientHeight: Integer read FMaxClientHeight write FMaxClientHeight default 0; // UnScaled
-    property MaxClientWidth: Integer read FMaxClientWidth write FMaxClientWidth default 0; // UnScaled
-    property MinClientHeight: Integer read FMinClientHeight write FMinClientHeight default 32; // UnScaled
-    property MinClientWidth: Integer read FMinClientWidth write FMinClientWidth default 32; // UnScaled
+    property MaxClientHeight: Integer read FMaxClientHeight write FMaxClientHeight default 0;
+    property MaxClientWidth: Integer read FMaxClientWidth write FMaxClientWidth default 0;
+    property MinClientHeight: Integer read FMinClientHeight write FMinClientHeight default 32;
+    property MinClientWidth: Integer read FMinClientWidth write FMinClientWidth default 32;
     property OnDrawBackground: TSpTBXDrawEvent read FOnDrawBackground write FOnDrawBackground;
   public
     constructor Create(AOwner: TComponent); override;
@@ -1248,7 +1239,9 @@ type
 
   TSpTBXCustomContainer = class(TSpTBXCustomControl)
   private
+    FBorders: Boolean;
     FOnDrawBackground: TSpTBXDrawEvent;
+    procedure SetBorders(const Value: Boolean);
     procedure CMColorChanged(var Message: TMessage); message CM_COLORCHANGED;
     procedure CMFontChanged(var Message: TMessage); message CM_FONTCHANGED;
     procedure CMTextChanged(var Message: TMessage); message CM_TEXTCHANGED;
@@ -1260,6 +1253,7 @@ type
     procedure CreateParams(var Params: TCreateParams); override;
     procedure DoDrawBackground(ACanvas: TCanvas; ARect: TRect; const PaintStage: TSpTBXPaintStage; var PaintDefault: Boolean); virtual;
     procedure DrawBackground(ACanvas: TCanvas; ARect: TRect); virtual;
+    property Borders: Boolean read FBorders write SetBorders default True;
     property ParentColor default False;
     property OnDrawBackground: TSpTBXDrawEvent read FOnDrawBackground write FOnDrawBackground;
   public
@@ -1336,7 +1330,6 @@ type
     FMinimize: Boolean;
     FMaximize: Boolean;
     FButtonBorders: Boolean;
-    FTitleBarMaxSize: Integer;
     procedure SetCaptionImageIndex(Value: Integer);
     procedure SetCloseImageIndex(Value: Integer);
     procedure SetCaptionLabel(const Value: string);
@@ -1347,6 +1340,7 @@ type
     procedure SetClose(const Value: Boolean);
     procedure SetMaximize(const Value: Boolean);
     procedure SetMinimize(const Value: Boolean);
+    function GetTitleBarMaxSize: Integer;
     procedure SetTitleBarMaxSize(const Value: Integer);
   protected
     FParentControl: TWinControl;
@@ -1384,7 +1378,7 @@ type
     property MinimizeImageIndex: Integer read FMinimizeImageIndex write SetMinimizeImageIndex default -1;
     property MaximizeImageIndex: Integer read FMaximizeImageIndex write SetMaximizeImageIndex default -1;
     property RestoreImageIndex: Integer read FRestoreImageIndex write SetRestoreImageIndex default -1;
-    property TitleBarMaxSize: Integer read FTitleBarMaxSize write SetTitleBarMaxSize default 21; // Unscaled
+    property TitleBarMaxSize: Integer read GetTitleBarMaxSize write SetTitleBarMaxSize default 21;
   end;
 
   { TSpTBXStatusBar }
@@ -1712,7 +1706,7 @@ implementation
 uses
   Themes, UxTheme,
   TypInfo, Types,
-  {$IF CompilerVersion >= 25} // for Delphi XE4 and up
+  {$IF CompilerVersion >= 24} // for Delphi XE3 and up
   System.UITypes,
   {$IFEND}
   ComCtrls, CommCtrl, ShellApi, DwmApi,
@@ -2599,13 +2593,11 @@ begin
       SpDrawIconShadow(ACanvas, ARect, ImageList, ImageIndex);
       OffsetRect(ARect, -2, -2);
     end;
-    SpDrawImageList(ACanvas, ARect, ImageList, ImageIndex, ItemInfo.Enabled);
   end
-  else begin
-    if ItemInfo.IsSunkenCaption then
-      OffsetRect(ARect, 1, 1);
-    SpDrawImageList(ACanvas, ARect, ImageList, ImageIndex, ItemInfo.Enabled);
-  end;
+  else
+    if ItemInfo.IsSunkenCaption then OffsetRect(ARect, 1, 1);
+
+  SpDrawVirtualImageList(ACanvas, ARect, ImageList, ImageIndex, ItemInfo.Enabled);
 end;
 
 procedure SpDrawXPMenuGutter(ACanvas: TCanvas; ARect: TRect; DPI: Integer);
@@ -3054,6 +3046,7 @@ begin
     InflateRect(GripR, 0, -2);
   end;
 
+  W.PPIScale(1);
   PP1 := SpPPIScale(1, W.CurrentPPI);
   PP2 := SpPPIScale(2, W.CurrentPPI);
   PP3 := SpPPIScale(3, W.CurrentPPI);
@@ -3134,13 +3127,13 @@ begin
             // WindowsXP themes where the gripper pattern repeats itself every 4 pixels
             if Vertical then begin
               Details := SpTBXThemeServices.GetElementDetails(trGripperVert);
-              GripR := SpCenterRectVert(GripR, 6);  // Do not DPIScale, Windows paints the grip with 4 pixels
+              GripR := SpCenterRectVert(GripR, 6);  // Do not scale, Windows paints the grip with 4 pixels
               GripR.Right := GripR.Left + ((GripR.Right - GripR.Left) div 4) * 4;
               OffsetRect(GripR, 0, PP1);
             end
             else begin
               Details := SpTBXThemeServices.GetElementDetails(trGripper);
-              GripR := SpCenterRectHoriz(GripR, 6);  // Do not DPIScale, Windows paints the grip with 4 pixels
+              GripR := SpCenterRectHoriz(GripR, 6);  // Do not scale, Windows paints the grip with 4 pixels
               GripR.Bottom := GripR.Top + ((GripR.Bottom - GripR.Top) div 4) * 4;
               OffsetRect(GripR, PP1, 0);
             end;
@@ -4057,7 +4050,7 @@ end;
 
 procedure TSpTBXCustomItem.SetCustomWidth(Value: Integer);
 begin
-  if Value < -1 then Value := -1;
+  if Value < 0 then Value := -1;
   if FCustomWidth <> Value then begin
     FCustomWidth := Value;
     Change(True);
@@ -4066,7 +4059,7 @@ end;
 
 procedure TSpTBXCustomItem.SetCustomHeight(Value: Integer);
 begin
-  if Value < -1 then Value := -1;
+  if Value < 0 then Value := -1;
   if FCustomHeight <> Value then begin
     FCustomHeight := Value;
     Change(True);
@@ -4168,21 +4161,6 @@ begin
   if Assigned(View) and Assigned(View.Owner) and (View.Owner is TSpTBXToolbar) then
     if TSpTBXToolbar(View.Owner).DisplayMode = tbdmTextOnly then
       Result := False;
-end;
-
-function TSpTBXItemViewer.GetImageSize: TSize;
-var
-  IL: TCustomImageList;
-begin
-  IL := GetImageList;
-  if Assigned(IL) then begin
-    Result.cx := IL.Width;
-    Result.cy := IL.Height;
-  end
-  else begin
-    Result.cx := 0;
-    Result.cy := 0;
-  end;
 end;
 
 function TSpTBXItemViewer.GetRightImageSize: TSize;
@@ -4409,9 +4387,7 @@ begin
   if AWidth < PPIScale(Item.MinWidth) then AWidth := PPIScale(Item.MinWidth);
   if AHeight < PPIScale(Item.MinHeight) then AHeight := PPIScale(Item.MinHeight);
 
-  // Handle Custom size and anchors
   if IsRotated then begin
-    // Reverse
     H := AWidth + PPIScale(Item.Margins);
     W := AHeight;
   end
@@ -4420,19 +4396,30 @@ begin
     H := AHeight;
   end;
 
-  if Item.CustomWidth > -1 then
-    W := PPIScale(Item.CustomWidth);
-  if Item.CustomHeight > -1 then
-    H := PPIScale(Item.CustomHeight);
+  // Handle Spacer, anchored and custom sized items
+  // Do not scale CustomWidth/CustomHeight, it's scaled in TSpTBXToolbar.ChangeScale
+  // No min size for Anchored items
+  // 0 is the min size for SpacerItem
+  if IsRotated then begin
+    if Item.CustomWidth > -1 then
+      W := Item.CustomWidth;
+    if (Item is TSpTBXRightAlignSpacerItem) or (Item.Anchored) or (Item.CustomHeight > -1) then
+      H := Item.CustomHeight;
+  end
+  else begin
+    if (Item is TSpTBXRightAlignSpacerItem) or (Item.Anchored) or (Item.CustomWidth > -1) then
+      W := Item.CustomWidth;
+    if Item.CustomHeight > -1 then
+      H := Item.CustomHeight;
+  end;
 
-  if IsToolbarStyle and Item.Anchored then
-    W := W + FAnchorDelta;
   if W < PPIScale(Item.MinWidth) then W := PPIScale(Item.MinWidth);
   if H < PPIScale(Item.MinHeight) then H := PPIScale(Item.MinHeight);
   // Apply View.MaxSize to the height of the item
   if View.Window is TSpTBXToolbar then begin
     TB := View.Window as TSpTBXToolbar;
-    I := PPIScale(TB.MaxSize) - TB.NonClientHeight;
+    // Do not scale MaxSize, it's scaled in TSpTBXToolbar.ChangeScale
+    I := TB.MaxSize - TB.NonClientHeight;
     if (I > -1) and (H > I) then
       H := I;
   end;
@@ -4530,8 +4517,8 @@ const
     else
       R := Rect(0, 0, 1, 1);
     SpDrawXPText(ACanvas, TextInfo.Text, R, TextFlags or DT_CALCRECT, gldNone, clYellow, TextInfo.TextAngle);
-    Result.CX := R.Right;
-    Result.CY := R.Bottom;
+    Result.cx := R.Right;
+    Result.cy := R.Bottom;
   end;
 
 begin
@@ -4629,19 +4616,22 @@ begin
   R := ClientAreaRect;
   if ItemInfo.ToolbarStyle then begin
     if ItemInfo.HasArrow then begin
+      ItemInfo.ComboRect := R;
       if ItemInfo.IsSplit then begin
-        ItemInfo.ComboRect := R;
         Dec(R.Right, SplitBtnArrowSize);
         ItemInfo.ComboRect.Left := R.Right;
       end
       else
         if not IsSpecialDropDown then begin
-          if View.Orientation <> tbvoVertical then
-            ItemInfo.ComboRect := Rect(R.Right - Self.tbDropdownArrowWidth - Self.tbDropdownArrowMargin, 0,
-              R.Right - tbDropdownArrowMargin, R.Bottom)
-          else
-            ItemInfo.ComboRect := Rect(0, R.Bottom - Self.tbDropdownArrowWidth - Self.tbDropdownArrowMargin,
-              R.Right, R.Bottom - Self.tbDropdownArrowMargin);
+          // If the caption is shown calculate the right margin, if the caption
+          // is not visible center the arrow
+          if TextInfo.IsCaptionShown then
+            if View.Orientation <> tbvoVertical then
+              ItemInfo.ComboRect := Rect(R.Right - Self.tbDropdownArrowWidth - Self.tbDropdownArrowMargin, 0,
+                R.Right - Self.tbDropdownArrowMargin, R.Bottom)
+            else
+              ItemInfo.ComboRect := Rect(0, R.Bottom - Self.tbDropdownArrowWidth - Self.tbDropdownArrowMargin,
+                R.Right, R.Bottom - Self.tbDropdownArrowMargin);
         end
         else begin
           // Special DropDown, toolbar item with arrow, image and text. The Image is above the caption
@@ -4663,8 +4653,8 @@ begin
 
     // Draw dropdown arrow
     if PaintDefault and ItemInfo.HasArrow then begin
-      P.X := (ItemInfo.ComboRect.Left + ItemInfo.ComboRect.Right) div 2 - PPIScale(1);
-      P.Y := (ItemInfo.ComboRect.Top + ItemInfo.ComboRect.Bottom) div 2 - PPIScale(1);
+      P.X := (ItemInfo.ComboRect.Left + ItemInfo.ComboRect.Right - 1) div 2;
+      P.Y := (ItemInfo.ComboRect.Top + ItemInfo.ComboRect.Bottom - 1) div 2;
       // Don't draw the arrow if is a split button in Windows, it's
       // painted by the Windows theme.
       if not (ItemInfo.IsSplit and (ItemInfo.SkinType in [sknWindows, sknDelphiStyle])) then begin
@@ -5574,7 +5564,7 @@ var
 begin
   if not Item.CustomImages then begin
     I := GetImageIndex(Col, Row);
-    SpDrawImageList(ACanvas, ARect, Item.Images, I, ItemInfo.Enabled);
+    SpDrawVirtualImageList(ACanvas, ARect, Item.Images, I, ItemInfo.Enabled);
   end;
   Item.DoDrawCellImage(ACanvas, ARect, Col, Row, ItemInfo);
 end;
@@ -5637,11 +5627,9 @@ begin
     IL := nil
   else
     IL := Item.Images;
-    
-  if Assigned(IL) then begin
-    Result.cx := IL.Width;
-    Result.cy := IL.Height;
-  end
+
+  if Assigned(IL) then
+    Result := SpGetScaledVirtualImageListSize(View.Window, IL)
   else begin
     Result.cx := PPIScale(12);
     Result.cy := PPIScale(12);
@@ -6009,24 +5997,29 @@ end;
 //WMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWM
 { TSpTBXDock }
 
+procedure TSpTBXDock.ChangeScale(M, D: Integer{$IF CompilerVersion >= 31}; isDpiChange: Boolean{$IFEND});
+begin
+  FScaling := True;
+  // Reset anchor prev size
+  FPrevSize.cx := 0;
+  FPrevSize.cy := 0;
+  inherited;
+  FScaling := False;
+end;
+
 constructor TSpTBXDock.Create(AOwner: TComponent);
 begin
   inherited;
   Color := clNone;
   SkinManager.AddSkinNotification(Self);
+  FPrevSize.cx := 0;
+  FPrevSize.cy := 0;
 end;
 
 destructor TSpTBXDock.Destroy;
 begin
   SkinManager.RemoveSkinNotification(Self);
   inherited;
-end;
-
-function TSpTBXDock.CanResize(var NewWidth, NewHeight: Integer): Boolean;
-begin
-  FPrevWidth := Width;
-  FPrevHeight := Height;
-  Result := inherited CanResize(NewWidth, NewHeight);
 end;
 
 procedure TSpTBXDock.DoDrawBackground(ACanvas: TCanvas; ARect: TRect;
@@ -6078,21 +6071,35 @@ end;
 procedure TSpTBXDock.Resize;
 var
   I, J: Integer;
-  ResizeToolbars: Boolean;
   V: TTBItemViewer;
   R: TRect;
 begin
-  inherited Resize;
+  inherited;
+
+  if FScaling then
+    Exit;
 
   // For anchored and right aligned items
-  if Position in [dpLeft, dpRight] then
-    ResizeToolbars := Height < FPrevHeight
-  else
-    ResizeToolbars := Width < FPrevWidth;
-  if ResizeToolbars then
-    for I := 0 to ToolbarCount - 1 do
-      if Toolbars[I] is TSpTBXToolbar then
-        TSpTBXToolbar(Toolbars[I]).Resize;
+  for I := 0 to ToolbarCount - 1 do
+    if Toolbars[I] is TSpTBXToolbar then begin
+
+      TSpTBXToolbar(Toolbars[I]).RightAlignItems;
+
+      if (ComponentState * [csReading, csLoading, csDestroying] = []) and
+        (FPrevSize.cx > 0) and (FPrevSize.cy > 0) then
+      begin
+        if TSpTBXToolbar(Toolbars[I]).IsVertical then
+          TSpTBXToolbar(Toolbars[I]).AnchorItems(ClientHeight - FPrevSize.cy)
+        else
+          TSpTBXToolbar(Toolbars[I]).AnchorItems(ClientWidth - FPrevSize.cx);
+      end;
+    end;
+  if (ComponentState * [csReading, csLoading, csDestroying] = []) then begin
+    // Set anchor prev size
+    FPrevSize.cx := ClientWidth;
+    FPrevSize.cy := ClientHeight;
+  end;
+
 
   // Invalidate the dock and the toolbars
   for J := 0 to ToolbarCount - 1 do begin
@@ -6144,13 +6151,6 @@ procedure TSpTBXDock.WMEraseBkgnd(var Message: TWMEraseBkgnd);
 begin
   DrawBackground(Message.DC, ClientRect);
   Message.Result := 1;
-end;
-
-procedure TSpTBXDock.WMMove(var Message: TWMMove);
-begin
-  FMoving := True;
-  inherited;
-  FMoving := False;
 end;
 
 procedure TSpTBXDock.WMSize(var Message: TWMSize);
@@ -6225,10 +6225,8 @@ begin
   Dec(FUpdating);
   inherited EndUpdate;
   if FUpdating = 0 then
-    if Assigned(Owner) and (Owner is TSpTBXToolbar) then begin
+    if Assigned(Owner) and (Owner is TSpTBXToolbar) then
       TSpTBXToolbar(Owner).RightAlignItems;
-      TSpTBXToolbar(Owner).AnchorItems;
-    end;
 end;
 
 function TSpTBXToolbarView.IsUpdating: Boolean;
@@ -6253,7 +6251,6 @@ begin
   Color := clNone;
 
   Items.RegisterNotification(DoItemNotification);
-  FAnchoredControlItems := TSpTBXItemCacheCollection.Create(TSpTBXItemCache);
   FChevronVertical := True;
   FCustomizable := True;
   FDisplayMode := tbdmSelectiveCaption;
@@ -6264,7 +6261,6 @@ destructor TSpTBXToolbar.Destroy;
 begin
   SkinManager.RemoveSkinNotification(Self);
   Items.UnRegisterNotification(DoItemNotification);
-  FAnchoredControlItems.Free;
   inherited;
 end;
 
@@ -6287,147 +6283,66 @@ end;
 procedure TSpTBXToolbar.DoItemNotification(Ancestor: TTBCustomItem;
   Relayed: Boolean; Action: TTBItemChangedAction; Index: Integer;
   Item: TTBCustomItem);
-var
-  I: Integer;
 begin
   if (csDestroying in ComponentState) or (csReading in ComponentState) then Exit;
 
-  if not (tstResizing in FState) and not IsItemMoving then begin
-    if Assigned(FOnItemNotification) then FOnItemNotification(Self, Ancestor, Relayed, Action, Index, Item);
-
-    case Action of
-      tbicInserted:
-        begin
-          RightAlignItems;
-          AnchorItems(True);
-        end;
-      tbicDeleting:
-        begin
-          I := FAnchoredControlItems.IndexOf(Item);
-          if I > -1 then
-            FAnchoredControlItems.Delete(I);
-          RightAlignItems;
-          AnchorItems(True);
-        end;
-      tbicInvalidateAndResize:
-        begin
-          RightAlignItems;
-        end;
-    end;
+  if not (tstResizing in FState) and not (tstRightAligning in FState) and
+    not IsItemMoving then
+  begin
+    if Assigned(FOnItemNotification) then
+      FOnItemNotification(Self, Ancestor, Relayed, Action, Index, Item);
+    if Action in [tbicInserted, tbicDeleting, tbicInvalidateAndResize] then
+      RightAlignItems;
   end;
 end;
 
 procedure TSpTBXToolbar.Resize;
 begin
   FState := FState + [tstResizing];
-  try
-    RightAlignItems;
-    AnchorItems;
-  finally
-    FState := FState - [tstResizing];
-  end;
   inherited;
+  RightAlignItems;
+  FState := FState - [tstResizing];
 end;
 
-procedure TSpTBXToolbar.AnchorItems(UpdateControlItems: Boolean);
+procedure TSpTBXToolbar.AnchorItems(Delta: Integer);
 var
-  I, J, UpdatedDelta: Integer;
+  I: Integer;
   SpIV: TSpTBXItemViewer;
-  Size: TPoint;
   CI: TTBControlItem;
-  IV: TTBItemViewer;
-  IsRotated: Boolean;
 begin
-  if (csDestroying in ComponentState) or
-    (tstAnchoring in FState) or not Assigned(CurrentDock) or
+  if (Delta = 0) or (tstAnchoring in FState) or not Assigned(CurrentDock) or
     (CurrentDock.Width = 0) or (CurrentDock.Height = 0) or
     not Stretch or (ShrinkMode <> tbsmNone) or IsUpdating then
       Exit;
 
   FState := FState + [tstAnchoring];
+  View.ValidatePositions;
   View.BeginUpdate;
   try
-    View.ValidatePositions;
-    IsRotated := IsVertical;
-    // Adjust the delta, only used when inserting/deleting an item on the toolbar
-    UpdatedDelta := 0;
-    if (FLastSelectableWidth > 0) and UpdateControlItems then begin
-      IV := View.NextSelectable(nil, False);
-      if Assigned(IV) then
-        if IsRotated then
-          UpdatedDelta := FLastSelectableWidth - IV.BoundsRect.Bottom
-        else
-          UpdatedDelta := FLastSelectableWidth - IV.BoundsRect.Right;
-    end;
-
-    // Calculate the Toolbar size
-    Size := Point(CurrentDock.Width, CurrentDock.Height);
-
-    // Resize the anchored items
+    // Resize anchored items, do not scale
     for I := 0 to View.ViewerCount - 1 do
       if View.Viewers[I] is TSpTBXItemViewer then begin
         SpIV := View.Viewers[I] as TSpTBXItemViewer;
-        if SpIV.Item.Anchored then begin
-          // Revalidate FAnchorSize and set FAnchorDelta
-          if (SpIV.FAnchorSize.X = 0) and (SpIV.FAnchorSize.Y = 0) then
-            SpIV.FAnchorSize := Size;
-
-          // Adjust the delta, only used when inserting/deleting an item on
-          // the toolbar and resize
-          if IsRotated then begin
-            SpIV.FAnchorSize.Y := SpIV.FAnchorSize.Y - UpdatedDelta;
-            SpIV.FAnchorDelta := Size.Y - SpIV.FAnchorSize.Y;
-          end
-          else begin
-            SpIV.FAnchorSize.X := SpIV.FAnchorSize.X - UpdatedDelta;
-            SpIV.FAnchorDelta := Size.X - SpIV.FAnchorSize.X;
-          end;
-        end;
+        if SpIV.Item.Anchored then
+          if IsVertical then
+            SpIV.Item.CustomHeight := SpIV.Item.CustomHeight + Delta
+          else
+            SpIV.Item.CustomWidth := SpIV.Item.CustomWidth + Delta;
       end
       else begin
-        // Client align TTBControlItem items if the associated Control is client
-        // aligned or has akRight in its Anchors property.
         CI := IsAnchoredControlItem(View.Viewers[I].Item);
-        J := FAnchoredControlItems.IndexOf(View.Viewers[I].Item);
         if Assigned(CI) then begin
-          // Add the TTBControlItem item to the list if its not there
-          if J = -1 then begin
-            J := FAnchoredControlItems.Add(CI);
-            FAnchoredControlItems[J].Width := CI.Control.Width;
-            FAnchoredControlItems[J].Height := CI.Control.Height;
-            FAnchoredControlItems[J].ParentWidth := Size.X;
-            FAnchoredControlItems[J].ParentHeight := Size.Y;
-            FAnchoredControlItems[J].Dock := CurrentDock;
-          end;
-          // Resize
-          if FAnchoredControlItems[J].Dock = CurrentDock then begin
-            FAnchoredControlItems[J].Width := FAnchoredControlItems[J].Width + UpdatedDelta;
-            CI.Control.Width := FAnchoredControlItems[J].Width + (Size.X - FAnchoredControlItems[J].ParentWidth);
-          end;
-        end
-        else
-          // If ControlItem is not valid delete it from the list
-          if J > -1 then
-            FAnchoredControlItems.Delete(J);
+          if CI.Control.Tag = 0 then
+            CI.Control.Tag := CI.Control.Width;  // Use Tag as the control prev size
+          CI.Control.Tag := CI.Control.Tag + Delta;
+          CI.Control.Width := CI.Control.Tag;
+        end;
       end;
     View.UpdatePositions;
   finally
     View.EndUpdate;
     FState := FState - [tstAnchoring];
   end;
-
-  // We can't calculate the delta based on the IV.BoundsRect because
-  // the IV is nil on tbicDeleting notification.
-  // We have to keep track of the sum of the selectable items width
-  IV := View.NextSelectable(nil, False);
-  if Assigned(IV) then begin
-    if IsRotated then
-      FLastSelectableWidth := IV.BoundsRect.Bottom
-    else
-      FLastSelectableWidth := IV.BoundsRect.Right;
-  end
-  else
-    FLastSelectableWidth := 0;
 end;
 
 function TSpTBXToolbar.IsAnchoredControlItem(Item: TTBCustomItem): TTBControlItem;
@@ -6451,7 +6366,6 @@ procedure TSpTBXToolbar.RightAlignItems;
 var
   I, VisibleWidth, RightAlignedWidth: Integer;
   Spacer: TSpTBXItemViewer;
-  IsRotated: Boolean;
 begin
   if (csDestroying in ComponentState) or (tstRightAligning in FState) or
     not Assigned(CurrentDock) or (Items.Count <= 0) or
@@ -6464,19 +6378,21 @@ begin
   View.BeginUpdate;
   try
     // Find the spacer and the right aligned items
-    IsRotated := IsVertical;
-    Spacer := SpGetRightAlignedItems(View, nil, IsRotated, VisibleWidth, RightAlignedWidth);
+    Spacer := SpGetRightAlignedItems(View, nil, IsVertical, VisibleWidth, RightAlignedWidth);
     if Assigned(Spacer) then begin
       // Resize the spacer
-      if IsRotated then
-        I := CurrentDock.Height - GetRightAlignMargin - (VisibleWidth - (Spacer.BoundsRect.Bottom - Spacer.BoundsRect.Top))
-      else
+      if IsVertical then begin
+        I := CurrentDock.Height - GetRightAlignMargin - (VisibleWidth - (Spacer.BoundsRect.Bottom - Spacer.BoundsRect.Top));
+        if I < 0 then I := 0;
+        Spacer.Item.CustomHeight := I;
+      end
+      else begin
         I := CurrentDock.Width - GetRightAlignMargin - (VisibleWidth - (Spacer.BoundsRect.Right - Spacer.BoundsRect.Left));
-
-      if I < 0 then I := 0;
-      Spacer.Item.CustomWidth := PPIUnScale(I);
+        if I < 0 then I := 0;
+        Spacer.Item.CustomWidth := I;
+      end;
     end;
-    View.UpdatePositions;
+//    View.UpdatePositions; // not needed
   finally
     View.EndUpdate;
     FState := FState - [tstRightAligning];
@@ -6763,8 +6679,10 @@ var
   R: TRect;
 begin
   inherited;
-
-  if Docked and ((CurrentDock is TSpTBXDock) and not TSpTBXDock(CurrentDock).FResizing) then begin
+  // Ported from TBX, assume we are using a background and invalidate when resizing
+  if not (csLoading in ComponentState) and Docked and
+    (CurrentDock is TSpTBXDock) and not TSpTBXDock(CurrentDock).FResizing then
+  begin
     for I := 0 to View.ViewerCount - 1 do begin
       V := View.Viewers[I];
       if V.Show and not IsRectEmpty(V.BoundsRect) and not (V.Item is TTBControlItem) then
@@ -6899,7 +6817,9 @@ end;
 
 procedure TSpTBXToolbar.ChangeScale(M, D: Integer{$IF CompilerVersion >= 31}; isDpiChange: Boolean{$IFEND});
 var
-  I: Integer;
+  I, W, H: Integer;
+  T: TSpTBXCustomItem;
+  CI: TTBControlItem;  
 begin
   BeginUpdate;
   try
@@ -6908,6 +6828,8 @@ begin
     EndUpdate;
   end;
 
+  // Scale DockPos, if changing to a lower DPI reposition counting the toolbars
+  // that are on the left side
   if D > M then begin
     if Assigned(CurrentDock) then begin
       for I := 0 to CurrentDock.ToolbarCount - 1 do
@@ -6918,6 +6840,42 @@ begin
   end
   else
     DockPos := MulDiv(DockPos, M, D);
+
+  // Scale MaxSize
+  if MaxSize > -1 then begin
+    HandleNeeded;  // not sure why this is needed when starting on a high DPI monitor
+    MaxSize := MulDiv(MaxSize, M, D);
+  end;
+
+  // Scale CustomWidth/CustomHeight
+  for I := 0 to Items.Count - 1 do
+    if Items[I] is TSpTBXCustomItem then begin
+      T := TSpTBXCustomItem(Items[I]);
+      W := MulDiv(T.CustomWidth, M, D);
+      H := MulDiv(T.CustomHeight, M, D);
+      if IsVertical then begin
+        if (T is TSpTBXRightAlignSpacerItem) and (H < 0) then
+          H := 0;
+        if (T is TSpTBXRightAlignSpacerItem) or (T.Anchored) or (T.CustomHeight > -1) then
+          T.CustomHeight := H;
+        T.CustomWidth := W;
+      end
+      else begin
+        if (T is TSpTBXRightAlignSpacerItem) and (W < 0) then
+          W := 0;
+        if (T is TSpTBXRightAlignSpacerItem) or (T.Anchored) or (T.CustomWidth > -1) then
+          T.CustomWidth := W;
+        T.CustomHeight := H;
+      end;
+    end
+    else begin
+      CI := IsAnchoredControlItem(Items[I]);
+      if Assigned(CI) and (CI.Control.Tag <> 0) then
+        CI.Control.Tag := MulDiv(CI.Control.Tag, M, D);  // Scale prev size of the anchored ControlItem
+    end;
+
+  // Needed for vertical stretched items
+  View.InvalidatePositions;
 end;
 
 procedure TSpTBXToolbar.MouseMove(Shift: TShiftState; X, Y: Integer);
@@ -7100,7 +7058,10 @@ begin
   inherited;
   FMinClientWidth := 32;
   FMinClientHeight := 32;
-  SetBounds(Left, Top, FMinClientWidth, FMinClientHeight);
+  // Make sure Width/Height are included in ScalingFlags on
+  // TControl.ChangeScale when csLoading
+  Width := FMinClientWidth;
+  Height := FMinClientHeight;
 
   Color := clNone;
   SkinManager.AddSkinNotification(Self);
@@ -7112,6 +7073,16 @@ begin
   inherited;
 end;
 
+procedure TSpTBXCustomToolWindow.ChangeScale(M, D: Integer{$IF CompilerVersion >= 31}; isDpiChange: Boolean{$IFEND});
+begin
+  inherited;
+  // Do not scale FBarSize, it's updated with scaled Width/Height values in SizeChanging
+  FMaxClientHeight := MulDiv(FMaxClientHeight, M, D);
+  FMaxClientWidth := MulDiv(FMaxClientWidth, M, D);
+  FMinClientHeight := MulDiv(FMinClientHeight, M, D);
+  FMinClientWidth := MulDiv(FMinClientWidth, M, D);
+end;
+
 function TSpTBXCustomToolWindow.CalcSize(ADock: TTBDock): TPoint;
 begin
   Result.X := FBarSize.cx;
@@ -7120,9 +7091,9 @@ begin
     // If docked and stretching, return the minimum size so that the
     // toolbar can shrink below FBarSize
     if SpIsVerticalToolbar(Self) then
-      Result.Y := PPIScale(FMinClientHeight)
+      Result.Y := FMinClientHeight
     else
-      Result.X := PPIScale(FMinClientWidth);
+      Result.X := FMinClientWidth;
   end;
 end;
 
@@ -7141,10 +7112,10 @@ procedure TSpTBXCustomToolWindow.GetMinMaxSize(var AMinClientWidth, AMinClientHe
   AMaxClientWidth, AMaxClientHeight: Integer);
 begin
   // GetMinMaxSize is used only when the window is floating
-  AMinClientWidth := PPIScale(FMinClientWidth);
-  AMinClientHeight := PPIScale(FMinClientHeight);
-  AMaxClientWidth := PPIScale(FMaxClientWidth);
-  AMaxClientHeight := PPIScale(FMaxClientHeight);
+  AMinClientWidth := FMinClientWidth;
+  AMinClientHeight := FMinClientHeight;
+  AMaxClientWidth := FMaxClientWidth;
+  AMaxClientHeight := FMaxClientHeight;
 end;
 
 function TSpTBXCustomToolWindow.IsVertical: Boolean;
@@ -8132,6 +8103,7 @@ begin
   Color := clNone;
   ParentColor := False;
   SkinManager.AddSkinNotification(Self);
+  FBorders := True;
 
   DoubleBuffered := True;
 end;
@@ -8208,6 +8180,15 @@ begin
   //
 end;
 
+procedure TSpTBXCustomContainer.SetBorders(const Value: Boolean);
+begin
+  if FBorders <> Value then begin
+    FBorders := Value;
+    Realign;
+    InvalidateBackground;
+  end;
+end;
+
 procedure TSpTBXCustomContainer.InvalidateBackground(InvalidateChildren: Boolean);
 begin
   // Force background repaint, calling invalidate doesn't repaint children controls
@@ -8217,9 +8198,9 @@ begin
   else
     if not (csDestroying in ComponentState) and HandleAllocated then
       if InvalidateChildren then
-        RedrawWindow(Handle, nil, 0, RDW_ERASE or RDW_INVALIDATE or RDW_ALLCHILDREN)
+        RedrawWindow(Handle, nil, 0, RDW_ERASE or RDW_INVALIDATE or RDW_ALLCHILDREN or RDW_FRAME)
       else
-        RedrawWindow(Handle, nil, 0, RDW_ERASE or RDW_INVALIDATE);
+        RedrawWindow(Handle, nil, 0, RDW_ERASE or RDW_INVALIDATE or RDW_FRAME);
 end;
 
 procedure TSpTBXCustomContainer.WMEraseBkgnd(var Message: TMessage);
@@ -8620,7 +8601,7 @@ begin
   FMinimizeImageIndex := -1;
   FMaximizeImageIndex := -1;
   FRestoreImageIndex := -1;
-  FTitleBarMaxSize := 21;
+  TitleBarMaxSize := 21;
   FButtonBorders := True;
   CreateButtons;
 end;
@@ -8646,8 +8627,6 @@ begin
   FCloseButton := TSpTBXItem.Create(nil);
   SetupButton(FCloseButton);
   FCloseButton.Visible := FClose;
-
-  SetTitleBarMaxSize(FTitleBarMaxSize);
 end;
 
 procedure TSpTBXButtonOptions.MoveItemToTheLeft(B: TTBCustomItem);
@@ -8665,7 +8644,7 @@ end;
 procedure TSpTBXButtonOptions.SetupButton(B: TSpTBXCustomItem);
 begin
   B.CustomWidth := 17;
-  B.CustomHeight := FTitleBarMaxSize;
+  B.CustomHeight := TitleBarMaxSize;
   B.DisplayMode := nbdmImageAndText;
   B.OnDrawImage := ButtonsDrawImage;
   B.OnDrawItem := ButtonsDrawItem;
@@ -8829,10 +8808,18 @@ begin
   SetupButtonIcon(FMaximizeButton);
 end;
 
+function TSpTBXButtonOptions.GetTitleBarMaxSize: Integer;
+begin
+  if Assigned(FToolbar) then
+    Result := FToolbar.MaxSize
+  else
+    Result := -1;
+end;
+
 procedure TSpTBXButtonOptions.SetTitleBarMaxSize(const Value: Integer);
 begin
-  FTitleBarMaxSize := Value;
-  TSpTBXToolbarView(FToolbar.View).MaxSize := Value;
+  if Assigned(FToolbar) then
+    FToolbar.MaxSize := Value;
 end;
 
 //WMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWM

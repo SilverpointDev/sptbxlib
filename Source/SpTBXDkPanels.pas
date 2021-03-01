@@ -1,7 +1,7 @@
 unit SpTBXDkPanels;
 
 {==============================================================================
-Version 2.5.7
+Version 2.5.8
 
 The contents of this file are subject to the SpTBXLib License; you may
 not use or distribute this file except in compliance with the
@@ -50,7 +50,7 @@ interface
 
 {$BOOLEVAL OFF}   // Unit depends on short-circuit boolean evaluation
 {$IF CompilerVersion >= 25} // for Delphi XE4 and up
-  {$LEGACYIFEND ON} // XE4 and up requires $IF to be terminated with $ENDIF instead of $IFEND
+  {$LEGACYIFEND ON} // requires $IF to be terminated with $ENDIF instead of $IFEND
 {$IFEND}
 
 uses
@@ -58,6 +58,9 @@ uses
   Menus, StdCtrls, ExtCtrls, ActnList, IniFiles,
   TB2Item, TB2Dock, TB2Toolbar,
   SpTBXSkins, SpTBXItem, SpTBXControls;
+
+const
+  CM_SPCHANGESCALE = CM_BASE + 2244;  // Message sent to the controls to update its scaling
 
 type
   TSpTBXCustomDockablePanel = class;
@@ -100,9 +103,13 @@ type
     procedure UpdateDPLateralSize(AWidth, AHeight: Integer);
     procedure SetPosition(const Value: TSpTBXDockPosition);
     procedure SetLimitToOneRow(const Value: Boolean);
+    procedure CMSPChangeScale(var Message: TMessage); message CM_SPCHANGESCALE;
   protected
-    function DefaultScalingFlags: TScalingFlags; override;
     procedure AlignControls(AControl: TControl; var Rect: TRect); override;
+    {$IF CompilerVersion >= 27}  // for Delphi XE6 and up
+    function DefaultScalingFlags: TScalingFlags; override;
+    {$IFEND}
+    procedure ChangeScale(M, D: Integer{$IF CompilerVersion >= 31}; isDpiChange: Boolean{$IFEND}); override;
     procedure DoInsertRemoveBar(Sender: TObject; Inserting: Boolean; Bar: TTBCustomDockableWindow); virtual; // OnInsertRemoveBar is republished
     procedure DoRequestDock(Sender: TObject; Bar: TTBCustomDockableWindow; var Accept: Boolean); virtual; // OnRequestDock is republished
     procedure Loaded; override;
@@ -218,7 +225,6 @@ type
     FDockForms: TList;
 
     // Component
-    function DefaultScalingFlags: TScalingFlags; override;
     procedure ChangeScale(M, D: Integer{$IF CompilerVersion >= 31}; isDpiChange: Boolean{$IFEND}); override;
     procedure CreateParams(var Params: TCreateParams); override;
     procedure Notification(AComponent: TComponent; Operation: TOperation); override;
@@ -444,7 +450,7 @@ type
 
 { Painting helpers }
 procedure SpDrawXPDockablePanelTitleBar(ACanvas: TCanvas; ARect: TRect; IsActive, Vertical: Boolean; DPI: Integer);
-procedure SpDrawXPDockablePanelBody(ACanvas: TCanvas; ARect: TRect; IsActive, IsFloating: Boolean; PPIScale: TPPIScale);
+procedure SpDrawXPDockablePanelBody(ACanvas: TCanvas; ARect: TRect; IsActive, IsFloating: Boolean);
 
 { Toolbar Load/Save Position helpers }
 procedure SpTBRegLoadPositions(const OwnerComponent: TComponent; const RootKey: DWORD; const BaseRegistryKey: string);
@@ -458,7 +464,7 @@ implementation
 
 uses
   Types,
-  {$IF CompilerVersion >= 25} // for Delphi XE4 and up
+  {$IF CompilerVersion >= 24} // for Delphi XE3 and up
   System.UITypes,
   {$IFEND}
   Themes, ComCtrls, Registry, TB2Consts, TB2Common;
@@ -1064,7 +1070,7 @@ begin
   end;
 end;
 
-procedure SpDrawXPDockablePanelBody(ACanvas: TCanvas; ARect: TRect; IsActive, IsFloating: Boolean; PPIScale: TPPIScale);
+procedure SpDrawXPDockablePanelBody(ACanvas: TCanvas; ARect: TRect; IsActive, IsFloating: Boolean);
 var
   C: TColor;
   {$IF CompilerVersion >= 23} // for Delphi XE2 and up
@@ -1080,7 +1086,7 @@ begin
         if not IsFloating then begin
           ACanvas.Brush.Color := clBtnFace;
           ACanvas.FrameRect(ARect);
-          InflateRect(ARect, -PPIScale(1), -PPIScale(1));
+          InflateRect(ARect, -1, -1);  // do not scale
           ACanvas.Brush.Color := clWhite;
           ACanvas.FrameRect(ARect);
         end;
@@ -1106,7 +1112,7 @@ end;
 //WMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWM
 { Toolbar Load/Save Position helpers }
 
-procedure SpTBUpdateMultiDocksAfterLoad(const M: TSpTBXMultiDock);
+procedure SpTBUpdateMultiDocksAfterLoad(const M: TSpTBXCustomMultiDock);
 // TBCustomLoadPositions doesn't correctly position the DPs after they are loaded.
 // To reproduce:
 // 1) Drop a top aligned MultiDock with 3 DPs (DP1, DP2, DP3), and drop a left
@@ -1395,16 +1401,6 @@ begin
   inherited OnRequestDock := DoRequestDock;
 end;
 
-function TSpTBXCustomMultiDock.DefaultScalingFlags: TScalingFlags;
-begin
-  if Position in [dpxLeft, dpxRight] then
-    Result := [sfWidth]
-  else if Position in [dpxTop, dpxBottom] then
-    Result := [sfHeight]
-  else
-    Result := [];
-end;
-
 procedure TSpTBXCustomMultiDock.DoInsertRemoveBar(Sender: TObject;
   Inserting: Boolean; Bar: TTBCustomDockableWindow);
 var
@@ -1453,6 +1449,66 @@ begin
   inherited;
   if FPosition = dpxClient then
     UpdateDPLateralSize(Width, Height);
+end;
+
+{$IF CompilerVersion >= 27}  // for Delphi XE6 and up
+function TSpTBXCustomMultiDock.DefaultScalingFlags: TScalingFlags;
+begin
+  // Make sure Width and Height are not scaled
+  Result := inherited;
+  Result := Result - [sfWidth, sfHeight];
+end;
+{$IFEND}
+
+procedure TSpTBXCustomMultiDock.ChangeScale(M, D: Integer{$IF CompilerVersion >= 31}; isDpiChange: Boolean{$IFEND});
+begin
+  inherited;
+  // The parent Form doesn't scale itself before scaling child controls, so
+  // we can't scale the DPs here because the MultiDock size is not correct.
+  // See TCustomForm.ScaleForPPIRect, we need to post a message to handle it
+  // asynchronously to make sure the parent Form and the MultiDock are scaled
+  // first.
+  PostMessage(Self.Handle, CM_SPCHANGESCALE, M, D);
+end;
+
+procedure TSpTBXCustomMultiDock.CMSPChangeScale(var Message: TMessage);
+var
+  L: TList;
+  I, TotalSize: Integer;
+  DP: TSpTBXCustomDockablePanel;
+begin
+  // Use BeginUpdate to disable arrangement, manually arrange the docked
+  // DPs, set the DockPos and scale the Height/Width
+  TotalSize := 0;
+  L := TList.Create;
+  BeginUpdate;
+  try
+    GetDockablePanelList(L);
+    for I := 0 to L.Count - 1 do begin
+      DP := TSpTBXCustomDockablePanel(L[I]);
+      DP.DockPos := TotalSize;
+      if (I = L.Count - 1) then begin
+        // The last one should fill the remaining space
+        if IsVertical then
+          DP.Height := ClientHeight - TotalSize
+        else
+          DP.Width := ClientWidth - TotalSize;
+      end
+      else begin
+        if IsVertical then begin
+          DP.Height := MulDiv(DP.Height, Message.WParam, Message.LParam);
+          Inc(TotalSize, DP.Height);
+        end
+        else begin
+          DP.Width := MulDiv(DP.Width, Message.WParam, Message.LParam);
+          Inc(TotalSize, DP.Width);
+        end;
+      end;
+    end;
+  finally
+    EndUpdate;
+    L.Free;
+  end;
 end;
 
 function CompareEffectiveDockPos(Item1, Item2: Pointer): Integer;
@@ -1555,7 +1611,8 @@ end;
 procedure TSpTBXCustomMultiDock.SetBounds(ALeft, ATop, AWidth, AHeight: Integer);
 begin
   inherited;
-  UpdateDPLateralSize(AWidth, AHeight);
+  if not (csLoading in ComponentState) then
+    UpdateDPLateralSize(AWidth, AHeight);
 end;
 
 procedure TSpTBXCustomMultiDock.SetLimitToOneRow(const Value: Boolean);
@@ -1678,8 +1735,7 @@ begin
   inherited;
   Maximize := False;
   Minimize := False;
-  // Do not use PPIScale, scaled on TSpTBXCustomDockablePanel.ChangeScale
-  TitleBarMaxSize := 19;
+  TitleBarMaxSize := 19;  // Do not scale, scaled in TSpTBXToolbar.ChangeScale
 end;
 
 procedure TSpTBXDockablePanelButtonOptions.CreateButtons;
@@ -1709,8 +1765,7 @@ end;
 procedure TSpTBXDockablePanelButtonOptions.SetupButton(B: TSpTBXCustomItem);
 begin
   inherited;
-  // Do not use PPIScale, scaled on TSpTBXCustomDockablePanel.ChangeScale
-  TSpTBXCustomItemAccess(B).CustomWidth := 15;
+  TSpTBXCustomItemAccess(B).CustomWidth := 15; // Do not scale, scaled in TSpTBXToolbar.ChangeScale
 end;
 
 //WMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWM
@@ -1835,16 +1890,6 @@ begin
       Params.Style := Params.Style or WS_CLIPCHILDREN;
 end;
 
-function TSpTBXCustomDockablePanel.DefaultScalingFlags: TScalingFlags;
-begin
-  if not Docked then
-    Result := inherited
-  else if IsVertical then
-    Result := [sfHeight, sfFont]
-  else
-    Result := [sfWidth, sfFont];
-end;
-
 destructor TSpTBXCustomDockablePanel.Destroy;
 begin
   FOptions.Free;
@@ -1859,18 +1904,20 @@ end;
 
 procedure TSpTBXCustomDockablePanel.ChangeScale(M, D: Integer{$IF CompilerVersion >= 31}; isDpiChange: Boolean{$IFEND});
 begin
+  // Scaling is done by the MultiDock and by the floating Form when undocked
   BeginUpdate;
   try
     inherited;
-    //View.UpdatePositions;
+    // View.UpdatePositions;  not needed
   finally
     EndUpdate;
   end;
-  // newpy check if needed
-  FFloatingClientHeight := MulDiv(FFloatingClientHeight, M, D);
-  FFloatingClientWidth := MulDiv(FFloatingClientWidth, M, D);
-  MinClientHeight := MulDiv(MinClientHeight, M, D);
-  MinClientWidth := MulDiv(MinClientWidth, M, D);
+  DockResize(nil); // Update MinClientWidth/Height with the scaled FPanel
+
+  // The following shouldn't be necessary, FFloatingClientHeight/Width is
+  // scaled by the floating form
+  //FFloatingClientHeight := MulDiv(FFloatingClientHeight, M, D);
+  //FFloatingClientWidth := MulDiv(FFloatingClientWidth, M, D);
 end;
 
 procedure TSpTBXCustomDockablePanel.Loaded;
@@ -2635,7 +2682,7 @@ var
   DefaultPainting: Boolean;
 begin
   if Color = clNone then
-    SpDrawXPDockablePanelBody(ACanvas, ARect, True, Floating, PPIScale)
+    SpDrawXPDockablePanelBody(ACanvas, ARect, True, Floating)
   else begin
     ACanvas.Brush.Color := Color;
     ACanvas.FillRect(ARect);
@@ -3010,7 +3057,7 @@ end;
 procedure TSpTBXCustomDockablePanel.UpdateTitleBarRotation;
 begin
   if not HandleAllocated then Exit;
-  
+
   if FShowVerticalCaption and not (Floating or IsVertical) then begin
     if not IsVerticalTitleBar then begin
       // TTBDock doesn't allow us to change the position when there are

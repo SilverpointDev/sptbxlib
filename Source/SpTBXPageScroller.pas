@@ -1,7 +1,7 @@
 unit SpTBXPageScroller;
 
 {==============================================================================
-Version 2.5.7
+Version 2.5.8
 
 The contents of this file are subject to the SpTBXLib License; you may
 not use or distribute this file except in compliance with the
@@ -42,7 +42,7 @@ interface
 
 {$BOOLEVAL OFF}   // Unit depends on short-circuit boolean evaluation
 {$IF CompilerVersion >= 25} // for Delphi XE4 and up
-  {$LEGACYIFEND ON} // XE4 and up requires $IF to be terminated with $ENDIF instead of $IFEND
+  {$LEGACYIFEND ON} // requires $IF to be terminated with $ENDIF instead of $IFEND
 {$IFEND}
 
 uses
@@ -117,7 +117,6 @@ type
     procedure DrawNCArea(const DrawToDC: Boolean; const ADC: HDC; const Clip: HRGN); virtual;
     procedure HandleScrollTimer; virtual;
     procedure Loaded; override;
-    procedure RecalcNCArea;
     procedure Resizing; virtual;
     procedure UpdateButtons;
     property AutoRange: Boolean read FAutoRange write SetAutoRange default True;
@@ -199,7 +198,7 @@ implementation
 
 uses
   SysUtils, Types, TB2Common,
-  {$IF CompilerVersion >= 25} // for Delphi XE4 and up
+  {$IF CompilerVersion >= 24} // for Delphi XE3 and up
   System.UITypes,
   {$IFEND}
   UxTheme, Themes;
@@ -647,12 +646,6 @@ begin
   UpdateButtons;
 end;
 
-procedure TSpTBXCustomPageScroller.RecalcNCArea;
-begin
-  SetWindowPos(Handle, 0, 0, 0, 0, 0,
-    SWP_FRAMECHANGED or SWP_NOACTIVATE or SWP_NOZORDER or SWP_NOMOVE or SWP_NOSIZE);
-end;
-
 procedure TSpTBXCustomPageScroller.Resizing;
 begin
   // do nothing by default
@@ -788,7 +781,7 @@ begin
     end;
     if FVisibleButtons <> OldVisibleButtons then
     begin
-      RecalcNCArea;
+      SpRecalcNCArea(Self);
       RealignNeeded := True;
     end;
   finally

@@ -1,7 +1,7 @@
 unit SpTBXFormPopupMenu;
 
 {==============================================================================
-Version 2.5.7
+Version 2.5.8
 
 The contents of this file are subject to the SpTBXLib License; you may
 not use or distribute this file except in compliance with the
@@ -38,7 +38,7 @@ interface
 
 {$BOOLEVAL OFF}   // Unit depends on short-circuit boolean evaluation
 {$IF CompilerVersion >= 25} // for Delphi XE4 and up
-  {$LEGACYIFEND ON} // XE4 and up requires $IF to be terminated with $ENDIF instead of $IFEND
+  {$LEGACYIFEND ON} // requires $IF to be terminated with $ENDIF instead of $IFEND
 {$IFEND}
 
 uses
@@ -222,9 +222,6 @@ implementation
 
 uses
   Themes, UxTheme, Types, TB2Common, TB2Acc;
-
-const
-  DefaultBorderSize = 2;
 
 type
   TCustomFormAccess = class(TCustomForm);
@@ -699,7 +696,7 @@ end;
 procedure TSpTBXCustomWrapperPopupForm.WMNCCalcSize(var Message: TWMNCCalcSize);
 begin
   Message.Result := 0;
-  InflateRect(Message.CalcSize_Params^.rgrc[0], -DefaultBorderSize, -DefaultBorderSize);
+  InflateRect(Message.CalcSize_Params^.rgrc[0], -SpDefaultBorderSize, -SpDefaultBorderSize);
 end;
 
 procedure TSpTBXCustomWrapperPopupForm.WMNCHitTest(var Message: TWMNCHitTest);
@@ -755,7 +752,7 @@ begin
     PopupWindow := TSpTBXCustomWrapperPopupForm(AppData);
     if PopupWindow.FPaintingClientArea then begin
       PopupWindow.FPaintingClientArea := False;
-      OffsetRect(R, -DefaultBorderSize, -DefaultBorderSize);
+      OffsetRect(R, -SpDefaultBorderSize, -SpDefaultBorderSize);
     end;
 
     PopupWindow.PaintBackground(ACanvas, R);
@@ -785,7 +782,7 @@ begin
     // Make sure we clip the client area
     Windows.GetWindowRect(Handle, R);
     OffsetRect(R, -R.Left, -R.Top);
-    InflateRect(R, -DefaultBorderSize, -DefaultBorderSize);
+    InflateRect(R, -SpDefaultBorderSize, -SpDefaultBorderSize);
     ExcludeClipRect(DC, R.Left, R.Top, R.Right, R.Bottom);
 
     PopupWindowNCPaintProc(Handle, DC, Self);
@@ -972,7 +969,9 @@ function TSpTBXFormPopupMenu.InternalPopup(X, Y: Integer; ForceFocus: Boolean;
 var
   ClientR: TRect;
   FC: TCustomFormClass;
+  {$IF CompilerVersion > 32}
   PPI: Integer;
+  {$IFEND}
 begin
   Result := False;
   SetPopupPoint(Point(X, Y));
@@ -1014,9 +1013,9 @@ begin
     if Assigned(FOnBeforePopup) then FOnBeforePopup(Self, ClientR.Right, ClientR.Bottom);
 
     if Assigned(PopupControl) then
-      FWrapperForm.RollDown(PopupControl, ClientR.Right + DefaultBorderSize * 2, ClientR.Bottom + DefaultBorderSize * 2, False, ForceFocus)
+      FWrapperForm.RollDown(PopupControl, ClientR.Right + SpDefaultBorderSize * 2, ClientR.Bottom + SpDefaultBorderSize * 2, False, ForceFocus)
     else
-      FWrapperForm.RollDown(X, Y, ClientR.Right + DefaultBorderSize * 2, ClientR.Bottom + DefaultBorderSize * 2, ForceFocus);
+      FWrapperForm.RollDown(X, Y, ClientR.Right + SpDefaultBorderSize * 2, ClientR.Bottom + SpDefaultBorderSize * 2, ForceFocus);
 
     if Assigned(OnPopup) then OnPopup(Self);
     Result := True;    

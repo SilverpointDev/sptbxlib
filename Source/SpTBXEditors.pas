@@ -1,7 +1,7 @@
 unit SpTBXEditors;
 
 {==============================================================================
-Version 2.5.7
+Version 2.5.8
 
 The contents of this file are subject to the SpTBXLib License; you may
 not use or distribute this file except in compliance with the
@@ -45,16 +45,16 @@ interface
 
 {$BOOLEVAL OFF}   // Unit depends on short-circuit boolean evaluation
 {$IF CompilerVersion >= 25} // for Delphi XE4 and up
-  {$LEGACYIFEND ON} // XE4 and up requires $IF to be terminated with $ENDIF instead of $IFEND
+  {$LEGACYIFEND ON} // requires $IF to be terminated with $ENDIF instead of $IFEND
 {$IFEND}
 
 uses
   Windows, Messages, Classes, SysUtils, Controls, Graphics, ImgList, Forms,
-  Menus, StdCtrls, ExtCtrls, ActnList, CheckLst, Clipbrd,
+  Menus, StdCtrls, ExtCtrls, ActnList, CheckLst,
   {$IF CompilerVersion >= 24} // for Delphi XE3 and up
   System.UITypes,
   {$IFEND}
-  TB2Toolbar, TB2Item, TB2ExtItems,
+  TB2Toolbar, TB2Item, TB2ExtItems, Clipbrd,
   SpTBXSkins, SpTBXItem, SpTBXControls;
 
 const
@@ -316,7 +316,6 @@ type
     procedure CMSPFontChanged(var Message: TMessage); message CM_SPFONTCHANGED;
     procedure CNDrawItem(var Message: TWMDrawItem); message CN_DRAWITEM;
     procedure WMMouseMove(var Message: TWMMouseMove); message WM_MOUSEMOVE;
-    procedure WMNCCalcSize(var Message: TWMNCCalcSize); message WM_NCCALCSIZE;
     procedure WMPaint(var Message: TWMPaint); message WM_PAINT;
     procedure WMSetFont(var Message: TWMSetFont); message WM_SETFONT;
     procedure WMSpSkinChange(var Message: TMessage); message WM_SPSKINCHANGE;
@@ -2096,12 +2095,6 @@ begin
   UpdateDropDownButton;
 end;
 
-procedure TSpTBXComboBox.WMNCCalcSize(var Message: TWMNCCalcSize);
-begin
-  // [Bugfix] Delphi 2006 bug:
-  // Do nothing, fix Delphi 2005/2006 bug: http://qc.borland.com/wc/qcmain.aspx?d=13852
-end;
-
 procedure TSpTBXComboBox.WMPaint(var Message: TWMPaint);
 var
   ACanvas: TControlCanvas;
@@ -3019,7 +3012,7 @@ begin
       ImageRect.Top := (R.Top + R.Bottom + 1 - ImgList.Height) div 2;
       ImageRect.Bottom := ImageRect.Top + ImgList.Height;
 
-      SpDrawImageList(Canvas, ImageRect, ImgList, Item.ImageIndex, Item.Enabled);
+      SpDrawVirtualImageList(Canvas, ImageRect, ImgList, Item.ImageIndex, Item.Enabled);
     end;
   end;
 
