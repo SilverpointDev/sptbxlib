@@ -4580,22 +4580,19 @@ begin
   R := ClientAreaRect;
   if ItemInfo.ToolbarStyle then begin
     if ItemInfo.HasArrow then begin
-      ItemInfo.ComboRect := R;
       if ItemInfo.IsSplit then begin
+        ItemInfo.ComboRect := R;
         Dec(R.Right, SplitBtnArrowSize);
         ItemInfo.ComboRect.Left := R.Right;
       end
       else
         if not IsSpecialDropDown then begin
-          // If the caption is shown calculate the right margin, if the caption
-          // is not visible center the arrow
-          if TextInfo.IsCaptionShown then
-            if View.Orientation <> tbvoVertical then
-              ItemInfo.ComboRect := Rect(R.Right - Self.tbDropdownArrowWidth - Self.tbDropdownArrowMargin, 0,
-                R.Right - Self.tbDropdownArrowMargin, R.Bottom)
-            else
-              ItemInfo.ComboRect := Rect(0, R.Bottom - Self.tbDropdownArrowWidth - Self.tbDropdownArrowMargin,
-                R.Right, R.Bottom - Self.tbDropdownArrowMargin);
+          if View.Orientation <> tbvoVertical then
+            ItemInfo.ComboRect := Rect(R.Right - Self.tbDropdownArrowWidth - Self.tbDropdownArrowMargin, 0,
+              R.Right - Self.tbDropdownArrowMargin, R.Bottom)
+          else
+            ItemInfo.ComboRect := Rect(0, R.Bottom - Self.tbDropdownArrowWidth - Self.tbDropdownArrowMargin,
+              R.Right, R.Bottom - Self.tbDropdownArrowMargin);
         end
         else begin
           // Special DropDown, toolbar item with arrow, image and text. The Image is above the caption

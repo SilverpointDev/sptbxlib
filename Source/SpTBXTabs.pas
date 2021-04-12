@@ -60,12 +60,6 @@ const
   WM_INVALIDATETABBACKGROUND = WM_USER + 7777;
 
 type
-  TSpTBXTabEdge = (
-    tedNone,         // No edge needed
-    tedLeft,         // Left edge of the tab
-    tedRight         // Right edge of the tab
-  );
-
   TSpTBXTabPosition = (
     ttpTop,          // Top aligned tabset
     ttpBottom        // Bottom aligned tabset
@@ -182,7 +176,7 @@ type
     procedure DrawBottomBorder(ACanvas: TCanvas; ARect: TRect);
     procedure DrawTab(ACanvas: TCanvas; ARect: TRect;
       AEnabled, AChecked, AHoverItem: Boolean; Position: TSpTBXTabPosition;
-      ASeparator: Boolean = False; AEdge: TSpTBXTabEdge = tedNone); virtual;
+      ASeparator: Boolean = False); virtual;
     procedure DrawItemRightImage(ACanvas: TCanvas; ARect: TRect; ItemInfo: TSpTBXMenuItemInfo); override;
     function GetRightImageSize: TSize; override;
     function GetRightImageRect: TRect;
@@ -554,7 +548,7 @@ type
   end;
 
 function SpGetNextTabItemViewer(View: TTBView; IV: TTBItemViewer; GoForward: Boolean; SearchType: TSpTBXSearchItemViewerType): TTBItemViewer;
-procedure SpDrawXPTab(ACanvas: TCanvas; ARect: TRect; Enabled, Checked, HotTrack, Focused: Boolean; Position: TSpTBXTabPosition; Edge: TSpTBXTabEdge; DPI: Integer);
+procedure SpDrawXPTab(ACanvas: TCanvas; ARect: TRect; Enabled, Checked, HotTrack, Focused: Boolean; Position: TSpTBXTabPosition; DPI: Integer);
 procedure SpDrawXPTabControlBackground(ACanvas: TCanvas; ARect: TRect; AColor: TColor; BottomTabs: Boolean);
 
 implementation
@@ -606,7 +600,7 @@ end;
 
 procedure SpDrawXPTab(ACanvas: TCanvas; ARect: TRect;
   Enabled, Checked, HotTrack, Focused: Boolean; Position: TSpTBXTabPosition;
-  Edge: TSpTBXTabEdge; DPI: Integer);
+  DPI: Integer);
 var
   B: TBitmap;
   R, FlippedR: TRect;
@@ -614,6 +608,7 @@ var
   DrawState: TThemedTab;
   Details: TThemedElementDetails;
   SkinType: TSpTBXSkinType;
+  NeedToFlip: Boolean;
 begin
   SkinType := SkinManager.GetSkinType;
   if (SkinType = sknNone) and not Checked then
@@ -632,10 +627,10 @@ begin
     end;
     B.Canvas.FillRect(R);
 
+    NeedToFlip := False;
     case SkinType of
       sknNone:
         if Checked then begin
-          Position := ttpTop;  // Don't need to flip
           B.Canvas.Brush.Color := ACanvas.Brush.Color;
           B.Canvas.FillRect(R);
           ExtCtrls.Frame3D(B.Canvas, R, clWindow, clWindowFrame, 1);
@@ -644,12 +639,12 @@ begin
         end;
       sknWindows, sknDelphiStyle:
         begin
-          case Edge of
-            tedLeft:  DrawState := ttTabItemLeftEdgeNormal;
-            tedRight: DrawState := ttTabItemRightEdgeNormal;
+          if SkinType = sknWindows then NeedToFlip := True;
+
+          if Position = ttpBottom then
+            DrawState := ttTabItemBothEdgeNormal
           else
             DrawState := ttTabItemNormal;
-          end;
 
           if not Enabled then DrawState := TThemedTab(Ord(DrawState) + 3)
           else
@@ -662,13 +657,14 @@ begin
         end;
       sknSkin:
         begin
+          NeedToFlip := True;
           State := CurrentSkin.GetState(Enabled, False, HotTrack, Checked);
           CurrentSkin.PaintBackground(B.Canvas, R, skncTab, State, True, True);
         end;
     end;
 
     // Flip top to bottom
-    if Position = ttpBottom then begin
+    if (Position = ttpBottom) and NeedToFlip then begin
       // Unclear why extra "-1" is needed here.
       FlippedR := R;
       FlippedR.Top := R.Bottom - 1;
@@ -1085,7 +1081,6 @@ end;
 procedure TSpTBXTabItemViewer.DrawBottomBorder(ACanvas: TCanvas; ARect: TRect);
 var
   CR, R: TRect;
-  Edge: TSpTBXTabEdge;
   Position: TSpTBXTabPosition;
   B: TBitmap;
   DockedBorderSize: Integer;
@@ -1095,7 +1090,6 @@ begin
   DockedBorderSize := TSpTBXTabToolbar(View.Window).DockedBorderSize;
 
   Position := TabPosition;
-  Edge := tedNone;
   CR := ARect;
 
   case Position of
@@ -1106,8 +1100,6 @@ begin
   end;
 
   if SkinManager.GetSkinType in [sknWindows, sknDelphiStyle] then begin
-    if Item.IsFirstVisible then  // Is first IV?
-      Edge := tedLeft;
     // Grow the left border if it's the first visible or there is a left tab
     if Item.IsFirstVisible or Assigned(SpGetNextTabItemViewer(View, Self, False, sivtInmediateSkipNonVisible)) then
       CR.Left := CR.Left - DockedBorderSize;
@@ -1120,7 +1112,7 @@ begin
   try
     B.SetSize(CR.Right - CR.Left, CR.Bottom - CR.Top + PPIScale(4)); // Larger than CR
     R := Rect(0, 0, B.Width, B.Height);
-    DrawTab(B.Canvas, R, True, True, False, Position, False, Edge);
+    DrawTab(B.Canvas, R, True, True, False, Position, False);
 
     case Position of
       ttpTop:
@@ -1180,7 +1172,7 @@ end;
 
 procedure TSpTBXTabItemViewer.DrawTab(ACanvas: TCanvas; ARect: TRect; AEnabled,
   AChecked, AHoverItem: Boolean; Position: TSpTBXTabPosition;
-  ASeparator: Boolean; AEdge: TSpTBXTabEdge);
+  ASeparator: Boolean);
 begin
   if ASeparator then begin
     ARect.Left := ARect.Right - PPIScale(2);
@@ -1188,7 +1180,7 @@ begin
   end
   else begin
     ACanvas.Brush.Color := Item.TabColor;
-    SpDrawXPTab(ACanvas, ARect, AEnabled, AChecked, AHoverItem, False, Position, AEdge, View.Window.CurrentPPI);
+    SpDrawXPTab(ACanvas, ARect, AEnabled, AChecked, AHoverItem, False, Position, View.Window.CurrentPPI);
   end;
 end;
 
@@ -1624,7 +1616,7 @@ begin
           TSpTBXTabItem(IV.Item).CustomWidth := TabsWidth
         else
           if IV.Item is TSpTBXRightAlignSpacerItem then
-            TSpTBXRightAlignSpacerItem(IV.Item).CustomWidth := PPIUnScale(RightAlignWidth - GetRightAlignMargin);
+            TSpTBXRightAlignSpacerItem(IV.Item).CustomWidth := RightAlignWidth - GetRightAlignMargin;
       end;
     end;
   finally
@@ -1759,7 +1751,7 @@ begin
 
     // Resize the spacer
     if Assigned(Spacer) then
-      TSpTBXCustomItemAccess(Spacer.Item).CustomWidth := PPIUnScale(SpacerW);
+      TSpTBXCustomItemAccess(Spacer.Item).CustomWidth := SpacerW;
 
     View.UpdatePositions;
   finally

@@ -1970,7 +1970,7 @@ end;
 procedure TSpTBXTextObject.DoMouseEnter;
 begin
   Invalidate;
-  if Assigned(FOnMouseEnter) then FOnMouseEnter(Self);  
+  if Assigned(FOnMouseEnter) then FOnMouseEnter(Self);
 end;
 
 procedure TSpTBXTextObject.DoMouseLeave;
@@ -2570,7 +2570,7 @@ end;
 constructor TSpTBXButtonControl.Create(AOwner: TComponent);
 begin
   inherited;
-  ControlStyle := ControlStyle - [csDoubleClicks];  
+  ControlStyle := ControlStyle - [csDoubleClicks];
   FGroupIndex := 0;
 end;
 

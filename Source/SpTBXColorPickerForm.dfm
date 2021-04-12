@@ -39,6 +39,29 @@ object SpTBXColorPickerForm: TSpTBXColorPickerForm
     object SpTBXTabItem3: TSpTBXTabItem
       ImageIndex = 4
     end
+    object SpTBXTabSheet2: TSpTBXTabSheet
+      Left = 0
+      Top = 26
+      Width = 213
+      Height = 141
+      Caption = ''
+      ImageIndex = 3
+      DesignSize = (
+        213
+        141)
+      TabItem = 'SpTBXTabItem2'
+      object SpTBXColorListBox1: TSpTBXColorListBox
+        Left = 5
+        Top = 5
+        Width = 200
+        Height = 127
+        Style = [clbsSystemColors, clbsIncludeNone, clbsIncludeDefault, clbsPrettyNames, clbsNoneAsTransparent]
+        Anchors = [akLeft, akTop, akRight, akBottom]
+        TabOrder = 0
+        OnClick = SpTBXColorListBox1Click
+        Selected = clActiveBorder
+      end
+    end
     object SpTBXTabSheet3: TSpTBXTabSheet
       Left = 0
       Top = 26
@@ -68,29 +91,6 @@ object SpTBXColorPickerForm: TSpTBXColorPickerForm
         DragMode = dmAutomatic
         OnEndDrag = btnColorPickerEndDrag
         OnStartDrag = btnColorPickerStartDrag
-      end
-    end
-    object SpTBXTabSheet2: TSpTBXTabSheet
-      Left = 0
-      Top = 26
-      Width = 213
-      Height = 141
-      Caption = ''
-      ImageIndex = 3
-      DesignSize = (
-        213
-        141)
-      TabItem = 'SpTBXTabItem2'
-      object SpTBXColorListBox1: TSpTBXColorListBox
-        Left = 5
-        Top = 5
-        Width = 200
-        Height = 127
-        Style = [clbsSystemColors, clbsIncludeNone, clbsIncludeDefault, clbsPrettyNames, clbsNoneAsTransparent]
-        Anchors = [akLeft, akTop, akRight, akBottom]
-        TabOrder = 0
-        OnClick = SpTBXColorListBox1Click
-        Selected = clActiveBorder
       end
     end
     object SpTBXTabSheet1: TSpTBXTabSheet
@@ -2742,8 +2742,8 @@ object SpTBXColorPickerForm: TSpTBXColorPickerForm
     Enabled = False
     Interval = 25
     OnTimer = Timer1Timer
-    Left = 112
-    Top = 152
+    Left = 40
+    Top = 136
   end
   object ImageList1: TImageList
     Left = 40
@@ -3022,8 +3022,8 @@ object SpTBXColorPickerForm: TSpTBXColorPickerForm
   end
   object ColorDialog1: TColorDialog
     Options = [cdFullOpen]
-    Left = 144
-    Top = 152
+    Left = 104
+    Top = 136
   end
   object ImageList2: TImageList
     ColorDepth = cd32Bit

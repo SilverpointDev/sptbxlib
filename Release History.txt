@@ -1,4 +1,4 @@
-27/2 February 2021 - version 2.5.8
+27 February 2021 - version 2.5.8
   - Updated TB2K patch with Kiriakos Vlahos latest changes.
   - TB2Common.pas changes: added various global function helpers to support 
     TImageCollection and TVirtualImageList, using RTTI to access fields, 
