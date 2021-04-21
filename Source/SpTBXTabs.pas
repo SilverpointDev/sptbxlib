@@ -123,6 +123,9 @@ type
     // property GroupIndex;
     property HelpContext;
     property ImageIndex;
+    {$IF CompilerVersion >= 34} // for Delphi Sydney and up
+    property ImageName;
+    {$IFEND}
     property Images;
     property InheritOptions;
     property MaskOptions;

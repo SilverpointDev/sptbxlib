@@ -261,6 +261,9 @@ type
     procedure AssignClient(AClient: TObject); override;
     function IsCheckedLinked: Boolean; override;
     function IsImageIndexLinked: Boolean; override;
+    {$IF CompilerVersion >= 34} // for Delphi Sydney and up
+    function IsImageNameLinked: Boolean; override;
+    {$IFEND}
     procedure SetChecked(Value: Boolean); override;
     procedure SetImageIndex(Value: Integer); override;
   end;
@@ -280,6 +283,9 @@ type
     FImages: TCustomImageList;
     FImageChangeLink: TChangeLink;
     FImageIndex: TImageIndex;
+    {$IF CompilerVersion >= 34} // for Delphi Sydney and up
+    FImageName: TImageName;
+    {$IFEND}
     FLinkText: string;
     FLinkTextParams: string;
     FMouseInControl: Boolean;
@@ -295,6 +301,11 @@ type
     FOnMouseEnter: TNotifyEvent;
     FOnMouseLeave: TNotifyEvent;
     procedure ImageListChange(Sender: TObject);
+    function IsImageIndexStored: Boolean;
+    {$IF CompilerVersion >= 34} // for Delphi Sydney and up
+    function IsImageNameStored: Boolean;
+    procedure SetImageName(const Value: TImageName);
+    {$IFEND}
     procedure UpdateTracking(ForceMouseLeave: Boolean = False);
     procedure SetAlignment(const Value: TAlignment);
     procedure SetCaptionGlow(const Value: TSpGlowDirection);
@@ -366,7 +377,10 @@ type
     property DisabledIconCorrection: Boolean read FDisabledIconCorrection write FDisabledIconCorrection default True;
     property GlyphLayout: TSpGlyphLayout read FGlyphLayout write SetGlyphLayout default ghlGlyphLeft;
     property Images: TCustomImageList read FImages write SetImages;
-    property ImageIndex: TImageIndex read FImageIndex write SetImageIndex default -1;
+    property ImageIndex: TImageIndex read FImageIndex write SetImageIndex stored IsImageIndexStored default -1;
+    {$IF CompilerVersion >= 34} // for Delphi Sydney and up
+    property ImageName: TImageName read FImageName write SetImageName stored IsImageNameStored;
+    {$IFEND}
     property LinkText: string read FLinkText write FLinkText;
     property LinkTextParams: string read FLinkTextParams write FLinkTextParams;
     property ShowAccelChar: Boolean read FShowAccelChar write SetShowAccelChar default True;
@@ -467,6 +481,9 @@ type
     property GlyphLayout;
     property Images;
     property ImageIndex;
+    {$IF CompilerVersion >= 34} // for Delphi Sydney and up
+    property ImageName;
+    {$IFEND}
     property LinkText;
     property LinkTextParams;
     property Underline;
@@ -865,6 +882,9 @@ type
     property GroupIndex;
     property Images;
     property ImageIndex;
+    {$IF CompilerVersion >= 34} // for Delphi Sydney and up
+    property ImageName;
+    {$IFEND}
     property LinkText;
     property LinkTextParams;
     property ModalResult;
@@ -942,6 +962,9 @@ type
     property GroupIndex;
     property Images;
     property ImageIndex;
+    {$IF CompilerVersion >= 34} // for Delphi Sydney and up
+    property ImageName;
+    {$IFEND}
     property LinkText;
     property LinkTextParams;
     property Repeating;
@@ -1732,6 +1755,14 @@ begin
     (FClient.ImageIndex = (Action as TCustomAction).ImageIndex);
 end;
 
+{$IF CompilerVersion >= 34} // for Delphi Sydney and up
+function TSpTBXTextObjectActionLink.IsImageNameLinked: Boolean;
+begin
+  Result := inherited IsImageNameLinked and
+    (FClient.ImageName = (Action as TCustomAction).ImageName);
+end;
+{$IFEND}
+
 procedure TSpTBXTextObjectActionLink.SetChecked(Value: Boolean);
 begin
   if IsCheckedLinked then FClient.Checked := Value;
@@ -2230,6 +2261,11 @@ begin
   Result := Assigned(IL) and (I > -1) and (I < IL.Count);
 end;
 
+function TSpTBXTextObject.IsImageIndexStored: Boolean;
+begin
+  Result := (ActionLink = nil) or not TSpTBXTextObjectActionLink(ActionLink).IsImageIndexLinked;
+end;
+
 procedure TSpTBXTextObject.ImageListChange(Sender: TObject);
 begin
   if Sender = Images then begin
@@ -2242,10 +2278,33 @@ procedure TSpTBXTextObject.SetImageIndex(const Value: TImageIndex);
 begin
   if FImageIndex <> Value then begin
     FImageIndex := Value;
+    {$IF CompilerVersion >= 34} // for Delphi Sydney and up
+    if Assigned(Images) and Images.IsImageNameAvailable then begin
+      FImageName := Images.GetNameByIndex(Value);
+      Invalidate;
+    end;
+    {$ELSE}
     if Assigned(Images) then Invalidate;
+    {$IFEND}
     AdjustBounds;
   end;
 end;
+
+{$IF CompilerVersion >= 34} // for Delphi Sydney and up
+function TSpTBXTextObject.IsImageNameStored: Boolean;
+begin
+  Result := (ActionLink = nil) or not TSpTBXTextObjectActionLink(ActionLink).IsImageNameLinked;
+end;
+
+procedure TSpTBXTextObject.SetImageName(const Value: TImageName);
+begin
+  if Value <> FImageName then begin
+    FImageName := Value;
+    if Assigned(Images) and Images.IsImageNameAvailable then
+      SetImageIndex(Images.GetIndexByName(Value));  // Update ImageIndex and invalidate
+  end;
+end;
+{$IFEND}
 
 procedure TSpTBXTextObject.SetImages(const Value: TCustomImageList);
 begin
