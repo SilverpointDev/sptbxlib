@@ -2269,6 +2269,10 @@ end;
 procedure TSpTBXTextObject.ImageListChange(Sender: TObject);
 begin
   if Sender = Images then begin
+    {$IF CompilerVersion >= 34} // for Delphi Sydney and up
+    if Assigned(Images) and Images.IsImageNameAvailable then
+      Images.CheckIndexAndName(FImageIndex, FImageName);
+    {$IFEND}
     Invalidate;
     AdjustBounds;
   end;
