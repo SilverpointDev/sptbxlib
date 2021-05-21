@@ -352,7 +352,7 @@
 +
  end.
 --- TB2Dock.pas	Wed Sep 17 15:12:26 2008
-+++ TB2Dock.pas	Thu Apr 15 10:59:26 2021
++++ TB2Dock.pas	Fri May 21 13:59:28 2021
 @@ -37,7 +37,7 @@
  {$I TB2Ver.inc}
  
@@ -421,7 +421,7 @@
      procedure WMPrint(var Message: TMessage); message WM_PRINT;
      procedure WMPrintClient(var Message: {$IFNDEF CLR} TMessage {$ELSE} TWMPrintClient {$ENDIF}); message WM_PRINTCLIENT;
    protected
-+    {$IF CompilerVersion >= 33}
++    {$IF CompilerVersion >= 34}
 +    procedure DoAfterMonitorDpiChanged(OldDPI, NewDPI: Integer); override;
 +    {$IFEND}
      procedure AlignControls(AControl: TControl; var Rect: TRect); override;
@@ -560,7 +560,7 @@
    FDockableWindow.Moved;
  end;
  
-+{$IF CompilerVersion >= 33}
++{$IF CompilerVersion >= 34}
 +procedure TTBFloatingWindowParent.DoAfterMonitorDpiChanged(OldDPI,
 +  NewDPI: Integer);
 +begin
