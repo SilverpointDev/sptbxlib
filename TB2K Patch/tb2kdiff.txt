@@ -11,7 +11,7 @@
  type
    { Our declaration for IAccessible }
 --- TB2Common.pas	Wed Sep 17 14:46:30 2008
-+++ TB2Common.pas	Fri Feb 26 13:24:06 2021
++++ TB2Common.pas	Thu Jul 29 15:56:36 2021
 @@ -31,11 +31,13 @@
  {$I TB2Ver.inc}
  
@@ -39,7 +39,7 @@
  function DrawTextStr(const DC: HDC; const AText: String; var ARect: TRect;
    const AFormat: UINT): Integer;
  function EscapeAmpersands(const S: String): String;
-@@ -118,6 +120,40 @@
+@@ -118,6 +120,41 @@
    const AText: String): BOOL;
  function UsingMultipleMonitors: Boolean;
  
@@ -57,6 +57,7 @@
 +{$IF CompilerVersion >= 33} // for Delphi Rio and up
 +procedure SpDrawDisabled(ACanvas: TCanvas; ABitmap: TBitmap; X, Y, DisabledOpacity: Integer; DisabledGrayscale: Boolean);
 +{$IFEND}
++procedure SpDrawIconShadow(ACanvas: TCanvas; const ARect: TRect; ImageList: TCustomImageList; ImageIndex: Integer);
 +function SpIsVirtualImageList(ImageList: TCustomImageList): Boolean;
 +procedure SpDrawVirtualImageList(ACanvas: TCanvas; const ARect: TRect; ImageList: TCustomImageList; ImageIndex: Integer; Enabled: Boolean);
 +function SpGetScaledVirtualImageListSize(C: TControl; IL: TCustomImageList): TSize;
@@ -80,7 +81,7 @@
  const
    PopupMenuWindowNCSize = 3;
    DT_HIDEPREFIX = $00100000;
-@@ -127,7 +163,11 @@
+@@ -127,7 +164,11 @@
  uses
    {$IFDEF CLR} Types, System.Security, System.Runtime.InteropServices,
      System.Text, MultiMon, {$ENDIF}
@@ -93,7 +94,7 @@
  
  function ApplicationIsActive: Boolean;
  { Returns True if the application is in the foreground }
-@@ -725,7 +765,7 @@
+@@ -725,7 +766,7 @@
  end;
  
  procedure DrawSmallWindowCaption(const Wnd: HWND; const DC: HDC;
@@ -102,7 +103,7 @@
  { Draws a (non-themed) small window caption bar.
    On Windows Vista, a custom routine is used to work around an ugly bug in
    DrawCaption that causes the text to be painted at the wrong coordinates.
-@@ -762,6 +802,7 @@
+@@ -762,6 +803,7 @@
    CaptionFont, SaveFont: HFONT;
    SaveBkMode: Integer;
    SaveTextColor: TColorRef;
@@ -110,7 +111,7 @@
  begin
    if ARect.Right <= ARect.Left then
      Exit;
-@@ -783,7 +824,9 @@
+@@ -783,7 +825,9 @@
      Inc(TextRect.Left, GetSystemMetrics(SM_CXEDGE));
      if (TextRect.Right > TextRect.Left) and
         GetSystemNonClientMetrics(NonClientMetrics) then begin
@@ -121,7 +122,7 @@
        if CaptionFont <> 0 then begin
          SaveFont := SelectObject(DC, CaptionFont);
          SaveBkMode := SetBkMode(DC, TRANSPARENT);
-@@ -827,7 +870,7 @@
+@@ -827,7 +871,7 @@
                SelectObject(BmpDC, Bmp);
                SaveIndex := SaveDC(BmpDC);
                SetWindowOrgEx(BmpDC, R.Left, R.Top, nil);
@@ -130,7 +131,7 @@
                SendMessage(Wnd, WM_PAINT, WPARAM(BmpDC), 0);
                RestoreDC(BmpDC, SaveIndex);
                BitBlt(WndDC, R.Left, R.Top, R.Right - R.Left, R.Bottom - R.Top,
-@@ -1248,7 +1291,7 @@
+@@ -1248,7 +1292,7 @@
  end;
  
  procedure DrawRotatedText(const DC: HDC; AText: String; const ARect: TRect;
@@ -139,7 +140,7 @@
  { Like DrawText, but draws the text at a 270 degree angle.
    The only format flag this function respects is DT_HIDEPREFIX. Text is always
    drawn centered. }
-@@ -1295,7 +1338,7 @@
+@@ -1295,7 +1339,7 @@
    if (P > 0) and (AFormat and DT_HIDEPREFIX = 0) then begin
      SU := GetTextWidth(DC, Copy(AText, 1, P-1), False);
      FU := SU + GetTextWidth(DC, AText[P], False);
@@ -148,7 +149,7 @@
      Pen := CreatePen(PS_SOLID, 1, GetTextColor(DC));
      SavePen := SelectObject(DC, Pen);
      MoveToEx(DC, X, Y + SU, nil);
-@@ -1561,11 +1604,202 @@
+@@ -1561,11 +1605,276 @@
  end;
  {$ENDIF}
  
@@ -200,6 +201,59 @@
 +end;
 +{$IFEND}
 +
++procedure SpDrawIconShadow(ACanvas: TCanvas; const ARect: TRect;
++  ImageList: TCustomImageList; ImageIndex: Integer);
++// Used by Office XP skin, to paint a shadow of the glyphs
++var
++  ImageWidth, ImageHeight: Integer;
++  I, J: Integer;
++  Src, Dst: ^Cardinal;
++  S, C, CBRB, CBG: Cardinal;
++  B1, B2: TBitmap;
++begin
++  ImageWidth := ARect.Right - ARect.Left;
++  ImageHeight := ARect.Bottom - ARect.Top;
++
++  B1 := TBitmap.Create;
++  B2 := TBitmap.Create;
++  try
++    B1.PixelFormat := pf32bit;
++    B2.PixelFormat := pf32bit;
++    B1.SetSize(ImageWidth, ImageHeight);
++    B2.SetSize(ImageWidth, ImageHeight);
++
++    BitBlt(B1.Canvas.Handle, 0, 0, ImageWidth, ImageHeight, ACanvas.Handle, ARect.Left, ARect.Top, SRCCOPY);
++    BitBlt(B2.Canvas.Handle, 0, 0, ImageWidth, ImageHeight, ACanvas.Handle, ARect.Left, ARect.Top, SRCCOPY);
++
++    SpDrawVirtualImageList(B2.Canvas, Rect(0, 0, ImageWidth, ImageHeight), ImageList, ImageIndex, True);
++
++    for J := 0 to ImageHeight - 1 do
++    begin
++      Src := B2.ScanLine[J];
++      Dst := B1.ScanLine[J];
++      for I := 0 to ImageWidth - 1 do
++      begin
++        S := Src^;
++        if S <> Dst^ then
++        begin
++          CBRB := Dst^ and $00FF00FF;
++          CBG  := Dst^ and $0000FF00;
++          C := ((S and $00FF0000) shr 16 * 29 + (S and $0000FF00) shr 8 * 150 +
++            (S and $000000FF) * 76) shr 8;
++          C := (C div 3) + (255 - 255 div 3);
++          Dst^ := ((CBRB * C and $FF00FF00) or (CBG * C and $00FF0000)) shr 8;
++        end;
++        Inc(Src);
++        Inc(Dst);
++      end;
++    end;
++    BitBlt(ACanvas.Handle, ARect.Left, ARect.Top, ImageWidth, ImageHeight, B1.Canvas.Handle, 0, 0, SRCCOPY);
++  finally
++    B1.Free;
++    B2.Free;
++  end;
++end;
++
 +function SpIsVirtualImageList(ImageList: TCustomImageList): Boolean;
 +begin
 +  Result := Assigned(ImageList) and (ImageList.ClassName = 'TVirtualImageList');
@@ -214,6 +268,7 @@
 +  V1, V2, V3: TValue;
 +  DisabledOpacity: Integer;
 +  DisabledGrayscale: Boolean;
++  DisabledB: TBitmap;
 +{$IFEND}
 +begin
 +  // Do not call ImageList.Draw, the ImageList holds all the glyphs from the
@@ -266,8 +321,28 @@
 +      end;
 +    end
 +    else
++      if Enabled then
++        ImageList.Draw(ACanvas, ARect.Left, ARect.Top, ImageIndex, Enabled)
++      else begin
++        // Use SpDrawDisabled for disabled glyphs to mimic Windows 10 painting
++        DisabledB := TBitmap.Create;
++        try
++          DisabledB.PixelFormat := pf32bit;
++          DisabledB.SetSize(ARect.Right - ARect.Left, ARect.Bottom - ARect.Top);
++          ImageList.Draw(DisabledB.Canvas, 0, 0, ImageIndex, True);
++          // Default value of DisabledOpacity is 125
++          SpDrawDisabled(ACanvas, DisabledB, ARect.Left, ARect.Top, 125, False);
++        finally
++          DisabledB.Free;
++        end;
++      end;
++    {$ELSE}
++    // For older versions of Delphi
++    if Enabled then
++      ImageList.Draw(ACanvas, ARect.Left, ARect.Top, ImageIndex, Enabled)
++    else
++      SpDrawIconShadow(ACanvas, ARect, ImageList, ImageIndex);
 +    {$IFEND}
-+      ImageList.Draw(ACanvas, ARect.Left, ARect.Top, ImageIndex, Enabled);
 +  end;
 +end;
 +

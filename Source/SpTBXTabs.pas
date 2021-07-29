@@ -797,17 +797,12 @@ begin
           NextTab := GetNextTab(False, sivtInmediateSkipNonVisible);
       end;
 
-      T.BeginUpdate;
-      try
-        Visible := False;
-        DoTabClose;
-        if CloseAndFree then
-          Free;  // Removes the item from the parent, sends tbicDeleting notification and frees the item
-        if Assigned(NextTab) then
-          NextTab.Click;  // Sends tbicInvalidate notification, which is handled by TSpTBXCustomTabSet.ItemNotification
-      finally
-        T.EndUpdate;
-      end;
+      Visible := False;
+      DoTabClose;
+      if CloseAndFree then
+        Free;  // Removes the item from the parent, sends tbicDeleting notification and frees the item
+      if Assigned(NextTab) then
+        NextTab.Click;  // Sends tbicInvalidate notification, which is handled by TSpTBXCustomTabSet.ItemNotification
     end;
   end;
 end;
