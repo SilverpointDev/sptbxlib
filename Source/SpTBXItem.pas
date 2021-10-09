@@ -369,6 +369,9 @@ type
     property GroupIndex;
     property HelpContext;
     property ImageIndex;
+    {$IF CompilerVersion >= 34} // for Delphi Sydney and up
+    property ImageName;
+    {$IFEND}
     property Images;
     property InheritOptions;
     property MaskOptions;
@@ -514,6 +517,9 @@ type
   published
     property Enabled;
     property ImageIndex;
+    {$IF CompilerVersion >= 34} // for Delphi Sydney and up
+    property ImageName;
+    {$IFEND}
     property Images;
     property InheritOptions;
     property MaskOptions;
@@ -557,6 +563,9 @@ type
   TSpTBXRightAlignSpacerItem = class(TSpTBXCustomLabelItem)
   published
     property ImageIndex;
+    {$IF CompilerVersion >= 34} // for Delphi Sydney and up
+    property ImageName;
+    {$IFEND}
     property Images;
     property MaskOptions;
     property Options;
@@ -819,6 +828,7 @@ type
     FPrevSize: TSize;
     procedure ChangeScale(M, D: Integer{$IF CompilerVersion >= 31}; isDpiChange: Boolean{$IFEND}); override;
     procedure DrawBackground(DC: HDC; const DrawRect: TRect); override;
+    procedure DrawNCArea(const DrawToDC: Boolean; const ADC: HDC; const Clip: HRGN); override;
     procedure DoDrawBackground(ACanvas: TCanvas; ARect: TRect; const PaintStage: TSpTBXPaintStage; var PaintDefault: Boolean); virtual;
     procedure Resize; override;
     function UsingBackground: Boolean; override;
@@ -3987,7 +3997,8 @@ begin
       Exit;
     end;
     s := IfThen(Owner.Name <> '', Owner.Name + ' ');
-    s1 := IfThen(Parent.Name <> '', Parent.Name + ' ');
+    if Assigned(Parent) then
+     s1 := IfThen(Parent.Name <> '', Parent.Name + ' ');
     Writeln(t, s + s1 + Name + ' ' + DateTimeToStr(Now));
     CloseFile(t);
   end;
@@ -4616,22 +4627,19 @@ begin
   R := ClientAreaRect;
   if ItemInfo.ToolbarStyle then begin
     if ItemInfo.HasArrow then begin
-      ItemInfo.ComboRect := R;
       if ItemInfo.IsSplit then begin
+        ItemInfo.ComboRect := R;
         Dec(R.Right, SplitBtnArrowSize);
         ItemInfo.ComboRect.Left := R.Right;
       end
       else
         if not IsSpecialDropDown then begin
-          // If the caption is shown calculate the right margin, if the caption
-          // is not visible center the arrow
-          if TextInfo.IsCaptionShown then
-            if View.Orientation <> tbvoVertical then
-              ItemInfo.ComboRect := Rect(R.Right - Self.tbDropdownArrowWidth - Self.tbDropdownArrowMargin, 0,
-                R.Right - Self.tbDropdownArrowMargin, R.Bottom)
-            else
-              ItemInfo.ComboRect := Rect(0, R.Bottom - Self.tbDropdownArrowWidth - Self.tbDropdownArrowMargin,
-                R.Right, R.Bottom - Self.tbDropdownArrowMargin);
+          if View.Orientation <> tbvoVertical then
+            ItemInfo.ComboRect := Rect(R.Right - Self.tbDropdownArrowWidth - Self.tbDropdownArrowMargin, 0,
+              R.Right - Self.tbDropdownArrowMargin, R.Bottom)
+          else
+            ItemInfo.ComboRect := Rect(0, R.Bottom - Self.tbDropdownArrowWidth - Self.tbDropdownArrowMargin,
+              R.Right, R.Bottom - Self.tbDropdownArrowMargin);
         end
         else begin
           // Special DropDown, toolbar item with arrow, image and text. The Image is above the caption
@@ -6068,6 +6076,57 @@ begin
   end;
 end;
 
+procedure TSpTBXDock.DrawNCArea(const DrawToDC: Boolean; const ADC: HDC;
+  const Clip: HRGN);
+var
+  DC: HDC;
+  R: TRect;
+  ACanvas: TCanvas;
+  HighlightC, ShadowC: TColor;
+begin
+  // Handle BoundLines painting when using Delphi styles
+  if (BoundLines <> []) and ((csDesigning in ComponentState) or HasVisibleToolbars) and
+    not (csDestroying in ComponentState) and HandleAllocated then
+  begin
+    if not DrawToDC then DC := GetWindowDC(Handle)
+    else DC := ADC;
+    try
+      GetWindowRect(Handle, R);
+      OffsetRect(R, -R.Left, -R.Top);
+      if not DrawToDC then
+        SelectNCUpdateRgn(Handle, DC, Clip);
+
+      ACanvas := TCanvas.Create;
+      try
+        ACanvas.Handle := DC;
+        // Paint BoundLines
+        HighlightC := CurrentSkin.GetThemedSystemColor(clBtnHighlight);
+        ShadowC := CurrentSkin.GetThemedSystemColor(clBtnShadow);
+        if blTop in BoundLines then begin
+          SpDrawLine(ACanvas, R.Left, R.Top, R.Right, R.Top, ShadowC);
+        end;
+        if blLeft in BoundLines then begin
+          SpDrawLine(ACanvas, R.Left, R.Top, R.Left, R.Bottom, ShadowC);
+        end;
+        if blBottom in BoundLines then begin
+          SpDrawLine(ACanvas, R.Left, R.Bottom-1, R.Right, R.Bottom-1, HighlightC);
+        end;
+        if blRight in BoundLines then begin
+          SpDrawLine(ACanvas, R.Right-1, R.Top, R.Right-1, R.Bottom, HighlightC);
+        end;
+        // Don't fill the background, it's handled by DrawBackground
+      finally
+        ACanvas.Handle := 0;
+        ACanvas.Free;
+      end;
+    finally
+      if not DrawToDC then ReleaseDC(Handle, DC);
+    end;
+  end
+  else
+    inherited;
+end;
+
 procedure TSpTBXDock.Resize;
 var
   I, J: Integer;
@@ -6470,8 +6529,8 @@ begin
   SpDrawXPToolbar(Self, ACanvas, ARect, PaintOnNCArea, PaintBorders and (BorderStyle <> bsNone));
 end;
 
-procedure TSpTBXToolbar.DrawNCArea(const DrawToDC: Boolean; const ADC: HDC;
-  const Clip: HRGN);
+procedure TSpTBXToolbar.DrawNCArea(const DrawToDC: Boolean;
+  const ADC: HDC; const Clip: HRGN);
 // Same as TSpTBXCustomToolWindow.DrawNCArea
 var
   DC: HDC;
@@ -7178,6 +7237,7 @@ end;
 
 procedure TSpTBXCustomToolWindow.DrawNCArea(const DrawToDC: Boolean;
   const ADC: HDC; const Clip: HRGN);
+// Same as TSpTBXToolbar.DrawNCArea
 var
   DC: HDC;
   R, ExcludeR: TRect;
@@ -7881,7 +7941,7 @@ begin
   // Change the readonly IsToolbar property using RTTI, the property must
   // be published.
   // Tip from: http://hallvards.blogspot.com/2004/05/hack-1-write-access-to-read-only.html
-  PBoolean(Integer(Self) + (Integer(GetPropInfo(TSpTBXPopupWindowView, 'IsToolbar').GetProc) and $00FFFFFF))^ := Value;
+  PBoolean(@(Self.IsToolbar))^ := Value;
 end;
 
 //WMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWM

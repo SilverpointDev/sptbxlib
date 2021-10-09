@@ -494,6 +494,9 @@ type
     property HelpContext;
     property Hint;
     property ImageIndex;
+    {$IF CompilerVersion >= 34} // for Delphi Sydney and up
+    property ImageName;
+    {$IFEND}
     property Images;
     property ShortCut;
     property Visible;
@@ -677,9 +680,13 @@ begin
   IV := View.Find(Item);
   if Assigned(IV) then begin
     View.Select(IV, False);
-    // Call View.EnterToolbarLoop to reset FDoneActionData.DoneAction to
-    // tbdaNone and execute the selected edit item viewer.
-    View.EnterToolbarLoop([tbetExecuteSelected]);
+    if vsModal in View.State then
+      View.ExecuteSelected(False)
+    else begin
+      // Call View.EnterToolbarLoop to reset FDoneActionData.DoneAction to
+      // tbdaNone and execute the selected edit item viewer.
+      View.EnterToolbarLoop([tbetExecuteSelected]);
+    end;
     Result := True;
   end;
 end;

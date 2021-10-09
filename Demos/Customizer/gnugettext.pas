@@ -2219,7 +2219,7 @@ var
 const
   ResStringTableLen = 16;
 type
-  ResStringTable = array [0..ResStringTableLen-1] of LongWord;
+  ResStringTable = array [0..ResStringTableLen-1] of FixedUInt;
 var
   Handle: TResourceHandle;
   Tab: ^ResStringTable;

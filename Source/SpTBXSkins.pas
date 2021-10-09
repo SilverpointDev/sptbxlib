@@ -524,9 +524,6 @@ procedure SpDrawRectangle(ACanvas: TCanvas; ARect: TRect; CornerSize: Integer; C
 procedure SpAlphaBlend(SrcDC, DstDC: HDC; SrcR, DstR: TRect; Alpha: Byte; SrcHasAlphaChannel: Boolean = False);
 procedure SpPaintTo(WinControl: TWinControl; ACanvas: TCanvas; X, Y: Integer);
 
-{ ImageList painting }
-procedure SpDrawIconShadow(ACanvas: TCanvas; const ARect: TRect; ImageList: TCustomImageList; ImageIndex: Integer);
-
 { Gradients }
 procedure SpGradient(ACanvas: TCanvas; const ARect: TRect; StartPos, EndPos, ChunkSize: Integer; C1, C2: TColor; const Vertical: Boolean);
 procedure SpGradientFill(ACanvas: TCanvas; const ARect: TRect; const C1, C2: TColor; const Vertical: Boolean);
@@ -1742,62 +1739,6 @@ begin
     end
     else
       WinControl.PaintTo(ACanvas, X, Y);
-  end;
-end;
-
-//WMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWM
-{ ImageList painting }
-
-procedure SpDrawIconShadow(ACanvas: TCanvas; const ARect: TRect;
-  ImageList: TCustomImageList; ImageIndex: Integer);
-// Used by Office XP skin, to paint a shadow of the glyphs
-var
-  ImageWidth, ImageHeight: Integer;
-  I, J: Integer;
-  Src, Dst: ^Cardinal;
-  S, C, CBRB, CBG: Cardinal;
-  B1, B2: TBitmap;
-begin
-  ImageWidth := ARect.Right - ARect.Left;
-  ImageHeight := ARect.Bottom - ARect.Top;
-
-  B1 := TBitmap.Create;
-  B2 := TBitmap.Create;
-  try
-    B1.PixelFormat := pf32bit;
-    B2.PixelFormat := pf32bit;
-    B1.SetSize(ImageWidth, ImageHeight);
-    B2.SetSize(ImageWidth, ImageHeight);
-
-    BitBlt(B1.Canvas.Handle, 0, 0, ImageWidth, ImageHeight, ACanvas.Handle, ARect.Left, ARect.Top, SRCCOPY);
-    BitBlt(B2.Canvas.Handle, 0, 0, ImageWidth, ImageHeight, ACanvas.Handle, ARect.Left, ARect.Top, SRCCOPY);
-
-    SpDrawVirtualImageList(B2.Canvas, Rect(0, 0, ImageWidth, ImageHeight), ImageList, ImageIndex, True);
-
-    for J := 0 to ImageHeight - 1 do
-    begin
-      Src := B2.ScanLine[J];
-      Dst := B1.ScanLine[J];
-      for I := 0 to ImageWidth - 1 do
-      begin
-        S := Src^;
-        if S <> Dst^ then
-        begin
-          CBRB := Dst^ and $00FF00FF;
-          CBG  := Dst^ and $0000FF00;
-          C := ((S and $00FF0000) shr 16 * 29 + (S and $0000FF00) shr 8 * 150 +
-            (S and $000000FF) * 76) shr 8;
-          C := (C div 3) + (255 - 255 div 3);
-          Dst^ := ((CBRB * C and $FF00FF00) or (CBG * C and $00FF0000)) shr 8;
-        end;
-        Inc(Src);
-        Inc(Dst);
-      end;
-    end;
-    BitBlt(ACanvas.Handle, ARect.Left, ARect.Top, ImageWidth, ImageHeight, B1.Canvas.Handle, 0, 0, SRCCOPY);
-  finally
-    B1.Free;
-    B2.Free;
   end;
 end;
 

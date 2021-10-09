@@ -64,6 +64,21 @@ type
     procedure ListDrawValue(const Value: string; ACanvas: TCanvas; const ARect: TRect; ASelected: Boolean);
   end;
 
+  { TSpTBXImageNameEditor }
+  {$IF CompilerVersion >= 34} // for Delphi Sydney and up
+  TSpTBXImageNameEditor = class(TStringProperty, ICustomPropertyListDrawing)
+  public
+    function GetAttributes: TPropertyAttributes; override;
+    procedure GetValues(Proc: TGetStrProc); override;
+    function GetImageListAt(Index: Integer): TCustomImageList; virtual;
+
+    // ICustomPropertyListDrawing
+    procedure ListMeasureHeight(const Value: string; ACanvas: TCanvas; var AHeight: Integer);
+    procedure ListMeasureWidth(const Value: string; ACanvas: TCanvas; var AWidth: Integer);
+    procedure ListDrawValue(const Value: string; ACanvas: TCanvas; const ARect: TRect; ASelected: Boolean);
+  end;
+  {$IFEND}
+
 procedure Register;
 
 implementation
@@ -207,6 +222,72 @@ begin
 end;
 
 //WMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWM
+{ TSpTBXImageNameEditor }
+
+{$IF CompilerVersion >= 34} // Robert: for Delphi Sydney and up
+
+function TSpTBXImageNameEditor.GetAttributes: TPropertyAttributes;
+begin
+  Result := [paMultiSelect, paValueList, paRevertable];
+end;
+
+function TSpTBXImageNameEditor.GetImageListAt(Index: Integer): TCustomImageList;
+begin
+  Result := TCustomImageList(TypInfo.GetObjectProp(GetComponent(Index), 'Images'));
+end;
+
+procedure TSpTBXImageNameEditor.GetValues(Proc: TGetStrProc);
+var
+  ImgList: TCustomImageList;
+  I: Integer;
+begin
+  ImgList := GetImageListAt(0);
+  if Assigned(ImgList) and ImgList.IsImageNameAvailable then
+    for I := 0 to ImgList.Count-1 do
+      Proc(ImgList.GetNameByIndex(I));
+end;
+
+procedure TSpTBXImageNameEditor.ListDrawValue(const Value: string;
+  ACanvas: TCanvas; const ARect: TRect; ASelected: Boolean);
+var
+  ImgList: TCustomImageList;
+  X: Integer;
+begin
+  ImgList := GetImageListAt(0);
+  ACanvas.FillRect(ARect);
+  X := ARect.Left + 2;
+  if Assigned(ImgList) then begin
+    ImgList.Draw(ACanvas, X, ARect.Top + 2, ImgList.GetIndexByName(Value));
+    Inc(X, ImgList.Width);
+  end;
+  ACanvas.TextOut(X + 3, ARect.Top + 1, Value);
+end;
+
+procedure TSpTBXImageNameEditor.ListMeasureHeight(const Value: string;
+  ACanvas: TCanvas; var AHeight: Integer);
+var
+  ImgList: TCustomImageList;
+begin
+  ImgList := GetImageListAt(0);
+  AHeight := ACanvas.TextHeight(Value) + 2;
+  if Assigned(ImgList) and (ImgList.Height + 4 > AHeight) then
+    AHeight := ImgList.Height + 4;
+end;
+
+procedure TSpTBXImageNameEditor.ListMeasureWidth(const Value: string;
+  ACanvas: TCanvas; var AWidth: Integer);
+var
+  ImgList: TCustomImageList;
+begin
+  ImgList := GetImageListAt(0);
+  AWidth := ACanvas.TextWidth(Value) + 4;
+  if Assigned(ImgList) then
+    Inc(AWidth, ImgList.Width);
+end;
+
+{$IFEND}
+
+//WMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWM
 
 procedure Register;
 begin
@@ -287,9 +368,12 @@ begin
   RegisterComponentEditor(TSpTBXCustomizer, TSpTBXItemsEditor);
   RegisterComponentEditor(TSpTBXPopupMenu, TSpTBXItemsEditor);
 
-  // Register the ImageIndex property editor for TSpTBXTextObject descendants, this is
-  // needed to show the preview of images in the property editor combobox.
+  // Register ImageIndex and ImageName property editor for TSpTBXTextObject
+  // descendants, this is needed to show the preview of images in the Object Inspector.
   RegisterPropertyEditor(TypeInfo(TImageIndex), TSpTBXTextObject, '', TSpTBXImageIndexEditor);
+  {$IF CompilerVersion >= 34} // for Delphi Sydney and up
+  RegisterPropertyEditor(TypeInfo(TImageName), TSpTBXTextObject, '', TSpTBXImageNameEditor);
+  {$IFEND}
 end;
 
 end.
