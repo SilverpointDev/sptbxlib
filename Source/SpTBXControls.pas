@@ -1,7 +1,7 @@
 unit SpTBXControls;
 
 {==============================================================================
-Version 2.5.8
+Version 2.5.9
 
 The contents of this file are subject to the SpTBXLib License; you may
 not use or distribute this file except in compliance with the
@@ -1190,13 +1190,9 @@ begin
         begin
           if Enabled then DrawState := tbGroupBoxNormal
           else DrawState := tbGroupBoxDisabled;
-          Details := SpTBXThemeServices.GetElementDetails(DrawState);
+          Details := StyleServices.GetElementDetails(DrawState);
           ACanvas.Brush.Style := bsClear;
-          {$IF CompilerVersion >= 23} // for Delphi XE2 and up
-          SpTBXThemeServices.DrawText(ACanvas.Handle, Details, ACaption, CaptionRect, TTextFormatFlags(TextFlags));
-          {$ELSE}
-          SpTBXThemeServices.DrawText(ACanvas.Handle, Details, ACaption, CaptionRect, TextFlags, 0);
-          {$IFEND}
+          StyleServices.DrawText(ACanvas.Handle, Details, ACaption, CaptionRect, TTextFormatFlags(TextFlags));
         end;
       sknSkin:
         begin
@@ -1284,8 +1280,8 @@ begin
     case SkinManager.GetSkinType of
       sknWindows, sknDelphiStyle:
         begin
-          if Vertical then Details := SpTBXThemeServices.GetElementDetails(tpBarVert)
-          else Details := SpTBXThemeServices.GetElementDetails(tpBar);
+          if Vertical then Details := StyleServices.GetElementDetails(tpBarVert)
+          else Details := StyleServices.GetElementDetails(tpBar);
           CurrentSkin.PaintThemedElementBackground(ACanvas, ARect, Details, DPI);
           if DrawProgress and not IsRectEmpty(DeltaR) then begin
             if SpIsWinVistaOrUp then begin
@@ -1293,14 +1289,12 @@ begin
               Details.State := 1;
               if Vertical then Details.Part := 6 // PP_FILLVERT (tpFillVert)
               else Details.Part := 5; // PP_FILL (tpFill)
-              {$IF CompilerVersion >= 23} // for Delphi XE2 and up
-              // When XE2 Styles are active use tpChunk/tpChunkVert (tpFill and tpFillVert are not defined)
-              if not SpTBXThemeServices.IsSystemStyle then begin
-                if Vertical then Details := SpTBXThemeServices.GetElementDetails(tpChunkVert)
-                else Details := SpTBXThemeServices.GetElementDetails(tpChunk);
+              // When Styles are active use tpChunk/tpChunkVert (tpFill and tpFillVert are not defined)
+              if not StyleServices.IsSystemStyle then begin
+                if Vertical then Details := StyleServices.GetElementDetails(tpChunkVert)
+                else Details := StyleServices.GetElementDetails(tpChunk);
                 InflateRect(DeltaR, 0, -1);
               end;
-              {$IFEND}
               CurrentSkin.PaintThemedElementBackground(ACanvas, DeltaR, Details, DPI);
             end
             else begin
@@ -1315,8 +1309,8 @@ begin
                 B.SetSize(8, DeltaR.Bottom - DeltaR.Top);
                 R := Rect(0, 0, B.Width - 2, B.Height);
               end;
-              if Vertical then Details := SpTBXThemeServices.GetElementDetails(tpChunkVert)
-              else Details := SpTBXThemeServices.GetElementDetails(tpChunk);
+              if Vertical then Details := StyleServices.GetElementDetails(tpChunkVert)
+              else Details := StyleServices.GetElementDetails(tpChunk);
               CurrentSkin.PaintThemedElementBackground(B.Canvas, R, Details, DPI);
               ChunkPaint := True;
             end;
@@ -1475,13 +1469,13 @@ begin
               else T := ttbThumbNormal;
             end;
         end;
-        Details := SpTBXThemeServices.GetElementDetails(T);
+        Details := StyleServices.GetElementDetails(T);
         CurrentSkin.PaintThemedElementBackground(ACanvas, ARect, Details, DPI);
       end
       else if Part = TBCD_CHANNEL then begin
         if Vertical then T := ttbTrackVert
         else T := ttbTrack;
-        Details := SpTBXThemeServices.GetElementDetails(T);
+        Details := StyleServices.GetElementDetails(T);
         CurrentSkin.PaintThemedElementBackground(ACanvas, ARect, Details, DPI);
         DrawChannelSelection(ARect);
       end;
@@ -1578,9 +1572,7 @@ const
   VerticalAlignments: array[TVerticalAlignment] of Longint = (DT_TOP, DT_BOTTOM, DT_VCENTER);
 var
   TextFlags: Longint;
-  {$IF CompilerVersion >= 23} // for Delphi XE2 and up
   Details: TThemedElementDetails;
-  {$IFEND}
 begin
   if not Borders then
     InflateRect(ARect, PPIScale(3), PPIScale(3));
@@ -1606,18 +1598,12 @@ begin
         SpDrawXPText(ACanvas, Caption, ARect, TextFlags);
       sknWindows, sknDelphiStyle:
         begin
-          // [Theme-Change]
-          {$IF CompilerVersion >= 23} // for Delphi XE2 and up
-          // tpPanelBackground is defined on XE2 and up
           if (ACanvas.Font.Color = clWindowText) or (ACanvas.Font.Color = clNone) then begin
-            Details := SpTBXThemeServices.GetElementDetails(tpPanelBackground);
-            SpTBXThemeServices.DrawText(ACanvas.Handle, Details, Caption, ARect, TTextFormatFlags(TextFlags));
+            Details := StyleServices.GetElementDetails(tpPanelBackground);
+            StyleServices.DrawText(ACanvas.Handle, Details, Caption, ARect, TTextFormatFlags(TextFlags));
           end
           else
             SpDrawXPText(ACanvas, Caption, ARect, TextFlags);
-          {$ELSE}
-          SpDrawXPText(ACanvas, Caption, ARect, TextFlags);
-          {$IFEND}
         end;
     end;
   end;
@@ -2392,10 +2378,8 @@ var
   R, TextR: TRect;
   PaintDefault: Boolean;
   I: Integer;
-  {$IF CompilerVersion >= 23} //for Delphi XE2 and up
   Details: TThemedElementDetails;
   C: TColor;
-  {$IFEND}
 begin
   // Get the short hint
   I := Pos('|', Hint);
@@ -2409,13 +2393,11 @@ begin
   SpStockHintBitmap.Canvas.Font.Height :=
     MulDiv(SpStockHintBitmap.Canvas.Font.Height, CurrentPPI, Screen.PixelsPerInch);
   SpStockHintBitmap.Canvas.Font.Color := clInfoText;
-  {$IF CompilerVersion >= 23} //for Delphi XE2 and up
   if SkinManager.GetSkinType = sknDelphiStyle then begin
-    Details := SpTBXThemeServices.GetElementDetails(thHintNormal);
-    if SpTBXThemeServices.GetElementColor(Details, ecTextColor, C) and (C <> clNone) then
+    Details := StyleServices.GetElementDetails(thHintNormal);
+    if StyleServices.GetElementColor(Details, ecTextColor, C) and (C <> clNone) then
       SpStockHintBitmap.Canvas.Font.Color := C;
   end;
-  {$IFEND}
   SpStockHintBitmap.Canvas.Pen.Color := clBlack;
   SpStockHintBitmap.Canvas.Brush.Color := clInfoBk;
   TextR := Rect(0, 0, 1, 1);
@@ -3837,11 +3819,7 @@ begin
     sknNone:
       ACanvas.Pen.Color := clBlack;
     sknWindows, sknDelphiStyle:
-      {$IF CompilerVersion >= 23} // for Delphi XE2 and up
-      ACanvas.Pen.Color := SpTBXThemeServices.GetSystemColor(clBtnText);
-      {$ELSE}
-      ACanvas.Pen.Color := clBtnShadow;
-      {$IFEND}
+      ACanvas.Pen.Color := StyleServices.GetSystemColor(clBtnText);
     sknSkin:
       if CurrentSkin.Options(skncTrackBar, sknsNormal).TextColor <> clNone then
         ACanvas.Pen.Color := CurrentSkin.Options(skncTrackBar, sknsNormal).TextColor
@@ -4142,8 +4120,6 @@ end;
 
 procedure InitializeStock;
 begin
-  {$IF CompilerVersion >= 23}
-  // XE2 and up
   // When using VCL Styles the trackbar is custom painted by
   // Vcl.ComCtrls.TTrackBarStyleHook.Paint, overriding CNNotify.
   // We need to cancel VCL Styles painting by re-registering
@@ -4151,7 +4127,6 @@ begin
   // painted when the control is placed inside another SpTBXLib control
   TCustomStyleEngine.UnRegisterStyleHook(TSpTBXTrackBar, TStyleHook); // Re-register
   TCustomStyleEngine.RegisterStyleHook(TSpTBXTrackBar, TStyleHook);
-  {$IFEND}
 end;
 
 initialization

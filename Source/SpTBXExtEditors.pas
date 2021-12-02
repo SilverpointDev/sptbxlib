@@ -1,7 +1,7 @@
 unit SpTBXExtEditors;
 
 {==============================================================================
-Version 2.5.8
+Version 2.5.9
 
 The contents of this file are subject to the SpTBXLib License; you may
 not use or distribute this file except in compliance with the
@@ -139,7 +139,6 @@ type
   protected
     procedure Click; override;
     procedure CloseUp; override;
-    procedure DoCalcMaxDropDownWidth; override;
     procedure DoDrawItem(ACanvas: TCanvas; var ARect: TRect; Index: Integer; const State: TOwnerDrawState;
       const PaintStage: TSpTBXPaintStage; var PaintDefault: Boolean); override;
     procedure DropDown; override;
@@ -212,7 +211,7 @@ uses
   {$IF CompilerVersion >= 24} // for Delphi XE3 and up
   System.Types, System.UITypes,
   {$IFEND}
-  SpTBXFormPopupMenu, SpTBXColorPickerForm;
+  Themes, SpTBXFormPopupMenu, SpTBXColorPickerForm;
 
 var
   DefaultColorPickerDropDownMenu: TSpTBXColorEditPopupMenu = nil;
@@ -513,8 +512,8 @@ begin
 
   Visible := False;
   SetBounds(0, 0, 0, 0);
-  Color := CurrentSkin.GetThemedSystemColor(clWindow);
-  Font.Color := CurrentSkin.GetThemedSystemColor(clWindowText);
+  Color := StyleServices.GetSystemColor(clWindow);
+  Font.Color := StyleServices.GetSystemColor(clWindowText);
 end;
 
 procedure TSpTBXFontComboBoxPreview.CreateParams(var Params: TCreateParams);
@@ -547,7 +546,6 @@ end;
 constructor TSpTBXFontComboBox.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
-  FAutoDropDownWidthRightMargin := 60; // scaled on DoCalcMaxDropDownWidth
   FFontNamePreview := True;
   FFontPreview := True;
   FMaxMRUItems := 5;
@@ -620,7 +618,13 @@ var
   Sz: TSize;
   S: string;
 begin
+  if Items.Count <= 0 then
+    SpFillFontNames(Items, FilterFontPitch, FFilterFontType);
+
   inherited;
+
+  W := SendMessage(Handle, CB_GETDROPPEDWIDTH, 0, 0) + PPIScale(80); // Add more margin
+  SendMessage(Handle, CB_SETDROPPEDWIDTH, W, 0);
 
   if FFontPreview then begin
     S := 'AaBbYyZz';
@@ -650,13 +654,6 @@ begin
     FPreviewWindow.Visible := True;
     ShowWindow(FPreviewWindow.Handle, SW_SHOWNA);
   end;
-end;
-
-procedure TSpTBXFontComboBox.DoCalcMaxDropDownWidth;
-begin
-  if Items.Count <= 0 then
-    SpFillFontNames(Items, FilterFontPitch, FFilterFontType);
-  inherited;
 end;
 
 procedure TSpTBXFontComboBox.DoDrawItem(ACanvas: TCanvas; var ARect: TRect;
@@ -752,7 +749,6 @@ begin
   if FFilterFontPitch <> Value then begin
     FFilterFontPitch := Value;
     Items.Clear;
-    DoCalcMaxDropDownWidth;
   end;
 end;
 
@@ -761,7 +757,6 @@ begin
   if FFilterFontType <> Value then begin
     FFilterFontType := Value;
     Items.Clear;
-    DoCalcMaxDropDownWidth;
   end;
 end;
 

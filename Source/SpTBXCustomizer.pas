@@ -1,7 +1,7 @@
 unit SpTBXCustomizer;
 
 {==============================================================================
-Version 2.5.8
+Version 2.5.9
 
 The contents of this file are subject to the SpTBXLib License; you may
 not use or distribute this file except in compliance with the
@@ -968,16 +968,12 @@ begin
     DoLoad(ExtraL);
     if FSaveFormState then
       SpLoadFormState(Application.MainForm, ExtraL);
-    {$IF CompilerVersion >= 23} //for Delphi XE2 and up
     if SkinManager.IsValidDelphiStyle(ExtraL.Values[rvVCLStyle]) then begin
       TStyleManager.TrySetStyle(ExtraL.Values[rvVCLStyle]);
       SkinManager.BroadcastSkinNotification;
     end
     else
       SkinManager.SetSkin(ExtraL.Values[rvSkin]);
-    {$ELSE}
-    SkinManager.SetSkin(ExtraL.Values[rvSkin]);
-    {$IFEND}
 
     // Load Layouts
     SpLoadLayoutList(IniFile, FLayouts);
@@ -1039,10 +1035,8 @@ begin
   try
     // Fill Extra Options, SpSaveItems will save it
     ExtraL.Values[rvSkin] := SkinManager.CurrentSkinName;
-    {$IF CompilerVersion >= 23} // for Delphi XE2 and up
     if TStyleManager.IsCustomStyleActive then
       ExtraL.Values[rvVCLStyle] := TStyleManager.ActiveStyle.Name;
-    {$IFEND}
     ExtraL.Values[rvDPI] := IntToStr(Application.MainForm.CurrentPPI);
     if FSaveFormState then
       SpSaveFormState(Application.MainForm, ExtraL);

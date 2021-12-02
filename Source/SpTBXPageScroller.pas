@@ -1,7 +1,7 @@
 unit SpTBXPageScroller;
 
 {==============================================================================
-Version 2.5.8
+Version 2.5.9
 
 The contents of this file are subject to the SpTBXLib License; you may
 not use or distribute this file except in compliance with the
@@ -252,12 +252,12 @@ begin
     sknWindows, sknDelphiStyle:
       begin
         if Hot then
-          Details := SpTBXThemeServices.GetElementDetails(tbPushButtonHot)
+          Details := StyleServices.GetElementDetails(tbPushButtonHot)
         else
-          Details := SpTBXThemeServices.GetElementDetails(tbPushButtonNormal);
+          Details := StyleServices.GetElementDetails(tbPushButtonNormal);
 
         CurrentSkin.PaintThemedElementBackground(ACanvas, ARect, Details, DPI);
-        CurrentSkin.GetThemedElementTextColor(Details, C);
+        StyleServices.GetElementColor(Details, ecTextColor, C);
       end;
     sknSkin:
       begin

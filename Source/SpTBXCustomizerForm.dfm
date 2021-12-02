@@ -14,7 +14,6 @@ object SpTBXCustomizeForm: TSpTBXCustomizeForm
   Font.Style = []
   FormStyle = fsStayOnTop
   KeyPreview = True
-  OldCreateOrder = False
   Position = poDesigned
   OnCreate = FormCreate
   OnKeyDown = FormKeyDown
@@ -238,10 +237,10 @@ object SpTBXCustomizeForm: TSpTBXCustomizeForm
         Top = 8
         Width = 158
         Height = 241
-        OnClickCheck = lbToolbarsClickCheck
         Anchors = [akLeft, akTop, akRight, akBottom]
         TabOrder = 0
         OnClick = lbToolbarsClick
+        OnClickCheck = lbToolbarsClickCheck
       end
     end
   end

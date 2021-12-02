@@ -1,7 +1,7 @@
 unit SpTBXTabs;
 
 {==============================================================================
-Version 2.5.7
+Version 2.5.9
 
 The contents of this file are subject to the SpTBXLib License; you may
 not use or distribute this file except in compliance with the
@@ -622,7 +622,7 @@ begin
     B.SetSize(ARect.Right - ARect.Left, ARect.Bottom - ARect.Top);
     R := Rect(0, 0, B.Width, B.Height);
     if SkinType = sknDelphiStyle then
-      B.Canvas.Brush.Color := CurrentSkin.GetThemedSystemColor(clBtnFace)
+      B.Canvas.Brush.Color := StyleServices.GetSystemColor(clBtnFace)
     else begin
       B.Canvas.Brush.Color := clFuchsia;
       B.TransparentColor := clFuchsia;
@@ -655,7 +655,7 @@ begin
             else
               if HotTrack then DrawState := TThemedTab(Ord(DrawState) + 1);
 
-          Details := SpTBXThemeServices.GetElementDetails(DrawState);
+          Details := StyleServices.GetElementDetails(DrawState);
           CurrentSkin.PaintThemedElementBackground(B.Canvas, R, Details, DPI);
         end;
       sknSkin:
@@ -712,7 +712,7 @@ begin
           R := Rect(0, 0, B.Width, B.Height);  // Frame3D changed R
         end;
       sknWindows, sknDelphiStyle:
-        SpTBXThemeServices.DrawElement(B.Canvas.Handle, SpTBXThemeServices.GetElementDetails(ttPane), R);
+        StyleServices.DrawElement(B.Canvas.Handle, StyleServices.GetElementDetails(ttPane), R);
       sknSkin:
         begin
           B.Canvas.Brush.Color := clWhite;

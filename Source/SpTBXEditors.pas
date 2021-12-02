@@ -1,7 +1,7 @@
 unit SpTBXEditors;
 
 {==============================================================================
-Version 2.5.8
+Version 2.5.9
 
 The contents of this file are subject to the SpTBXLib License; you may
 not use or distribute this file except in compliance with the
@@ -277,7 +277,9 @@ type
 
   TSpTBXComboBox = class(TComboBox)
   private
+    {$IF CompilerVersion < 35} // For older versions, Delphi 11 introduced AutoDropDownWidth
     FAutoDropDownWidth: Boolean;
+    {$IFEND}
     FAutoItemHeight: Boolean;
     FFontChanging: Boolean;
     FHotTrack: Boolean;
@@ -301,11 +303,8 @@ type
     procedure WMSetFont(var Message: TWMSetFont); message WM_SETFONT;
     procedure WMSpSkinChange(var Message: TMessage); message WM_SPSKINCHANGE;
   protected
-    FAutoDropDownWidthRightMargin: Integer;
     procedure CreateParams(var Params: TCreateParams); override;
-    procedure CreateWnd; override;
     procedure CloseUp; override;
-    procedure DoCalcMaxDropDownWidth; virtual;
     procedure DoDrawBackground(ACanvas: TCanvas; ARect: TRect; const PaintStage: TSpTBXPaintStage; var PaintDefault: Boolean); virtual;
     procedure DoDrawItem(ACanvas: TCanvas; var ARect: TRect; Index: Integer; const State: TOwnerDrawState;
       const PaintStage: TSpTBXPaintStage; var PaintDefault: Boolean); virtual;
@@ -313,11 +312,10 @@ type
       const PaintStage: TSpTBXPaintStage; var PaintDefault: Boolean); virtual;
     procedure DrawItem(Index: Integer; Rect: TRect; State: TOwnerDrawState); override;
     procedure DrawItemBackground(Index: Integer; Rect: TRect; State: TOwnerDrawState); virtual;
+    procedure DropDown; override;
     procedure EditWndProc(var Message: TMessage); override;
     function GetItemHt: Integer; override;
-    {$IF CompilerVersion > 20}
     function IsItemHeightStored: Boolean; override;
-    {$IFEND}
     procedure SetItemHeight(Value: Integer); override;
   public
     constructor Create(AOwner: TComponent); override;
@@ -327,7 +325,9 @@ type
     procedure InvalidateFrame;
     property MouseInControl: Boolean read FMouseInControl;
   published
+    {$IF CompilerVersion < 35} // For older versions, Delphi 11 introduced AutoDropDownWidth
     property AutoDropDownWidth: Boolean read FAutoDropDownWidth write FAutoDropDownWidth default False;
+    {$IFEND}
     property AutoItemHeight: Boolean read FAutoItemHeight write FAutoItemHeight default True;
     property HotTrack: Boolean read FHotTrack write FHotTrack default True;
     property OnDrawBackground: TSpTBXDrawEvent read FOnDrawBackground write FOnDrawBackground;
@@ -716,30 +716,20 @@ begin
       end;
     sknWindows, sknDelphiStyle:
       begin
-        // tcDropDownButtonRightNormal is defined on XE2 and up
         // We need to call GetElementDetails because the Style hook uses VCL.Styles.TCustomStyle.GetElementDetails
         // which returns a Details.Part that is different than tcDropDownButtonRightNormal when using Delphi styles
-        // Try not to use UxTheme.DrawThemeBackground API directly, instead use SpTBXThemeServices.GetElementDetails/CurrentSkin.PaintThemedElementBackground
-        // [Old-Themes]
-        {$IF CompilerVersion >= 23} // for Delphi XE2 and up
         if SpIsWinVistaOrUp then begin
-          if not Enabled then Details := SpTBXThemeServices.GetElementDetails(tcDropDownButtonRightDisabled)
-          else if DroppedDown then Details := SpTBXThemeServices.GetElementDetails(tcDropDownButtonRightPressed)
-          else if HotTrack then Details := SpTBXThemeServices.GetElementDetails(tcDropDownButtonRightHot)
-          else Details := SpTBXThemeServices.GetElementDetails(tcDropDownButtonRightNormal);
+          if not Enabled then Details := StyleServices.GetElementDetails(tcDropDownButtonRightDisabled)
+          else if DroppedDown then Details := StyleServices.GetElementDetails(tcDropDownButtonRightPressed)
+          else if HotTrack then Details := StyleServices.GetElementDetails(tcDropDownButtonRightHot)
+          else Details := StyleServices.GetElementDetails(tcDropDownButtonRightNormal);
         end
         else begin
-          if not Enabled then Details := SpTBXThemeServices.GetElementDetails(tcDropDownButtonDisabled)
-          else if DroppedDown then Details := SpTBXThemeServices.GetElementDetails(tcDropDownButtonPressed)
-          else if HotTrack then Details := SpTBXThemeServices.GetElementDetails(tcDropDownButtonHot)
-          else Details := SpTBXThemeServices.GetElementDetails(tcDropDownButtonNormal);
+          if not Enabled then Details := StyleServices.GetElementDetails(tcDropDownButtonDisabled)
+          else if DroppedDown then Details := StyleServices.GetElementDetails(tcDropDownButtonPressed)
+          else if HotTrack then Details := StyleServices.GetElementDetails(tcDropDownButtonHot)
+          else Details := StyleServices.GetElementDetails(tcDropDownButtonNormal);
         end;
-        {$ELSE}
-        if not Enabled then Details := SpTBXThemeServices.GetElementDetails(tcDropDownButtonDisabled)
-        else if DroppedDown then Details := SpTBXThemeServices.GetElementDetails(tcDropDownButtonPressed)
-        else if HotTrack then Details := SpTBXThemeServices.GetElementDetails(tcDropDownButtonHot)
-        else Details := SpTBXThemeServices.GetElementDetails(tcDropDownButtonNormal);
-        {$IFEND}
 
         CurrentSkin.PaintThemedElementBackground(ACanvas, ARect, Details, DPI);
       end;
@@ -790,18 +780,18 @@ begin
         // Up button
         BR := ButtonR;
         BR.Bottom := (ButtonR.Top + ButtonR.Bottom) div 2;
-        if not Enabled then Details := SpTBXThemeServices.GetElementDetails(tsUpDisabled)
-        else if UpPushed then Details := SpTBXThemeServices.GetElementDetails(tsUpPressed)
-        else if UpHotTrack then Details := SpTBXThemeServices.GetElementDetails(tsUpHot)
-        else Details := SpTBXThemeServices.GetElementDetails(tsUpNormal);
+        if not Enabled then Details := StyleServices.GetElementDetails(tsUpDisabled)
+        else if UpPushed then Details := StyleServices.GetElementDetails(tsUpPressed)
+        else if UpHotTrack then Details := StyleServices.GetElementDetails(tsUpHot)
+        else Details := StyleServices.GetElementDetails(tsUpNormal);
         CurrentSkin.PaintThemedElementBackground(ACanvas, BR, Details, DPI);
         // Down button
         BR := ButtonR;
         BR.Top := (ButtonR.Top + ButtonR.Bottom) div 2;
-        if not Enabled then Details := SpTBXThemeServices.GetElementDetails(tsDownDisabled)
-        else if DownPushed then Details := SpTBXThemeServices.GetElementDetails(tsDownPressed)
-        else if DownHotTrack then Details := SpTBXThemeServices.GetElementDetails(tsDownHot)
-        else Details := SpTBXThemeServices.GetElementDetails(tsDownNormal);
+        if not Enabled then Details := StyleServices.GetElementDetails(tsDownDisabled)
+        else if DownPushed then Details := StyleServices.GetElementDetails(tsDownPressed)
+        else if DownHotTrack then Details := StyleServices.GetElementDetails(tsDownHot)
+        else Details := StyleServices.GetElementDetails(tsDownNormal);
         CurrentSkin.PaintThemedElementBackground(ACanvas, BR, Details, DPI);
       end;
     sknDelphiStyle:
@@ -812,18 +802,18 @@ begin
         // Up button
         BR := ButtonR;
         BR.Bottom := (ButtonR.Top + ButtonR.Bottom) div 2;
-        if not Enabled then Details := SpTBXThemeServices.GetElementDetails(tsArrowBtnUpDisabled)
-        else if UpPushed then Details := SpTBXThemeServices.GetElementDetails(tsArrowBtnUpPressed)
-        else if UpHotTrack then Details := SpTBXThemeServices.GetElementDetails(tsArrowBtnUpHot)
-        else Details := SpTBXThemeServices.GetElementDetails(tsArrowBtnUpNormal);
+        if not Enabled then Details := StyleServices.GetElementDetails(tsArrowBtnUpDisabled)
+        else if UpPushed then Details := StyleServices.GetElementDetails(tsArrowBtnUpPressed)
+        else if UpHotTrack then Details := StyleServices.GetElementDetails(tsArrowBtnUpHot)
+        else Details := StyleServices.GetElementDetails(tsArrowBtnUpNormal);
         CurrentSkin.PaintThemedElementBackground(ACanvas, BR, Details, DPI);
         // Down button
         BR := ButtonR;
         BR.Top := (ButtonR.Top + ButtonR.Bottom) div 2;
-        if not Enabled then Details := SpTBXThemeServices.GetElementDetails(tsArrowBtnDownDisabled)
-        else if DownPushed then Details := SpTBXThemeServices.GetElementDetails(tsArrowBtnDownPressed)
-        else if DownHotTrack then Details := SpTBXThemeServices.GetElementDetails(tsArrowBtnDownHot)
-        else Details := SpTBXThemeServices.GetElementDetails(tsArrowBtnDownNormal);
+        if not Enabled then Details := StyleServices.GetElementDetails(tsArrowBtnDownDisabled)
+        else if DownPushed then Details := StyleServices.GetElementDetails(tsArrowBtnDownPressed)
+        else if DownHotTrack then Details := StyleServices.GetElementDetails(tsArrowBtnDownHot)
+        else Details := StyleServices.GetElementDetails(tsArrowBtnDownNormal);
         CurrentSkin.PaintThemedElementBackground(ACanvas, BR, Details, DPI);
       end;
     sknSkin:
@@ -1609,7 +1599,6 @@ end;
 constructor TSpTBXComboBox.Create(AOwner: TComponent);
 begin
   inherited;
-  FAutoDropDownWidthRightMargin := 8;
   FAutoItemHeight := True;
   FMouseTimer := nil;
   FHotTrack := True;
@@ -1628,12 +1617,6 @@ begin
   with Params do
     if Style and (CBS_OWNERDRAWFIXED or CBS_OWNERDRAWVARIABLE) = 0 then
       Style := Style or LBS_OWNERDRAWFIXED;
-end;
-
-procedure TSpTBXComboBox.CreateWnd;
-begin
-  inherited;
-  DoCalcMaxDropDownWidth;
 end;
 
 destructor TSpTBXComboBox.Destroy;
@@ -1738,12 +1721,6 @@ begin
   end;
 end;
 
-procedure TSpTBXComboBox.DoCalcMaxDropDownWidth;
-begin
-  if FAutoDropDownWidth then
-    SpCalcMaxDropDownWidth(Self, PPIScale(FAutoDropDownWidthRightMargin));
-end;
-
 procedure TSpTBXComboBox.DoDrawBackground(ACanvas: TCanvas; ARect: TRect;
   const PaintStage: TSpTBXPaintStage; var PaintDefault: Boolean);
 begin
@@ -1805,6 +1782,15 @@ begin
 
   PaintDefault := True;
   DoDrawItemBackground(Canvas, Rect, Index, State, pstPostPaint, PaintDefault);
+end;
+
+procedure TSpTBXComboBox.DropDown;
+begin
+  {$IF CompilerVersion < 35} // For older versions, Delphi 11 introduced AutoDropDownWidth
+  if FAutoDropDownWidth then
+    SpCalcMaxDropDownWidth(Self, PPIScale(8));
+  {$IFEND}
+  inherited;
 end;
 
 procedure TSpTBXComboBox.EditWndProc(var Message: TMessage);
@@ -1913,14 +1899,12 @@ begin
       Result := SpGetControlTextHeight(Self, Font);
 end;
 
-{$IF CompilerVersion > 20}
 function TSpTBXComboBox.IsItemHeightStored: Boolean;
 // [Bugfix] Delphi 2010 bug:
 // ItemHeight is not stored when Style is different than csOwnerDraw*
 begin
   Result := True;
 end;
-{$IFEND}
 
 procedure TSpTBXComboBox.SetItemHeight(Value: Integer);
 begin
@@ -2749,7 +2733,7 @@ begin
   else begin
     SpDrawXPEditFrame(ACanvas, ARect, ItemInfo.Enabled, ItemInfo.HotTrack, False, False, View.Window.CurrentPPI);
     InflateRect(ARect, -2, -2);  // Do not DPI scale, border size is always 2
-    SpFillRect(ACanvas, ARect, CurrentSkin.GetThemedSystemColor(clWindow));
+    SpFillRect(ACanvas, ARect, StyleServices.GetSystemColor(clWindow));
   end;
 end;
 
@@ -2848,9 +2832,9 @@ begin
     Item.EditorFontSettings.Apply(Canvas.Font);
     if Canvas.Font.Color = clNone then
       if Item.Enabled then
-        Canvas.Font.Color := CurrentSkin.GetThemedSystemColor(clWindowText)
+        Canvas.Font.Color := StyleServices.GetSystemColor(clWindowText)
       else
-        Canvas.Font.Color := CurrentSkin.GetThemedSystemColor(clGrayText);
+        Canvas.Font.Color := StyleServices.GetSystemColor(clGrayText);
     InflateRect(R, -PPIScale(2), -PPIScale(1));
     if not IsToolbarStyle then
       Inc(R.Left, GetIndentBefore + PPIScale(1))

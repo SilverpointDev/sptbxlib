@@ -205,7 +205,7 @@ begin
 
     // Draw the crosshair
     if DrawCrosshair then begin
-      DestCanvas.Pen.Color := CurrentSkin.GetThemedSystemColor(clHighlight);
+      DestCanvas.Pen.Color := StyleServices.GetSystemColor(clHighlight);
       DestCanvas.MoveTo(CenterP.X - (CenterP.X div 2), CenterP.Y);
       DestCanvas.LineTo(CenterP.X + (CenterP.X div 2), CenterP.Y);
       DestCanvas.MoveTo(CenterP.X, CenterP.Y - (CenterP.Y div 2));
@@ -356,7 +356,7 @@ begin
           begin
             if B.Pushed then Flags := TS_PRESSED
             else Flags := TS_HOT;
-            DrawThemeBackground(SpTBXThemeServices.Theme[teToolBar], ACanvas.Handle, TP_BUTTON, Flags, ARect, nil);
+            DrawThemeBackground(StyleServices.Theme[teToolBar], ACanvas.Handle, TP_BUTTON, Flags, ARect, nil);
           end;
         sknSkin:
           begin

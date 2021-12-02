@@ -1,7 +1,7 @@
 unit SpTBXSkins;
 
 {==============================================================================
-Version 2.5.8
+Version 2.5.9
 
 The contents of this file are subject to the SpTBXLib License; you may
 not use or distribute this file except in compliance with the
@@ -63,11 +63,8 @@ interface
 
 uses
   Windows, Messages, Classes, SysUtils, Graphics, Controls, StdCtrls,
-  ImgList, IniFiles, Types,
-  {$IF CompilerVersion >= 23} // for Delphi XE2 and up
-  System.UITypes, Styles,
-  {$IFEND}
-  Themes, Generics.Collections;
+  ImgList, IniFiles, Types, System.UITypes, Styles, Themes,
+  Generics.Collections;
 
 resourcestring
   SSpTBXColorNone = 'None';
@@ -357,8 +354,6 @@ type
     function GetThemedElementDetails(Component: TSpTBXSkinComponentsType; Enabled, Pushed, HotTrack, Checked, Focused, Defaulted, Grayed: Boolean; out Details: TThemedElementDetails): Boolean; overload;
     function GetThemedElementDetails(Component: TSpTBXSkinComponentsType; State: TSpTBXSkinStatesType; out Details: TThemedElementDetails): Boolean; overload;
     function GetThemedElementSize(ACanvas: TCanvas; Details: TThemedElementDetails; DPI: Integer): TSize;
-    procedure GetThemedElementTextColor(Details: TThemedElementDetails; out AColor: TColor);
-    function GetThemedSystemColor(AColor: TColor): TColor;
 
     // Skin Paint
     procedure PaintBackground(ACanvas: TCanvas; ARect: TRect; Component: TSpTBXSkinComponentsType; State: TSpTBXSkinStatesType; Background, Borders: Boolean; Vertical: Boolean = False; ForceRectBorders: TAnchors = []); virtual;
@@ -430,10 +425,8 @@ type
     procedure SetSkin(SkinName: string);
 
     // [Old-Themes]
-    {$IF CompilerVersion >= 23} // for Delphi XE2 and up
     procedure SetDelphiStyle(StyleName: string);
     function IsValidDelphiStyle(StyleName: string): Boolean;
-    {$IFEND}
 
     property CurrentSkin: TSpTBXSkinOptions read FCurrentSkin;
     property CurrentSkinName: string read GetCurrentSkinName;
@@ -457,13 +450,6 @@ type
     property OnSkinChange: TNotifyEvent read FOnSkinChange write FOnSkinChange;
   end;
 
-  { TSpTBXThemeServices }
-  {$IF CompilerVersion >= 23} //for Delphi XE2 and up
-  TSpTBXThemeServices = TCustomStyleServices;
-  {$ELSE}
-  TSpTBXThemeServices = TThemeServices;
-  {$IFEND}
-
   { TSpPrintWindow }
   // Use SpPrintWindow instead of PaintTo as many controls will not render
   // properly (no text on editors, no scrollbars, incorrect borders, etc)
@@ -471,13 +457,10 @@ type
   TSpPrintWindow = function(Hnd: HWND; HdcBlt: HDC; nFlags: UINT): BOOL; stdcall;
 
 { Delphi Styles}
-{$IF CompilerVersion >= 23} // for Delphi XE2 and up
 function SpStyleGetElementObject(Style: TCustomStyleServices; const ControlName, ElementName: string): TObject;
 function SpStyleDrawBitmapElement(const ControlName, ElementName: string; State: TSpTBXSkinStatesType; DC: HDC; const R: TRect; ClipRect: PRect; Stretch: Boolean; DPI: Integer): Boolean;
-{$IFEND}
 
 { Themes }
-function SpTBXThemeServices: TSpTBXThemeServices;
 function SkinManager: TSpTBXSkinManager;
 function CurrentSkin: TSpTBXSkinOptions;
 procedure SpFillGlassRect(ACanvas: TCanvas; ARect: TRect);
@@ -577,8 +560,6 @@ var
 
 //WMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWM
 { Delphi Styles }
-
-{$IF CompilerVersion >= 23} // for Delphi XE2 and up
 
 function SpStyleGetElementObject(Style: TCustomStyleServices; const ControlName, ElementName: string): TObject;
 // From Vcl.Styles.GetElementObject
@@ -689,19 +670,8 @@ begin
   end;
 end;
 
-{$IFEND}
-
 //WMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWM
 { Themes }
-
-function SpTBXThemeServices: TSpTBXThemeServices;
-begin
-  {$IF CompilerVersion >= 23} //for Delphi XE2 and up
-  Result := StyleServices;
-  {$ELSE}
-  Result := ThemeServices;
-  {$IFEND}
-end;
 
 function SkinManager: TSpTBXSkinManager;
 begin
@@ -1134,7 +1104,7 @@ function SpDrawXPGlassText(ACanvas: TCanvas; Caption: string; var ARect: TRect;
       Options.dwFlags := Options.dwFlags or DTT_CALCRECT;
     Options.crText := ColorToRGB(C.Font.Color);
     Options.iGlowSize := CaptionGlowSize;
-    DrawThemeTextEx(SpTBXThemeServices.Theme[teWindow], C.Handle, WP_CAPTION, CS_ACTIVE,
+    DrawThemeTextEx(StyleServices.Theme[teWindow], C.Handle, WP_CAPTION, CS_ACTIVE,
       PWideChar(WideString(Caption)), Length(Caption), Flags, @R, Options);
 
     Result := R.Bottom - R.Top;
@@ -2526,12 +2496,10 @@ begin
   end
   else begin
     if SkinManager.GetSkinType = sknDelphiStyle then begin
-      {$IF CompilerVersion >= 23} // for Delphi XE2 and up
       if Selected then
-        ACanvas.Brush.Color := SpTBXThemeServices.GetSystemColor(clHighlight)
+        ACanvas.Brush.Color := StyleServices.GetSystemColor(clHighlight)
       else
-        ACanvas.Brush.Color := SpTBXThemeServices.GetStyleColor(scListBox);
-      {$IFEND}
+        ACanvas.Brush.Color := StyleServices.GetStyleColor(scListBox);
     end
     else
       if Selected then
@@ -3248,14 +3216,14 @@ begin
  if State = sknsDisabled then Result := clGrayText
  else Result := clBtnText;
  if SkinType = sknDelphiStyle then
-   Result := GetThemedSystemColor(Result);
+   Result := StyleServices.GetSystemColor(Result);
 
   case Component of
     skncMenuItem:
       if ((SkinType = sknWindows) and SpIsWinVistaOrUp) or (SkinType = sknDelphiStyle) then begin
         // Use the new API on Windows Vista
         if GetThemedElementDetails(Component, State, Details) then
-          GetThemedElementTextColor(Details, Result);
+          StyleServices.GetElementColor(Details, ecTextColor, Result);
       end
       else
         if State <> sknsDisabled then begin
@@ -3268,7 +3236,7 @@ begin
       if ((SkinType = sknWindows) and SpIsWinVistaOrUp) or (SkinType = sknDelphiStyle) then begin
         // Use the new API on Windows Vista
         if GetThemedElementDetails(Component, State, Details) then
-          GetThemedElementTextColor(Details, Result);
+          StyleServices.GetElementColor(Details, ecTextColor, Result);
       end
       else
         if State <> sknsDisabled then begin
@@ -3280,23 +3248,21 @@ begin
     skncToolbarItem:
       if SkinType = sknDelphiStyle then begin
         if GetThemedElementDetails(Component, State, Details) then
-          GetThemedElementTextColor(Details, Result);
+          StyleServices.GetElementColor(Details, ecTextColor, Result);
       end
       else
         if State <> sknsDisabled then Result := clMenuText;
     skncButton, skncCheckBox, skncRadioButton, skncLabel, skncTab, skncEditButton:
       if (SkinType = sknWindows) or (SkinType = sknDelphiStyle) then
         if GetThemedElementDetails(Component, State, Details) then
-          GetThemedElementTextColor(Details, Result);
+          StyleServices.GetElementColor(Details, ecTextColor, Result);
     skncListItem:
       if SkinType <> sknSkin then
         if SkinType = sknDelphiStyle then begin
-          {$IF CompilerVersion >= 23} // for Delphi XE2 and up
           if State in [sknsChecked, sknsCheckedAndHotTrack] then
-            Result := SpTBXThemeServices.GetStyleFontColor(sfListItemTextSelected)
+            Result := StyleServices.GetStyleFontColor(sfListItemTextSelected)
           else
-            Result := SpTBXThemeServices.GetStyleFontColor(sfListItemTextNormal);
-          {$IFEND}
+            Result := StyleServices.GetStyleFontColor(sfListItemTextNormal);
         end
         else
           if State in [sknsChecked, sknsCheckedAndHotTrack] then
@@ -3307,14 +3273,14 @@ begin
       else
         if (SkinType = sknWindows) or (SkinType = sknDelphiStyle) then
           if GetThemedElementDetails(Component, State, Details) then
-            GetThemedElementTextColor(Details, Result);
+            StyleServices.GetElementColor(Details, ecTextColor, Result);
     skncStatusBar:
       if SkinType = sknSkin then
         Result := GetTextColor(skncToolbarItem, State) // Use skncToolbarItem to get the default text color
       else
         if (SkinType = sknWindows) or (SkinType = sknDelphiStyle) then begin
-          Details := SpTBXThemeServices.GetElementDetails(tsPane);
-          GetThemedElementTextColor(Details, Result);
+          Details := StyleServices.GetElementDetails(tsPane);
+          StyleServices.GetElementColor(Details, ecTextColor, Result);
         end;
     skncTabToolbar:
       if SkinType = sknSkin then
@@ -3331,7 +3297,7 @@ begin
             Result := clCaptionText;
         sknWindows, sknDelphiStyle:
           if GetThemedElementDetails(Component, State, Details) then
-            GetThemedElementTextColor(Details, Result);
+            StyleServices.GetElementColor(Details, ecTextColor, Result);
         sknSkin:
           Result := GetTextColor(skncToolbarItem, State);  // Use skncToolbarItem to get the default text color
       end;
@@ -3350,41 +3316,24 @@ begin
     skncDock:
       begin
         if SkinType = sknDelphiStyle then
-          Details := SpTBXThemeServices.GetElementDetails(ttbToolBarDontCare)
+          Details := StyleServices.GetElementDetails(ttbToolBarDontCare)
         else
-          Details := SpTBXThemeServices.GetElementDetails(trRebarDontCare);
+          Details := StyleServices.GetElementDetails(trRebarDontCare);
         Result := True;
       end;
     skncDockablePanel:
       begin
-        // [Old-Themes]
-        {$IF CompilerVersion >= 23}
-        // tcpBackground is defined only on XE2 and up
-        // Only used with VCL Styles
-        Details := SpTBXThemeServices.GetElementDetails(tcpBackground);
+        Details := StyleServices.GetElementDetails(tcpBackground);
         Result := True;
-        {$IFEND}
       end;
     skncDockablePanelTitleBar:
       begin
-        // [Old-Themes]
-        {$IF CompilerVersion >= 23}
-        // tcpThemedHeader is defined only on XE2 and up
-        // Only used with VCL Styles
-        Details := SpTBXThemeServices.GetElementDetails(tcpThemedHeader);
+        Details := StyleServices.GetElementDetails(tcpThemedHeader);
         Result := True;
-        {$IFEND}
       end;
     skncGutter:
       begin
-        // [Old-Themes]
-        {$IF CompilerVersion >= 23} //for Delphi XE2 and up
-        Details := SpTBXThemeServices.GetElementDetails(tmPopupGutter);
-        {$ELSE}
-        Details.Element := teMenu;
-        Details.Part := MENU_POPUPGUTTER;
-        Details.State := 0;
-        {$IFEND}
+        Details := StyleServices.GetElementDetails(tmPopupGutter);
         Result := True;
       end;
     {
@@ -3394,29 +3343,22 @@ begin
     skncPanel:
       begin
         if Enabled then
-          Details := SpTBXThemeServices.GetElementDetails(tbGroupBoxNormal)
+          Details := StyleServices.GetElementDetails(tbGroupBoxNormal)
         else
-          Details := SpTBXThemeServices.GetElementDetails(tbGroupBoxDisabled);
+          Details := StyleServices.GetElementDetails(tbGroupBoxDisabled);
         Result := True;
       end;
     skncPopup:
       begin
-        // [Old-Themes]
-        {$IF CompilerVersion >= 23} //for Delphi XE2 and up
-        Details := SpTBXThemeServices.GetElementDetails(tmPopupBackground);
-        {$ELSE}
-        Details.Element := teMenu;
-        Details.Part := MENU_POPUPBACKGROUND;
-        Details.State := 0;
-        {$IFEND}
+        Details := StyleServices.GetElementDetails(tmPopupBackground);
         Result := True;
       end;
     skncSeparator:
       begin
         if Enabled then  // Enabled = Vertical
-          Details := SpTBXThemeServices.GetElementDetails(ttbSeparatorNormal)
+          Details := StyleServices.GetElementDetails(ttbSeparatorNormal)
         else
-          Details := SpTBXThemeServices.GetElementDetails(ttbSeparatorVertNormal);
+          Details := StyleServices.GetElementDetails(ttbSeparatorVertNormal);
         Result := True;
       end;
     {
@@ -3424,12 +3366,12 @@ begin
     }
     skncStatusBar:
       begin
-        Details := SpTBXThemeServices.GetElementDetails(tsStatusRoot);
+        Details := StyleServices.GetElementDetails(tsStatusRoot);
         Result := True;
       end;
     skncStatusBarGrip:
       begin
-        Details := SpTBXThemeServices.GetElementDetails(tsGripper);
+        Details := StyleServices.GetElementDetails(tsGripper);
         Result := True;
       end;
     {
@@ -3438,21 +3380,15 @@ begin
     }
     skncToolbar:
       begin
-        // [Old-Themes]
-        // On older versions is trBandNormal on XE2 is trBand
-        {$IF CompilerVersion >= 23} // for Delphi XE2 and up
-        Details := SpTBXThemeServices.GetElementDetails(trBand);
-        {$ELSE}
-        Details := SpTBXThemeServices.GetElementDetails(trBandNormal);
-        {$IFEND}
+        Details := StyleServices.GetElementDetails(trBand);
         Result := True;
       end;
     skncToolbarGrip:
       begin
         if Enabled then  // Enabled = Vertical
-          Details := SpTBXThemeServices.GetElementDetails(trGripperVert)
+          Details := StyleServices.GetElementDetails(trGripperVert)
         else
-          Details := SpTBXThemeServices.GetElementDetails(trGripper);
+          Details := StyleServices.GetElementDetails(trGripper);
         Result := True;
       end;
     skncWindow: ;
@@ -3460,154 +3396,109 @@ begin
       begin
         if SkinType = sknDelphiStyle then begin
           if Enabled then
-            Details := SpTBXThemeServices.GetElementDetails(twCaptionActive)
+            Details := StyleServices.GetElementDetails(twCaptionActive)
           else
-            Details := SpTBXThemeServices.GetElementDetails(twCaptionInActive);
+            Details := StyleServices.GetElementDetails(twCaptionInActive);
         end
         else
           // On WinXP when twCaptionActive is used instead of twSmallCaptionActive the top borders are rounded
           if Enabled then
-            Details := SpTBXThemeServices.GetElementDetails(twSmallCaptionActive)
+            Details := StyleServices.GetElementDetails(twSmallCaptionActive)
           else
-            Details := SpTBXThemeServices.GetElementDetails(twSmallCaptionInActive);
+            Details := StyleServices.GetElementDetails(twSmallCaptionInActive);
         Result := True;
       end;
     skncMenuBarItem:
       begin
         if SpIsWinVistaOrUp or (SkinType = sknDelphiStyle) then begin
-          // [Old-Themes]
-          {$IF CompilerVersion >= 23} //for Delphi XE2 and up
-          if not Enabled then Details := SpTBXThemeServices.GetElementDetails(tmMenuBarItemDisabled)
-          else if Pushed then Details := SpTBXThemeServices.GetElementDetails(tmMenuBarItemPushed)
-          else if HotTrack then Details := SpTBXThemeServices.GetElementDetails(tmMenuBarItemHot)
-          else Details := SpTBXThemeServices.GetElementDetails(tmMenuBarItemNormal);
-          {$ELSE}
-          Details.Element := teMenu;
-          Details.Part := MENU_BARITEM;
-          if not Enabled then Details.State := MBI_DISABLED
-          else if Pushed then Details.State := MBI_PUSHED
-          else if HotTrack then Details.State := MBI_HOT
-          else Details.State := MBI_NORMAL;
-          {$IFEND}
+          if not Enabled then Details := StyleServices.GetElementDetails(tmMenuBarItemDisabled)
+          else if Pushed then Details := StyleServices.GetElementDetails(tmMenuBarItemPushed)
+          else if HotTrack then Details := StyleServices.GetElementDetails(tmMenuBarItemHot)
+          else Details := StyleServices.GetElementDetails(tmMenuBarItemNormal);
         end
         else
-          Details := SpTBXThemeServices.GetElementDetails(tmMenuBarItem);
+          Details := StyleServices.GetElementDetails(tmMenuBarItem);
         Result := True;
       end;
     skncMenuItem:
       begin
         if SpIsWinVistaOrUp or (SkinType = sknDelphiStyle) then begin
-          // [Old-Themes]
-          {$IF CompilerVersion >= 23} //for Delphi XE2 and up
-          if not Enabled and HotTrack then Details := SpTBXThemeServices.GetElementDetails(tmPopupItemDisabledHot)
-          else if not Enabled then Details := SpTBXThemeServices.GetElementDetails(tmPopupItemDisabled)
-          else if HotTrack then Details := SpTBXThemeServices.GetElementDetails(tmPopupItemHot)
-          else Details := SpTBXThemeServices.GetElementDetails(tmPopupItemNormal);
-          {$ELSE}
-          Details.Element := teMenu;
-          Details.Part := MENU_POPUPITEM;
-          if not Enabled and HotTrack then Details.State := MPI_DISABLEDHOT
-          else if not Enabled then Details.State := MPI_DISABLED
-          else if HotTrack then Details.State := MPI_HOT
-          else Details.State := MPI_NORMAL;
-          {$IFEND}
+          if not Enabled and HotTrack then Details := StyleServices.GetElementDetails(tmPopupItemDisabledHot)
+          else if not Enabled then Details := StyleServices.GetElementDetails(tmPopupItemDisabled)
+          else if HotTrack then Details := StyleServices.GetElementDetails(tmPopupItemHot)
+          else Details := StyleServices.GetElementDetails(tmPopupItemNormal);
         end
         else begin
           if HotTrack then
-            Details := SpTBXThemeServices.GetElementDetails(tmMenuItemSelected)
+            Details := StyleServices.GetElementDetails(tmMenuItemSelected)
           else
-            Details := SpTBXThemeServices.GetElementDetails(tmMenuItemNormal);
+            Details := StyleServices.GetElementDetails(tmMenuItemNormal);
         end;
         Result := True;
       end;
     skncToolbarItem:
       begin
-        if not Enabled then Details := SpTBXThemeServices.GetElementDetails(ttbButtonDisabled)
-        else if Pushed then Details := SpTBXThemeServices.GetElementDetails(ttbButtonPressed)
-        else if HotTrack and Checked then Details := SpTBXThemeServices.GetElementDetails(ttbButtonCheckedHot)
-        else if HotTrack then Details := SpTBXThemeServices.GetElementDetails(ttbButtonHot)
-        else if Checked then Details := SpTBXThemeServices.GetElementDetails(ttbButtonChecked)
-        else Details := SpTBXThemeServices.GetElementDetails(ttbButtonNormal);
+        if not Enabled then Details := StyleServices.GetElementDetails(ttbButtonDisabled)
+        else if Pushed then Details := StyleServices.GetElementDetails(ttbButtonPressed)
+        else if HotTrack and Checked then Details := StyleServices.GetElementDetails(ttbButtonCheckedHot)
+        else if HotTrack then Details := StyleServices.GetElementDetails(ttbButtonHot)
+        else if Checked then Details := StyleServices.GetElementDetails(ttbButtonChecked)
+        else Details := StyleServices.GetElementDetails(ttbButtonNormal);
         Result := True;
       end;
     skncButton, skncEditButton:
       begin
-        if not Enabled then Details := SpTBXThemeServices.GetElementDetails(tbPushButtonDisabled)
-        else if Pushed or Checked then Details := SpTBXThemeServices.GetElementDetails(tbPushButtonPressed)
-        else if HotTrack then Details := SpTBXThemeServices.GetElementDetails(tbPushButtonHot)
-        else if Defaulted or Focused then Details := SpTBXThemeServices.GetElementDetails(tbPushButtonDefaulted)
-        else Details := SpTBXThemeServices.GetElementDetails(tbPushButtonNormal);
+        if not Enabled then Details := StyleServices.GetElementDetails(tbPushButtonDisabled)
+        else if Pushed or Checked then Details := StyleServices.GetElementDetails(tbPushButtonPressed)
+        else if HotTrack then Details := StyleServices.GetElementDetails(tbPushButtonHot)
+        else if Defaulted or Focused then Details := StyleServices.GetElementDetails(tbPushButtonDefaulted)
+        else Details := StyleServices.GetElementDetails(tbPushButtonNormal);
         Result := True;
       end;
     skncCheckBox:
       begin
         if Grayed then begin
-          if not Enabled then Details := SpTBXThemeServices.GetElementDetails(tbCheckBoxMixedDisabled)
-          else if Pushed then Details := SpTBXThemeServices.GetElementDetails(tbCheckBoxMixedPressed)
-          else if HotTrack then Details := SpTBXThemeServices.GetElementDetails(tbCheckBoxMixedHot)
-          else Details := SpTBXThemeServices.GetElementDetails(tbCheckBoxMixedNormal);
+          if not Enabled then Details := StyleServices.GetElementDetails(tbCheckBoxMixedDisabled)
+          else if Pushed then Details := StyleServices.GetElementDetails(tbCheckBoxMixedPressed)
+          else if HotTrack then Details := StyleServices.GetElementDetails(tbCheckBoxMixedHot)
+          else Details := StyleServices.GetElementDetails(tbCheckBoxMixedNormal);
         end
         else
           if Checked then begin
-            if not Enabled then Details := SpTBXThemeServices.GetElementDetails(tbCheckBoxCheckedDisabled)
-            else if Pushed then Details := SpTBXThemeServices.GetElementDetails(tbCheckBoxCheckedPressed)
-            else if HotTrack then Details := SpTBXThemeServices.GetElementDetails(tbCheckBoxCheckedHot)
-            else Details := SpTBXThemeServices.GetElementDetails(tbCheckBoxCheckedNormal);
+            if not Enabled then Details := StyleServices.GetElementDetails(tbCheckBoxCheckedDisabled)
+            else if Pushed then Details := StyleServices.GetElementDetails(tbCheckBoxCheckedPressed)
+            else if HotTrack then Details := StyleServices.GetElementDetails(tbCheckBoxCheckedHot)
+            else Details := StyleServices.GetElementDetails(tbCheckBoxCheckedNormal);
           end
           else begin
-            if not Enabled then Details := SpTBXThemeServices.GetElementDetails(tbCheckBoxUncheckedDisabled)
-            else if Pushed then Details := SpTBXThemeServices.GetElementDetails(tbCheckBoxUncheckedPressed)
-            else if HotTrack then Details := SpTBXThemeServices.GetElementDetails(tbCheckBoxUncheckedHot)
-            else Details := SpTBXThemeServices.GetElementDetails(tbCheckBoxUncheckedNormal);
+            if not Enabled then Details := StyleServices.GetElementDetails(tbCheckBoxUncheckedDisabled)
+            else if Pushed then Details := StyleServices.GetElementDetails(tbCheckBoxUncheckedPressed)
+            else if HotTrack then Details := StyleServices.GetElementDetails(tbCheckBoxUncheckedHot)
+            else Details := StyleServices.GetElementDetails(tbCheckBoxUncheckedNormal);
           end;
         Result := True;
       end;
     skncEditFrame:
       begin
-        // [Old-Themes]
-        {$IF CompilerVersion >= 23} //for Delphi XE2 and up
-        if not SpIsWinVistaOrUp then Details := SpTBXThemeServices.GetElementDetails(tcComboBoxDontCare)
-        else if not Enabled then Details := SpTBXThemeServices.GetElementDetails(tcBorderDisabled)
-        else if HotTrack then Details := SpTBXThemeServices.GetElementDetails(tcBorderHot)
-        else Details := SpTBXThemeServices.GetElementDetails(tcBorderNormal);
-        {$ELSE}
-        Details.Element := teComboBox;
-        if SpIsWinVistaOrUp then begin
-          // Use the new API on Windows Vista
-          Details.Part := CP_BORDER;
-          if not Enabled then Details.State := CBXS_DISABLED
-          else if HotTrack then Details.State := CBXS_HOT
-          else Details.State := CBXS_NORMAL;
-        end
-        else begin
-          Details.Part := 0;
-          Details.State := 0;
-        end;
-        {$IFEND}
+        if not SpIsWinVistaOrUp then Details := StyleServices.GetElementDetails(tcComboBoxDontCare)
+        else if not Enabled then Details := StyleServices.GetElementDetails(tcBorderDisabled)
+        else if HotTrack then Details := StyleServices.GetElementDetails(tcBorderHot)
+        else Details := StyleServices.GetElementDetails(tcBorderNormal);
         Result := True;
       end;
     skncHeader:
       begin
-        // [Old-Themes]
-        {$IF CompilerVersion >= 23} //for Delphi XE2 and up
-        if Pushed then Details := SpTBXThemeServices.GetElementDetails(thHeaderItemPressed)
-        else if HotTrack then Details := SpTBXThemeServices.GetElementDetails(thHeaderItemHot)
-        else Details := SpTBXThemeServices.GetElementDetails(thHeaderItemNormal);
-        {$ELSE}
-        Details.Element := teHeader;
-        Details.Part := HP_HEADERITEM;
-        if Pushed then Details.State := HIS_PRESSED
-        else if HotTrack then Details.State := HIS_HOT
-        else Details.State := HIS_NORMAL;
-        {$IFEND}
+        if Pushed then Details := StyleServices.GetElementDetails(thHeaderItemPressed)
+        else if HotTrack then Details := StyleServices.GetElementDetails(thHeaderItemHot)
+        else Details := StyleServices.GetElementDetails(thHeaderItemNormal);
         Result := True;
       end;
     skncLabel:
       begin
         if Enabled then
-          Details := SpTBXThemeServices.GetElementDetails(tbCheckBoxUncheckedNormal)
+          Details := StyleServices.GetElementDetails(tbCheckBoxUncheckedNormal)
         else
-          Details := SpTBXThemeServices.GetElementDetails(tbCheckBoxUncheckedDisabled);
+          Details := StyleServices.GetElementDetails(tbCheckBoxUncheckedDisabled);
         Result := True;
       end;
     {
@@ -3616,25 +3507,25 @@ begin
     skncRadioButton:
       begin
         if Checked then begin
-          if not Enabled then Details := SpTBXThemeServices.GetElementDetails(tbRadioButtonCheckedDisabled)
-          else if Pushed then Details := SpTBXThemeServices.GetElementDetails(tbRadioButtonCheckedPressed)
-          else if HotTrack then Details := SpTBXThemeServices.GetElementDetails(tbRadioButtonCheckedHot)
-          else Details := SpTBXThemeServices.GetElementDetails(tbRadioButtonCheckedNormal);
+          if not Enabled then Details := StyleServices.GetElementDetails(tbRadioButtonCheckedDisabled)
+          else if Pushed then Details := StyleServices.GetElementDetails(tbRadioButtonCheckedPressed)
+          else if HotTrack then Details := StyleServices.GetElementDetails(tbRadioButtonCheckedHot)
+          else Details := StyleServices.GetElementDetails(tbRadioButtonCheckedNormal);
         end
         else begin
-          if not Enabled then Details := SpTBXThemeServices.GetElementDetails(tbRadioButtonUncheckedDisabled)
-          else if Pushed then Details := SpTBXThemeServices.GetElementDetails(tbRadioButtonUncheckedPressed)
-          else if HotTrack then Details := SpTBXThemeServices.GetElementDetails(tbRadioButtonUncheckedHot)
-          else Details := SpTBXThemeServices.GetElementDetails(tbRadioButtonUncheckedNormal);
+          if not Enabled then Details := StyleServices.GetElementDetails(tbRadioButtonUncheckedDisabled)
+          else if Pushed then Details := StyleServices.GetElementDetails(tbRadioButtonUncheckedPressed)
+          else if HotTrack then Details := StyleServices.GetElementDetails(tbRadioButtonUncheckedHot)
+          else Details := StyleServices.GetElementDetails(tbRadioButtonUncheckedNormal);
         end;
         Result := True;
       end;
     skncTab:
       begin
-        if not Enabled then Details := SpTBXThemeServices.GetElementDetails(ttTabItemDisabled)
-        else if Pushed or (HotTrack and Checked) or Checked then Details := SpTBXThemeServices.GetElementDetails(ttTabItemSelected)
-        else if HotTrack then Details := SpTBXThemeServices.GetElementDetails(ttTabItemHot)
-        else Details := SpTBXThemeServices.GetElementDetails(ttTabItemNormal);
+        if not Enabled then Details := StyleServices.GetElementDetails(ttTabItemDisabled)
+        else if Pushed or (HotTrack and Checked) or Checked then Details := StyleServices.GetElementDetails(ttTabItemSelected)
+        else if HotTrack then Details := StyleServices.GetElementDetails(ttTabItemHot)
+        else Details := StyleServices.GetElementDetails(ttTabItemNormal);
         Result := True;
       end;
     skncProgressBar:    ; // not used
@@ -3654,30 +3545,7 @@ end;
 
 function TSpTBXSkinOptions.GetThemedElementSize(ACanvas: TCanvas; Details: TThemedElementDetails; DPI: Integer): TSize;
 begin
-  {$IF CompilerVersion >= 23} // for Delphi XE2 and up
-  SpTBXThemeServices.GetElementSize(ACanvas.Handle, Details, esActual, Result{$IF CompilerVersion >= 33}, DPI{$IFEND}); // DPI param introduced on 10.3 Rio
-  {$ELSE}
-  GetThemePartSize(SpTBXThemeServices.Theme[Details.Element], ACanvas.Handle, Details.Part, Details.State, nil, TS_TRUE, Result);
-  {$IFEND}
-end;
-
-procedure TSpTBXSkinOptions.GetThemedElementTextColor(Details: TThemedElementDetails; out AColor: TColor);
-begin
-  {$IF CompilerVersion >= 23} // for Delphi XE2 and up
-  SpTBXThemeServices.GetElementColor(Details, ecTextColor, AColor);
-  {$ELSE}
-  GetThemeColor(SpTBXThemeServices.Theme[Details.Element], Details.Part, Details.State,
-      TMT_TEXTCOLOR, TColorRef(AColor));
-  {$IFEND}
-end;
-
-function TSpTBXSkinOptions.GetThemedSystemColor(AColor: TColor): TColor;
-begin
-  {$IF CompilerVersion >= 23} // for Delphi XE2 and up
-  Result := SpTBXThemeServices.GetSystemColor(AColor);
-  {$ELSE}
-  Result := AColor;
-  {$IFEND}
+  StyleServices.GetElementSize(ACanvas.Handle, Details, esActual, Result{$IF CompilerVersion >= 33}, DPI{$IFEND}); // DPI param introduced on 10.3 Rio
 end;
 
 procedure TSpTBXSkinOptions.PaintBackground(ACanvas: TCanvas; ARect: TRect;
@@ -3713,7 +3581,7 @@ var
 begin
   SaveIndex := SaveDC(ACanvas.Handle);  // XE2 Styles changes the font
   try
-    SpTBXThemeServices.DrawElement(ACanvas.Handle, Details, ARect, nil{$IF CompilerVersion >= 33}, DPI{$IFEND}); // DPI param introduced on 10.3 Rio DPI);
+    StyleServices.DrawElement(ACanvas.Handle, Details, ARect, nil{$IF CompilerVersion >= 33}, DPI{$IFEND}); // DPI param introduced on 10.3 Rio DPI);
   finally
     RestoreDC(ACanvas.Handle, SaveIndex);
   end;
@@ -3751,16 +3619,8 @@ begin
   // VCL Styles does not DPI scale menu checkmarks, Windows does
   if ((SkinType = sknWindows) and SpIsWinVistaOrUp) or (SkinType = sknDelphiStyle) then
   begin
-    // [Old-Themes]
-    {$IF CompilerVersion >= 23} //for Delphi XE2 and up
-    if State = sknsDisabled then Details := SpTBXThemeServices.GetElementDetails(tmPopupCheckDisabled)
-    else Details := SpTBXThemeServices.GetElementDetails(tmPopupCheckNormal);
-    {$ELSE}
-    Details.Element := teMenu;
-    Details.Part := MENU_POPUPCHECK;
-    if State = sknsDisabled then Details.State := MC_CHECKMARKDISABLED
-    else Details.State := MC_CHECKMARKNORMAL;
-    {$IFEND}
+    if State = sknsDisabled then Details := StyleServices.GetElementDetails(tmPopupCheckDisabled)
+    else Details := StyleServices.GetElementDetails(tmPopupCheckNormal);
     VistaCheckSize := GetThemedElementSize(ACanvas, Details, DPI); // Returns a scaled value
     ARect := SpCenterRect(ARect, VistaCheckSize.cx, VistaCheckSize.cy);
     PaintThemedElementBackground(ACanvas, ARect, Details, DPI);
@@ -3787,16 +3647,8 @@ begin
   if ((SkinType = sknWindows) and SpIsWinVistaOrUp) or
      ((SkinType = sknDelphiStyle) and (Screen.PixelsPerInch = 96)) then
   begin
-    // [Old-Themes]
-    {$IF CompilerVersion >= 23} //for Delphi XE2 and up
-    if State = sknsDisabled then Details := SpTBXThemeServices.GetElementDetails(tmPopupBulletDisabled)
-    else Details := SpTBXThemeServices.GetElementDetails(tmPopupBulletNormal);
-    {$ELSE}
-    Details.Element := teMenu;
-    Details.Part := MENU_POPUPCHECK;
-    if State = sknsDisabled then Details.State := MC_BULLETDISABLED
-    else Details.State := MC_BULLETNORMAL;
-    {$IFEND}
+    if State = sknsDisabled then Details := StyleServices.GetElementDetails(tmPopupBulletDisabled)
+    else Details := StyleServices.GetElementDetails(tmPopupBulletNormal);
     VistaCheckSize := GetThemedElementSize(ACanvas, Details, DPI); // Returns a scaled value
     ARect := SpCenterRect(ARect, VistaCheckSize.cx, VistaCheckSize.cy);
     PaintThemedElementBackground(ACanvas, ARect, Details, DPI);
@@ -3941,11 +3793,9 @@ end;
 
 procedure TSpTBXSkinManager.ResetToSystemStyle;
 begin
-  {$IF CompilerVersion >= 23} // for Delphi XE2 and up
   // Reset the VCL Style to System Style
   if TStyleManager.IsCustomStyleActive then
     TStyleManager.SetStyle(TStyleManager.SystemStyle);
-  {$IFEND}
 end;
 
 procedure TSpTBXSkinManager.Broadcast;
@@ -3988,10 +3838,8 @@ function TSpTBXSkinManager.GetSkinType: TSpTBXSkinType;
 begin
   Result := sknSkin;
 
-  {$IF CompilerVersion >= 23} // for Delphi XE2 and up
   if TStyleManager.IsCustomStyleActive then
     Result := sknDelphiStyle;
-  {$IFEND}
 
   if (Result = sknSkin) and IsDefaultSkin then
     Result := sknWindows;
@@ -4016,11 +3864,9 @@ begin
       L.Add(S);
 
     // Fill Styles
-    {$IF CompilerVersion >= 23} // for Delphi XE2 and up
     for S in TStyleManager.StyleNames do
       if S <> TStyleManager.SystemStyle.Name then
         L.Add(S);
-    {$IFEND}
 
     // Sort the list and move the Default skin to the top
     L.Sort;
@@ -4035,17 +3881,12 @@ end;
 function TSpTBXSkinManager.IsDefaultSkin: Boolean;
 begin
   // Returns True if CurrentSkin is the default Windows theme
-  // For Delphi XE2 and up make sure setting System style sets CurrentSkin to Default
   Result := CurrentSkinName = 'Default';
 end;
 
 function TSpTBXSkinManager.IsXPThemesEnabled: Boolean;
 begin
-  {$IF CompilerVersion >= 23} //for Delphi XE2 and up
   Result := StyleServices.Enabled;
-  {$ELSE}
-  Result := ThemeServices.ThemesAvailable and UxTheme.UseThemes;
-  {$IFEND}
 end;
 
 procedure TSpTBXSkinManager.SetSkin(SkinName: string);
@@ -4074,8 +3915,6 @@ begin
     end;
 end;
 
-// [Old-Themes]
-{$IF CompilerVersion >= 23} // for Delphi XE2 and up
 procedure TSpTBXSkinManager.SetDelphiStyle(StyleName: string);
 begin
   if not SameText(StyleName, TStyleManager.ActiveStyle.Name) then begin
@@ -4097,7 +3936,6 @@ begin
       Exit;
     end;
 end;
-{$IFEND}
 
 procedure TSpTBXSkinManager.SetToDefaultSkin;
 begin

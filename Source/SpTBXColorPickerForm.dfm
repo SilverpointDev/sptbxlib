@@ -11,7 +11,6 @@ object SpTBXColorPickerForm: TSpTBXColorPickerForm
   Font.Height = -11
   Font.Name = 'MS Shell Dlg 2'
   Font.Style = []
-  OldCreateOrder = False
   Position = poDesigned
   OnCreate = FormCreate
   OnDestroy = FormDestroy

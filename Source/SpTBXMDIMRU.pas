@@ -1,7 +1,7 @@
 unit SpTBXMDIMRU;
 
 {==============================================================================
-Version 2.5.8
+Version 2.5.9
 
 The contents of this file are subject to the SpTBXLib License; you may
 not use or distribute this file except in compliance with the
@@ -357,7 +357,7 @@ begin
         begin
           PaintDefault := False;
           ARect := SpCenterRect(ARect, SpPPIScale(16, PPI), SpPPIScale(16, PPI));
-          DrawThemeBackground(SpTBXThemeServices.Theme[teWindow], ACanvas.Handle, XPPart[AImageIndex], XPFlags[State], ARect, nil);
+          DrawThemeBackground(StyleServices.Theme[teWindow], ACanvas.Handle, XPPart[AImageIndex], XPFlags[State], ARect, nil);
         end;
     end;
   end;

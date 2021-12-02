@@ -261,9 +261,9 @@ procedure TSpTBXCustomizeForm.DoSkinChange;
 begin
   inherited;
   if SkinManager.GetSkinType = sknSkin then
-    ClosePanel.Color := SkinManager.CurrentSkin.ColorBtnFace
+    ClosePanel.Color := CurrentSkin.ColorBtnFace
   else
-    ClosePanel.Color := SkinManager.CurrentSkin.GetThemedSystemColor(clBtnFace);
+    ClosePanel.Color := StyleServices.GetSystemColor(clBtnFace);
 end;
 
 //WMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWM
@@ -333,14 +333,10 @@ var
 begin
   if cbSkins.ItemIndex = -1 then Exit;
   S := cbSkins.Text;
-  {$IF CompilerVersion >= 23} // for Delphi XE2 and up
   if SkinManager.IsValidDelphiStyle(S) then
     SkinManager.SetDelphiStyle(S)  // Set Delphi Style
   else
     SkinManager.SetSkin(S); // Set Skin
-  {$ELSE}
-  SkinManager.SetSkin(S); // Set Skin
-  {$IFEND}
 end;
 
 //WMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWM

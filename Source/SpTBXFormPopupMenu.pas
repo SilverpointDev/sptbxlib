@@ -1,7 +1,7 @@
 unit SpTBXFormPopupMenu;
 
 {==============================================================================
-Version 2.5.8
+Version 2.5.9
 
 The contents of this file are subject to the SpTBXLib License; you may
 not use or distribute this file except in compliance with the
@@ -969,7 +969,7 @@ function TSpTBXFormPopupMenu.InternalPopup(X, Y: Integer; ForceFocus: Boolean;
 var
   ClientR: TRect;
   FC: TCustomFormClass;
-  {$IF CompilerVersion > 32}
+  {$IF CompilerVersion >= 33} // 10.3 Rio and up
   PPI: Integer;
   {$IFEND}
 begin
@@ -986,7 +986,7 @@ begin
 
   // Use the WrapperForm to show the PopupForm
   if Assigned(FPopupForm) then begin
-    {$IF CompilerVersion > 32}
+    {$IF CompilerVersion >= 33} // 10.3 Rio and up
     // Normally, setting the Parent scales the Form but here it doesn't because
     // FPopupForm has a FreeNotification (see TControl.SetParent)
     if Assigned(PopupControl) then
@@ -1095,14 +1095,11 @@ end;
 
 procedure InitializeStock;
 begin
-  {$IF CompilerVersion >= 23}
-  // XE2 and up
   // When Styles are used WM_NCHITTEST and WM_NCCALCSIZE are handled by
   // TFormStyleHook. We need to override the handling by re-registering
   // the hook by using an empty style hook (TStyleHook)
   TCustomStyleEngine.UnRegisterStyleHook(TSpTBXWrapperPopupForm, TStyleHook); // Re-register
   TCustomStyleEngine.RegisterStyleHook(TSpTBXWrapperPopupForm, TStyleHook);
-  {$IFEND}
 end;
 
 initialization
