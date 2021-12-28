@@ -449,8 +449,8 @@ type
   end;
 
 { Painting helpers }
-procedure SpDrawXPDockablePanelTitleBar(ACanvas: TCanvas; ARect: TRect; IsActive, Vertical: Boolean; DPI: Integer);
-procedure SpDrawXPDockablePanelBody(ACanvas: TCanvas; ARect: TRect; IsActive, IsFloating: Boolean);
+procedure SpDrawXPDockablePanelTitleBar(AControl: TControl; ACanvas: TCanvas; ARect: TRect; IsActive, Vertical: Boolean; DPI: Integer);
+procedure SpDrawXPDockablePanelBody(AControl: TControl; ACanvas: TCanvas; ARect: TRect; IsActive, IsFloating: Boolean);
 
 { Toolbar Load/Save Position helpers }
 procedure SpTBRegLoadPositions(const OwnerComponent: TComponent; const RootKey: DWORD; const BaseRegistryKey: string);
@@ -1050,11 +1050,11 @@ end;
 //WMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWM
 { Painting helpers }
 
-procedure SpDrawXPDockablePanelTitleBar(ACanvas: TCanvas; ARect: TRect; IsActive, Vertical: Boolean; DPI: Integer);
+procedure SpDrawXPDockablePanelTitleBar(AControl: TControl; ACanvas: TCanvas; ARect: TRect; IsActive, Vertical: Boolean; DPI: Integer);
 var
   Details: TThemedElementDetails;
 begin
-  case SkinManager.GetSkinType of
+  case SkinManager.GetSkinType(AControl) of
     sknNone, sknWindows:
       begin
         // [Theme-Change]
@@ -1063,19 +1063,19 @@ begin
         Windows.DrawEdge(ACanvas.Handle, ARect, BDR_RAISEDINNER, BF_RECT);
       end;
     sknDelphiStyle:
-      if CurrentSkin.GetThemedElementDetails(skncDockablePanelTitleBar, sknsNormal, Details) then
-        CurrentSkin.PaintThemedElementBackground(ACanvas, ARect, Details, DPI);
+      if CurrentSkin.GetThemedElementDetails(AControl, skncDockablePanelTitleBar, sknsNormal, Details) then
+        CurrentSkin.PaintThemedElementBackground(AControl, ACanvas, ARect, Details, DPI);
     sknSkin:
       CurrentSkin.PaintBackground(ACanvas, ARect, skncDockablePanelTitleBar, sknsNormal, True, True, Vertical);
   end;
 end;
 
-procedure SpDrawXPDockablePanelBody(ACanvas: TCanvas; ARect: TRect; IsActive, IsFloating: Boolean);
+procedure SpDrawXPDockablePanelBody(AControl: TControl; ACanvas: TCanvas; ARect: TRect; IsActive, IsFloating: Boolean);
 var
   C: TColor;
   Details: TThemedElementDetails;
 begin
-  case SkinManager.GetSkinType of
+  case SkinManager.GetSkinType(AControl) of
     sknNone, sknWindows:
       begin
         C := ACanvas.Brush.Color;
@@ -1092,11 +1092,11 @@ begin
       end;
     sknDelphiStyle:
       begin
-        if CurrentSkin.GetThemedElementDetails(skncDockablePanel, sknsNormal, Details) then begin
-          if StyleServices.GetElementColor(Details, ecFillColor, C) and (C <> clNone) then
+        if CurrentSkin.GetThemedElementDetails(AControl, skncDockablePanel, sknsNormal, Details) then begin
+          if SpTBXStyleServices(AControl).GetElementColor(Details, ecFillColor, C) and (C <> clNone) then
             ACanvas.Brush.Color := C
           else
-            ACanvas.Brush.Color := StyleServices.GetSystemColor(clBtnFace);
+            ACanvas.Brush.Color := SpTBXStyleServices(AControl).GetSystemColor(clBtnFace);
           ACanvas.FillRect(ARect);
         end;
       end;
@@ -1775,7 +1775,7 @@ end;
 
 function TSpTBXDockablePanelToolbar.GetItemsTextColor(State: TSpTBXSkinStatesType): TColor;
 begin
-  Result := CurrentSkin.GetTextColor(skncDockablePanelTitleBar, State);
+  Result := CurrentSkin.GetTextColor(Self, skncDockablePanelTitleBar, State);
 end;
 
 function TSpTBXDockablePanelToolbar.GetParentDockablePanel: TSpTBXCustomDockablePanel;
@@ -2517,7 +2517,7 @@ begin
     DefaultPainting := True;
     DoDrawCaptionPanel(ACanvas, ARect, pstPrePaint, DefaultPainting);
     if DefaultPainting then
-      SpDrawXPDockablePanelTitleBar(ACanvas, ARect, True, IsVerticalTitleBar, CurrentPPI);
+      SpDrawXPDockablePanelTitleBar(Self, ACanvas, ARect, True, IsVerticalTitleBar, CurrentPPI);
     DefaultPainting := True;
     DoDrawCaptionPanel(ACanvas, ARect, pstPostPaint, DefaultPainting);
   end;
@@ -2678,7 +2678,7 @@ var
   DefaultPainting: Boolean;
 begin
   if Color = clNone then
-    SpDrawXPDockablePanelBody(ACanvas, ARect, True, Floating)
+    SpDrawXPDockablePanelBody(Self, ACanvas, ARect, True, Floating)
   else begin
     ACanvas.Brush.Color := Color;
     ACanvas.FillRect(ARect);
@@ -2695,7 +2695,7 @@ begin
     DefaultPainting := True;
     DoDrawCaptionPanel(ACanvas, ARect, pstPrePaint, DefaultPainting);
     if DefaultPainting then
-      SpDrawXPDockablePanelTitleBar(ACanvas, ARect, True, IsVerticalTitleBar, CurrentPPI);
+      SpDrawXPDockablePanelTitleBar(Self, ACanvas, ARect, True, IsVerticalTitleBar, CurrentPPI);
     DefaultPainting := True;
     DoDrawCaptionPanel(ACanvas, ARect, pstPostPaint, DefaultPainting);
   end;
@@ -3551,11 +3551,11 @@ begin
   DoDrawBackground(Canvas, ClientR, pstPrePaint, PaintDefault);
   if PaintDefault then begin
     // Paint background
-    if SkinManager.GetSkinType = sknSkin then
+    if SkinManager.GetSkinType(Self) = sknSkin then
       CurrentSkin.PaintBackground(Canvas, ClientR, skncSplitter, sknsNormal, True, False, IsVertical)
     else begin
       if Color = clNone then
-        Canvas.Brush.Color := StyleServices.GetSystemColor(clBtnFace)
+        Canvas.Brush.Color := SpTBXStyleServices(Self).GetSystemColor(clBtnFace)
       else
         Canvas.Brush.Color := Color;
       SpFillRect(Canvas, ClientR, Canvas.Brush.Color);
@@ -3569,7 +3569,7 @@ begin
     else
       InflateRect(DragHandleR, -PPIScale(10), -PPIScale(1));
 
-    if SkinManager.GetSkinType = sknSkin then begin
+    if SkinManager.GetSkinType(Self) = sknSkin then begin
       if FMouseOverGrip then
         CurrentSkin.PaintBackground(Canvas, R, skncButton, sknsNormal, True, True, False, [akLeft, akTop, akRight, akBottom]);
       C1 := SkinManager.CurrentSkin.Options(skncToolbarGrip).Body.Color1;
@@ -3577,8 +3577,8 @@ begin
       SpDrawXPGrip(Canvas, DragHandleR, C1, C2, CurrentPPI);
     end
     else begin
-      C1 := StyleServices.GetSystemColor(clBtnShadow);
-      C2 := StyleServices.GetSystemColor(clWindow);
+      C1 := SpTBXStyleServices(Self).GetSystemColor(clBtnShadow);
+      C2 := SpTBXStyleServices(Self).GetSystemColor(clWindow);
       SpDrawXPGrip(Canvas, DragHandleR, C1, C2, CurrentPPI);
     end;
   end;

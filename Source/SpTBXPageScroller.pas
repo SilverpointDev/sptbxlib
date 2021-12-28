@@ -192,7 +192,7 @@ type
   end;
 
 { Painting helpers }
-procedure SpTBXPaintPageScrollButton(ACanvas: TCanvas; const ARect: TRect; ButtonType: TSpTBXPageScrollerButtonType; Hot: Boolean; DPI: Integer);
+procedure SpTBXPaintPageScrollButton(AControl: TControl; ACanvas: TCanvas; const ARect: TRect; ButtonType: TSpTBXPageScrollerButtonType; Hot: Boolean; DPI: Integer);
 
 implementation
 
@@ -226,8 +226,8 @@ begin
     Result := Control.Width;
 end;
 
-procedure SpTBXPaintPageScrollButton(ACanvas: TCanvas; const ARect: TRect;
-  ButtonType: TSpTBXPageScrollerButtonType; Hot: Boolean; DPI: Integer);
+procedure SpTBXPaintPageScrollButton(AControl: TControl; ACanvas: TCanvas;
+  const ARect: TRect; ButtonType: TSpTBXPageScrollerButtonType; Hot: Boolean; DPI: Integer);
 var
   R: TRect;
   Flags: Integer;
@@ -236,7 +236,7 @@ var
   Details: TThemedElementDetails;
 begin
   R := ARect;
-  case SkinManager.GetSkinType of
+  case SkinManager.GetSkinType(AControl) of
     sknNone:
       begin
         if Hot then Flags := DFCS_FLAT
@@ -252,24 +252,24 @@ begin
     sknWindows, sknDelphiStyle:
       begin
         if Hot then
-          Details := StyleServices.GetElementDetails(tbPushButtonHot)
+          Details := SpTBXStyleServices(AControl).GetElementDetails(tbPushButtonHot)
         else
-          Details := StyleServices.GetElementDetails(tbPushButtonNormal);
+          Details := SpTBXStyleServices(AControl).GetElementDetails(tbPushButtonNormal);
 
-        CurrentSkin.PaintThemedElementBackground(ACanvas, ARect, Details, DPI);
-        StyleServices.GetElementColor(Details, ecTextColor, C);
+        CurrentSkin.PaintThemedElementBackground(AControl, ACanvas, ARect, Details, DPI);
+        SpTBXStyleServices(AControl).GetElementColor(Details, ecTextColor, C);
       end;
     sknSkin:
       begin
-        SpDrawXPButton(ACanvas, R, True, False, Hot, False, False, False, DPI);
+        SpDrawXPButton(AControl, ACanvas, R, True, False, Hot, False, False, False, DPI);
         if Hot then
-          C := CurrentSkin.GetTextColor(skncButton, sknsHotTrack)
+          C := CurrentSkin.GetTextColor(AControl, skncButton, sknsHotTrack)
         else
-          C := CurrentSkin.GetTextColor(skncButton, sknsNormal);
+          C := CurrentSkin.GetTextColor(AControl, skncButton, sknsNormal);
       end;
   end;
 
-  if SkinManager.GetSkinType <> sknNone then begin
+  if SkinManager.GetSkinType(AControl) <> sknNone then begin
     X := (R.Left + R.Right) div 2;
     Y := (R.Top + R.Bottom) div 2;
     Sz := Min(X - R.Left, Y - R.Top) * 3 div 4;
@@ -562,14 +562,14 @@ begin
         BR := R;
         if Orientation = tpsoVertical then BR.Bottom := BR.Top + ButtonSize
         else BR.Right := BR.Left + ButtonSize;
-        SpTBXPaintPageScrollButton(ACanvas, BR, CBtns[Orientation, False], FScrollDirection < 0, CurrentPPI);
+        SpTBXPaintPageScrollButton(Self, ACanvas, BR, CBtns[Orientation, False], FScrollDirection < 0, CurrentPPI);
       end;
       if tpsbNext in FVisibleButtons then
       begin
         BR := R;
         if Orientation = tpsoVertical then BR.Top := BR.Bottom - ButtonSize
         else BR.Left := BR.Right - ButtonSize;
-        SpTBXPaintPageScrollButton(ACanvas, BR, CBtns[Orientation, True], FScrollDirection > 0, CurrentPPI);
+        SpTBXPaintPageScrollButton(Self, ACanvas, BR, CBtns[Orientation, True], FScrollDirection > 0, CurrentPPI);
       end;
       ACanvas.Brush.Color := clBlue;
       ACanvas.Pen.Color := clBlue;

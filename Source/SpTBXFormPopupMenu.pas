@@ -341,7 +341,7 @@ begin
     DoDrawBackground(ACanvas, R, pstPrePaint, PaintDefault);
     if PaintDefault then begin
       GR := Rect(0, 0, 0, 0);
-      SpDrawXPStatusBar(ACanvas, R, GR, CurrentPPI);
+      SpDrawXPStatusBar(Self, ACanvas, R, GR, CurrentPPI);
     end;
 
     // Draw the grip
@@ -349,9 +349,9 @@ begin
     DoDrawBackground(ACanvas, R, pstPostPaint, PaintDefault);
     if PaintDefault then begin
       C1 := SkinManager.CurrentSkin.Options(skncStatusBarGrip).Body.Color1;
-      if (C1 = clNone) or (SkinManager.GetSkinType <> sknSkin) then C1 := clBtnShadow;
+      if (C1 = clNone) or (SkinManager.GetSkinType(Self) <> sknSkin) then C1 := clBtnShadow;
       C2 := SkinManager.CurrentSkin.Options(skncStatusBarGrip).Body.Color2;
-      if (C2 = clNone) or (SkinManager.GetSkinType <> sknSkin) then C2 := clBtnHighlight;
+      if (C2 = clNone) or (SkinManager.GetSkinType(Self) <> sknSkin) then C2 := clBtnHighlight;
       // Grip cells are 4x4 pixels
       GR := GetGripSizerRect;
       CellR := GR;
@@ -859,7 +859,7 @@ end;
 
 procedure TSpTBXWrapperPopupForm.PaintBackground(ACanvas: TCanvas; ARect: TRect);
 begin
-  SpDrawXPMenuPopupWindow(ACanvas, ARect, Rect(0, 0, 0, 0), False, 0, CurrentPPI);
+  SpDrawXPMenuPopupWindow(Self, ACanvas, ARect, Rect(0, 0, 0, 0), False, 0, CurrentPPI);
 end;
 
 //WMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWM
@@ -1005,6 +1005,13 @@ begin
       ClientR.Right := FPopupFormPrevSize.cx;
       ClientR.Bottom := FPopupFormPrevSize.cy;
     end;
+
+    {$IF CompilerVersion >= 34} // for Delphi Sydney and up
+    // Set the StyleName of the wrapper form
+    if Assigned(PopupControl) then
+      FWrapperForm.StyleName := PopupControl.StyleName;
+    {$IFEND}
+
     FPopupForm.Parent := FWrapperForm;
     FPopupForm.Align := alClient;
     FPopupForm.BorderStyle := bsNone;

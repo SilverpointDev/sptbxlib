@@ -137,7 +137,7 @@ type
 
 { Helpers }
 procedure SpScreenShot(SourceR: TRect; DestCanvas: TCanvas; DestR: TRect);
-procedure SpScreenShotMagnify(DestCanvas: TCanvas; DestR: TRect; DrawCrosshair: Boolean; out CenterColor: TColor; ZoomFactor: Double = 200);
+procedure SpScreenShotMagnify(DestCanvas: TCanvas; DestR: TRect; Crosshair: TColor; out CenterColor: TColor; ZoomFactor: Double = 200);
 
 const
   crSpTBXEyeDropper = 103;   // Cursor ID used for Eye Dropper cursor
@@ -171,7 +171,8 @@ begin
   end;
 end;
 
-procedure SpScreenShotMagnify(DestCanvas: TCanvas; DestR: TRect; DrawCrosshair: Boolean; out CenterColor: TColor; ZoomFactor: Double = 200);
+procedure SpScreenShotMagnify(DestCanvas: TCanvas; DestR: TRect; Crosshair: TColor;
+  out CenterColor: TColor; ZoomFactor: Double = 200);
 var
   W, H, zoomW, zoomH: integer;
   CursorP, CenterP: TPoint;
@@ -204,8 +205,8 @@ begin
     CenterColor := DestCanvas.Pixels[CenterP.X, CenterP.Y];
 
     // Draw the crosshair
-    if DrawCrosshair then begin
-      DestCanvas.Pen.Color := StyleServices.GetSystemColor(clHighlight);
+    if Crosshair <> clNone then begin
+      DestCanvas.Pen.Color := Crosshair;
       DestCanvas.MoveTo(CenterP.X - (CenterP.X div 2), CenterP.Y);
       DestCanvas.LineTo(CenterP.X + (CenterP.X div 2), CenterP.Y);
       DestCanvas.MoveTo(CenterP.X, CenterP.Y - (CenterP.Y div 2));
@@ -349,14 +350,14 @@ begin
     PaintDefault := False;
     B := Sender as TSpTBXSpeedButton;
     if B.MouseInControl then begin
-      case SkinManager.GetSkinType of
+      case SkinManager.GetSkinType(Self) of
         sknNone:
           PaintDefault := True;
         sknWindows, sknDelphiStyle:
           begin
             if B.Pushed then Flags := TS_PRESSED
             else Flags := TS_HOT;
-            DrawThemeBackground(StyleServices.Theme[teToolBar], ACanvas.Handle, TP_BUTTON, Flags, ARect, nil);
+            DrawThemeBackground(SpTBXStyleServices(Self).Theme[teToolBar], ACanvas.Handle, TP_BUTTON, Flags, ARect, nil);
           end;
         sknSkin:
           begin
@@ -462,8 +463,8 @@ procedure TSpTBXColorPickerForm.SpTBXPanel1DrawBackground(Sender: TObject;
 begin
   if PaintStage = pstPrePaint then begin
     PaintDefault := False;
-    SpDrawXPDock(ACanvas, ARect, False, CurrentPPI);
-    SpDrawXPToolbar(ACanvas, ARect, True, False, False, True, False);
+    SpDrawXPDock(Self, ACanvas, ARect, False, CurrentPPI);
+    SpDrawXPToolbar(Self, ACanvas, ARect, True, False, False, True, False);
   end;
 end;
 
@@ -483,7 +484,7 @@ begin
         SpTBXTabControl1.InvalidateBackground;
       end;
       Zoom := 100 / 5; // x5 factor
-      SpScreenShotMagnify(imgColorPicker.Canvas, Rect(0, 0, imgColorPicker.Width, imgColorPicker.Height), True, C, Zoom);
+      SpScreenShotMagnify(imgColorPicker.Canvas, Rect(0, 0, imgColorPicker.Width, imgColorPicker.Height), SpTBXStyleServices(Self).GetSystemColor(clHighlight), C, Zoom);
       UpdateColorLabel(C);
     end
     else

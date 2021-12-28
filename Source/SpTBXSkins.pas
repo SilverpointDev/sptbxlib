@@ -350,20 +350,20 @@ type
     procedure GetMenuItemMargins(ACanvas: TCanvas; ImgSize: Integer; out MarginsInfo: TSpTBXMenuItemMarginsInfo; DPI: Integer); virtual;
     function GetState(Enabled, Pushed, HotTrack, Checked: Boolean): TSpTBXSkinStatesType; overload;
     procedure GetState(State: TSpTBXSkinStatesType; out Enabled, Pushed, HotTrack, Checked: Boolean); overload;
-    function GetTextColor(Component: TSpTBXSkinComponentsType; State: TSpTBXSkinStatesType): TColor; virtual;
-    function GetThemedElementDetails(Component: TSpTBXSkinComponentsType; Enabled, Pushed, HotTrack, Checked, Focused, Defaulted, Grayed: Boolean; out Details: TThemedElementDetails): Boolean; overload;
-    function GetThemedElementDetails(Component: TSpTBXSkinComponentsType; State: TSpTBXSkinStatesType; out Details: TThemedElementDetails): Boolean; overload;
-    function GetThemedElementSize(ACanvas: TCanvas; Details: TThemedElementDetails; DPI: Integer): TSize;
+    function GetTextColor(AControl: TControl; Component: TSpTBXSkinComponentsType; State: TSpTBXSkinStatesType): TColor; virtual;
+    function GetThemedElementDetails(AControl: TControl; Component: TSpTBXSkinComponentsType; Enabled, Pushed, HotTrack, Checked, Focused, Defaulted, Grayed: Boolean; out Details: TThemedElementDetails): Boolean; overload;
+    function GetThemedElementDetails(AControl: TControl; Component: TSpTBXSkinComponentsType; State: TSpTBXSkinStatesType; out Details: TThemedElementDetails): Boolean; overload;
+    function GetThemedElementSize(AControl: TControl; ACanvas: TCanvas; Details: TThemedElementDetails; DPI: Integer): TSize;
 
     // Skin Paint
     procedure PaintBackground(ACanvas: TCanvas; ARect: TRect; Component: TSpTBXSkinComponentsType; State: TSpTBXSkinStatesType; Background, Borders: Boolean; Vertical: Boolean = False; ForceRectBorders: TAnchors = []); virtual;
-    procedure PaintThemedElementBackground(ACanvas: TCanvas; ARect: TRect; Details: TThemedElementDetails; DPI: Integer); overload;
-    procedure PaintThemedElementBackground(ACanvas: TCanvas; ARect: TRect; Component: TSpTBXSkinComponentsType; State: TSpTBXSkinStatesType; DPI: Integer); overload;
-    procedure PaintThemedElementBackground(ACanvas: TCanvas; ARect: TRect; Component: TSpTBXSkinComponentsType; Enabled, Pushed, HotTrack, Checked, Focused, Defaulted, Grayed: Boolean; DPI: Integer); overload;
+    procedure PaintThemedElementBackground(AControl: TControl; ACanvas: TCanvas; ARect: TRect; Details: TThemedElementDetails; DPI: Integer); overload;
+    procedure PaintThemedElementBackground(AControl: TControl; ACanvas: TCanvas; ARect: TRect; Component: TSpTBXSkinComponentsType; State: TSpTBXSkinStatesType; DPI: Integer); overload;
+    procedure PaintThemedElementBackground(AControl: TControl; ACanvas: TCanvas; ARect: TRect; Component: TSpTBXSkinComponentsType; Enabled, Pushed, HotTrack, Checked, Focused, Defaulted, Grayed: Boolean; DPI: Integer); overload;
 
     // Element Paint
-    procedure PaintMenuCheckMark(ACanvas: TCanvas; ARect: TRect; Checked, Grayed: Boolean; State: TSpTBXSkinStatesType; DPI: Integer); virtual;
-    procedure PaintMenuRadioMark(ACanvas: TCanvas; ARect: TRect; Checked: Boolean; State: TSpTBXSkinStatesType; DPI: Integer); virtual;
+    procedure PaintMenuCheckMark(AControl: TControl; ACanvas: TCanvas; ARect: TRect; Checked, Grayed: Boolean; State: TSpTBXSkinStatesType; DPI: Integer); virtual;
+    procedure PaintMenuRadioMark(AControl: TControl; ACanvas: TCanvas; ARect: TRect; Checked: Boolean; State: TSpTBXSkinStatesType; DPI: Integer); virtual;
     procedure PaintWindowFrame(ACanvas: TCanvas; ARect: TRect; IsActive, DrawBody: Boolean; BorderSize: Integer = 4); virtual;
 
     // Properties
@@ -406,10 +406,9 @@ type
     constructor Create; virtual;
     destructor Destroy; override;
 
-    function GetSkinType: TSpTBXSkinType;
+    function GetSkinType(AControl: TControl): TSpTBXSkinType;
     procedure GetSkinsAndDelphiStyles(SkinsAndStyles: TStrings);
     function IsDefaultSkin: Boolean;
-    function IsXPThemesEnabled: Boolean;
 
     procedure AddSkinNotification(AObject: TObject);
     procedure RemoveSkinNotification(AObject: TObject);
@@ -461,6 +460,7 @@ function SpStyleGetElementObject(Style: TCustomStyleServices; const ControlName,
 function SpStyleDrawBitmapElement(const ControlName, ElementName: string; State: TSpTBXSkinStatesType; DC: HDC; const R: TRect; ClipRect: PRect; Stretch: Boolean; DPI: Integer): Boolean;
 
 { Themes }
+function SpTBXStyleServices(AControl: TControl): TCustomStyleServices;
 function SkinManager: TSpTBXSkinManager;
 function CurrentSkin: TSpTBXSkinOptions;
 procedure SpFillGlassRect(ACanvas: TCanvas; ARect: TRect);
@@ -517,14 +517,14 @@ procedure SpDrawArrow(ACanvas: TCanvas; X, Y: Integer; AColor: TColor; Vertical,
 procedure SpDrawDropMark(ACanvas: TCanvas; DropMark: TRect);
 procedure SpDrawFocusRect(ACanvas: TCanvas; const ARect: TRect);
 procedure SpDrawGlyphPattern(ACanvas: TCanvas; ARect: TRect; Pattern: TSpTBXGlyphPattern; PatternColor: TColor; DPI: Integer);
-procedure SpDrawXPButton(ACanvas: TCanvas; ARect: TRect; Enabled, Pushed, HotTrack, Checked, Focused, Defaulted: Boolean; DPI: Integer);
-procedure SpDrawXPCheckBoxGlyph(ACanvas: TCanvas; ARect: TRect; Enabled: Boolean; State: TCheckBoxState; HotTrack, Pushed: Boolean; DPI: Integer);
-procedure SpDrawXPRadioButtonGlyph(ACanvas: TCanvas; ARect: TRect; Enabled: Boolean; Checked, HotTrack, Pushed: Boolean; DPI: Integer);
-procedure SpDrawXPEditFrame(ACanvas: TCanvas; ARect: TRect; Enabled, HotTrack, ClipContent, AutoAdjust: Boolean; DPI: Integer); overload;
+procedure SpDrawXPButton(AControl: TControl; ACanvas: TCanvas; ARect: TRect; Enabled, Pushed, HotTrack, Checked, Focused, Defaulted: Boolean; DPI: Integer);
+procedure SpDrawXPCheckBoxGlyph(AControl: TControl; ACanvas: TCanvas; ARect: TRect; Enabled: Boolean; State: TCheckBoxState; HotTrack, Pushed: Boolean; DPI: Integer);
+procedure SpDrawXPRadioButtonGlyph(AControl: TControl; ACanvas: TCanvas; ARect: TRect; Enabled: Boolean; Checked, HotTrack, Pushed: Boolean; DPI: Integer);
+procedure SpDrawXPEditFrame(AControl: TControl; ACanvas: TCanvas; ARect: TRect; Enabled, HotTrack, ClipContent, AutoAdjust: Boolean; DPI: Integer); overload;
 procedure SpDrawXPEditFrame(AWinControl: TWinControl; HotTracking, AutoAdjust, HideFrame: Boolean; DPI: Integer); overload;
 procedure SpDrawXPGrip(ACanvas: TCanvas; ARect: TRect; LoC, HiC: TColor; DPI: Integer);
-procedure SpDrawXPHeader(ACanvas: TCanvas; ARect: TRect; HotTrack, Pushed: Boolean; DPI: Integer);
-procedure SpDrawXPListItemBackground(ACanvas: TCanvas; ARect: TRect; Selected, HotTrack, Focused: Boolean; ForceRectBorders: Boolean = False; Borders: Boolean = True);
+procedure SpDrawXPHeader(AControl: TControl; ACanvas: TCanvas; ARect: TRect; HotTrack, Pushed: Boolean; DPI: Integer);
+procedure SpDrawXPListItemBackground(AControl: TControl; ACanvas: TCanvas; ARect: TRect; Selected, HotTrack, Focused: Boolean; ForceRectBorders: Boolean = False; Borders: Boolean = True);
 
 { Skins painting }
 procedure SpPaintSkinBackground(ACanvas: TCanvas; ARect: TRect; SkinOption: TSpTBXSkinOptionCategory; Vertical: Boolean);
@@ -673,6 +673,16 @@ end;
 //WMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWM
 { Themes }
 
+function SpTBXStyleServices(AControl: TControl): TCustomStyleServices;
+begin
+  {$IF CompilerVersion >= 34} // for 10.4 Sydney and up
+  // Sydney introduced per control styles, StyleName property
+  Result := StyleServices(AControl);
+  {$ELSE}
+  Result := StyleServices;
+  {$IFEND}
+end;
+
 function SkinManager: TSpTBXSkinManager;
 begin
   if not Assigned(FInternalSkinManager) then
@@ -725,7 +735,7 @@ begin
   end
   else
     if Parent.HandleAllocated then begin
-      if not Parent.DoubleBuffered and (Control is TWinControl) and SkinManager.IsXPThemesEnabled then
+      if not Parent.DoubleBuffered and (Control is TWinControl) and TStyleManager.Enabled then
         UxTheme.DrawThemeParentBackground(TWinControl(Control).Handle, DC, @R)
       else
         Controls.PerformEraseBackground(Control, DC);
@@ -2195,13 +2205,13 @@ begin
   ACanvas.Brush.Color := BColor;
 end;
 
-procedure SpDrawXPButton(ACanvas: TCanvas; ARect: TRect; Enabled, Pushed,
+procedure SpDrawXPButton(AControl: TControl; ACanvas: TCanvas; ARect: TRect; Enabled, Pushed,
   HotTrack, Checked, Focused, Defaulted: Boolean; DPI: Integer);
 var
   C: TColor;
   State: TSpTBXSkinStatesType;
 begin
-  case SkinManager.GetSkinType of
+  case SkinManager.GetSkinType(AControl) of
     sknNone:
       begin
         C := ACanvas.Brush.Color;
@@ -2221,7 +2231,7 @@ begin
         ACanvas.Brush.Color := C;
       end;
     sknWindows, sknDelphiStyle:
-      CurrentSkin.PaintThemedElementBackground(ACanvas, ARect, skncButton, Enabled, Pushed, HotTrack, Checked, Focused, Defaulted, False, DPI);
+      CurrentSkin.PaintThemedElementBackground(AControl, ACanvas, ARect, skncButton, Enabled, Pushed, HotTrack, Checked, Focused, Defaulted, False, DPI);
     sknSkin:
       begin
         State := CurrentSkin.GetState(Enabled, Pushed, HotTrack, Checked);
@@ -2235,15 +2245,15 @@ begin
   end;
 end;
 
-procedure SpDrawXPCheckBoxGlyph(ACanvas: TCanvas; ARect: TRect; Enabled: Boolean;
-  State: TCheckBoxState; HotTrack, Pushed: Boolean; DPI: Integer);
+procedure SpDrawXPCheckBoxGlyph(AControl: TControl; ACanvas: TCanvas; ARect: TRect;
+  Enabled: Boolean; State: TCheckBoxState; HotTrack, Pushed: Boolean; DPI: Integer);
 var
   Flags: Cardinal;
   SknState: TSpTBXSkinStatesType;
   CheckColor: TColor;
 begin
   Flags := 0;
-  case SkinManager.GetSkinType of
+  case SkinManager.GetSkinType(AControl) of
     sknNone:
       begin
         case State of
@@ -2258,13 +2268,13 @@ begin
         DrawFrameControl(ACanvas.Handle, ARect, DFC_BUTTON, Flags);
       end;
     sknWindows, sknDelphiStyle:
-      CurrentSkin.PaintThemedElementBackground(ACanvas, ARect, skncCheckBox, Enabled, Pushed, HotTrack, State = cbChecked, False, False, State = cbGrayed, DPI);
+      CurrentSkin.PaintThemedElementBackground(AControl, ACanvas, ARect, skncCheckBox, Enabled, Pushed, HotTrack, State = cbChecked, False, False, State = cbGrayed, DPI);
     sknSkin:
       begin
         SknState := CurrentSkin.GetState(Enabled, Pushed, HotTrack, State in [cbChecked, cbGrayed]);
         CurrentSkin.PaintBackground(ACanvas, ARect, skncCheckBox, SknState, True, True);
         if State = cbChecked then begin
-          CheckColor := CurrentSkin.GetTextColor(skncCheckBox, SknState);
+          CheckColor := CurrentSkin.GetTextColor(AControl, skncCheckBox, SknState);
           SpDrawGlyphPattern(ACanvas, ARect, gptCheckmark, CheckColor, DPI);
         end
         else
@@ -2277,13 +2287,13 @@ begin
   end;
 end;
 
-procedure SpDrawXPRadioButtonGlyph(ACanvas: TCanvas; ARect: TRect; Enabled: Boolean;
-  Checked, HotTrack, Pushed: Boolean; DPI: Integer);
+procedure SpDrawXPRadioButtonGlyph(AControl: TControl; ACanvas: TCanvas; ARect: TRect;
+  Enabled: Boolean; Checked, HotTrack, Pushed: Boolean; DPI: Integer);
 var
   Size, Flags: Integer;
   SknState: TSpTBXSkinStatesType;
 begin
-  case SkinManager.GetSkinType of
+  case SkinManager.GetSkinType(AControl) of
     sknNone:
       begin
         Flags := DFCS_BUTTONRADIO;
@@ -2296,7 +2306,7 @@ begin
         DrawFrameControl(ACanvas.Handle, ARect, DFC_BUTTON, Flags);
       end;
     sknWindows, sknDelphiStyle:
-      CurrentSkin.PaintThemedElementBackground(ACanvas, ARect, skncRadioButton, Enabled, Pushed, HotTrack, Checked, False, False, False, DPI);
+      CurrentSkin.PaintThemedElementBackground(AControl, ACanvas, ARect, skncRadioButton, Enabled, Pushed, HotTrack, Checked, False, False, False, DPI);
     sknSkin:
       begin
         SknState := CurrentSkin.GetState(Enabled, Pushed, HotTrack, Checked);
@@ -2317,7 +2327,7 @@ begin
         ACanvas.Ellipse(ARect);
         // Radio
         if Checked then begin
-          ACanvas.Brush.Color := CurrentSkin.GetTextColor(skncRadioButton, SknState);
+          ACanvas.Brush.Color := CurrentSkin.GetTextColor(AControl, skncRadioButton, SknState);
           ACanvas.Pen.Color := ACanvas.Brush.Color;
           Size := SpPPIScale(5, DPI);
           ACanvas.Ellipse(SpCenterRect(ARect, Size, Size));
@@ -2326,8 +2336,8 @@ begin
   end;
 end;
 
-procedure SpDrawXPEditFrame(ACanvas: TCanvas; ARect: TRect; Enabled, HotTrack,
-  ClipContent, AutoAdjust: Boolean; DPI: Integer);
+procedure SpDrawXPEditFrame(AControl: TControl; ACanvas: TCanvas; ARect: TRect;
+  Enabled, HotTrack, ClipContent, AutoAdjust: Boolean; DPI: Integer);
   //  ClipContent: Boolean = False; AutoAdjust: Boolean = False;
 var
   BorderR: TRect;
@@ -2343,7 +2353,7 @@ begin
     ExcludeClipRect(ACanvas.Handle, BorderR.Left, BorderR.Top, BorderR.Right, BorderR.Bottom);
   end;
   try
-    case SkinManager.GetSkinType of
+    case SkinManager.GetSkinType(AControl) of
       sknNone:
         if HotTrack then
           SpDrawRectangle(ACanvas, ARect, 0, clBtnShadow, clBtnHighlight, clBtnFace, clBtnFace)
@@ -2351,7 +2361,7 @@ begin
           SpDrawRectangle(ACanvas, ARect, 0, clBtnFace, clBtnFace, clBtnFace, clBtnFace);
       sknWindows, sknDelphiStyle:
         begin
-          CurrentSkin.PaintThemedElementBackground(ACanvas, ARect, skncEditFrame, Enabled, False, HotTrack, False, False, False, False, DPI);
+          CurrentSkin.PaintThemedElementBackground(AControl, ACanvas, ARect, skncEditFrame, Enabled, False, HotTrack, False, False, False, False, DPI);
         end;
       sknSkin:
         begin
@@ -2408,7 +2418,7 @@ begin
 //        PerformEraseBackground(AWinControl, ACanvas.Handle);
         SpDrawParentBackground(AWinControl, ACanvas.Handle, R);
 
-        SpDrawXPEditFrame(ACanvas, R, AWinControl.Enabled, HotTracking, False, AutoAdjust, DPI);
+        SpDrawXPEditFrame(AWinControl, ACanvas, R, AWinControl.Enabled, HotTracking, False, AutoAdjust, DPI);
       end;
     finally
       ACanvas.Handle := 0;
@@ -2454,18 +2464,18 @@ begin
   ACanvas.Brush.Color := C;
 end;
 
-procedure SpDrawXPHeader(ACanvas: TCanvas; ARect: TRect; HotTrack, Pushed: Boolean; DPI: Integer);
+procedure SpDrawXPHeader(AControl: TControl; ACanvas: TCanvas; ARect: TRect; HotTrack, Pushed: Boolean; DPI: Integer);
 var
   State: TSpTBXSkinStatesType;
 begin
-  case SkinManager.GetSkinType of
+  case SkinManager.GetSkinType(AControl) of
     sknNone:
       begin
         DrawEdge(ACanvas.Handle, ARect, BDR_RAISEDINNER or BDR_RAISEDOUTER, BF_RECT or BF_SOFT);
       end;
     sknWindows, sknDelphiStyle:
       begin
-        CurrentSkin.PaintThemedElementBackground(ACanvas, ARect, skncHeader, True, Pushed, HotTrack, False, False, False, False, DPI);
+        CurrentSkin.PaintThemedElementBackground(AControl, ACanvas, ARect, skncHeader, True, Pushed, HotTrack, False, False, False, False, DPI);
       end;
     sknSkin:
       begin
@@ -2477,15 +2487,15 @@ begin
   end;
 end;
 
-procedure SpDrawXPListItemBackground(ACanvas: TCanvas; ARect: TRect; Selected, HotTrack, Focused: Boolean;
-  ForceRectBorders: Boolean; Borders: Boolean);
+procedure SpDrawXPListItemBackground(AControl: TControl;ACanvas: TCanvas; ARect: TRect;
+  Selected, HotTrack, Focused: Boolean; ForceRectBorders: Boolean; Borders: Boolean);
 var
   State: TSpTBXSkinStatesType;
 begin
   State := CurrentSkin.GetState(True, False, HotTrack, Selected);
-  ACanvas.Font.Color := CurrentSkin.GetTextColor(skncListItem, State);
+  ACanvas.Font.Color := CurrentSkin.GetTextColor(AControl, skncListItem, State);
 
-  if SkinManager.GetSkinType = sknSkin then begin
+  if SkinManager.GetSkinType(AControl) = sknSkin then begin
     ACanvas.FillRect(ARect);
     if HotTrack or Selected then begin
       if ForceRectBorders then
@@ -2495,11 +2505,11 @@ begin
     end;
   end
   else begin
-    if SkinManager.GetSkinType = sknDelphiStyle then begin
+    if SkinManager.GetSkinType(AControl) = sknDelphiStyle then begin
       if Selected then
-        ACanvas.Brush.Color := StyleServices.GetSystemColor(clHighlight)
+        ACanvas.Brush.Color := SpTBXStyleServices(AControl).GetSystemColor(clHighlight)
       else
-        ACanvas.Brush.Color := StyleServices.GetStyleColor(scListBox);
+        ACanvas.Brush.Color := SpTBXStyleServices(AControl).GetStyleColor(scListBox);
     end
     else
       if Selected then
@@ -3093,7 +3103,7 @@ end;
 function TSpTBXSkinOptions.GetOfficeIcons: Boolean;
 // OfficeIcons is used to paint the menu items icons with Office XP shadows.
 begin
-  Result := FOfficeIcons and (SkinManager.GetSkinType = sknSkin);
+  Result := FOfficeIcons and (SkinManager.GetSkinType(nil) = sknSkin);
 end;
 
 function TSpTBXSkinOptions.GetOfficeMenu: Boolean;
@@ -3101,14 +3111,14 @@ function TSpTBXSkinOptions.GetOfficeMenu: Boolean;
 // is 6 pixels, otherwise the size is 10 pixels.
 // And when the item is disabled the hottrack is not painted.
 begin
-  Result := FOfficeMenu and (SkinManager.GetSkinType = sknSkin);
+  Result := FOfficeMenu and (SkinManager.GetSkinType(nil) = sknSkin);
 end;
 
 function TSpTBXSkinOptions.GetOfficePopup: Boolean;
 // OfficePopup is used to paint the PopupWindow with Office XP style.
 // It is also used to paint the opened toolbar item with shadows.
 begin
-  Result := (SkinManager.GetSkinType = sknSkin) and not Options(skncOpenToolbarItem).IsEmpty;
+  Result := (SkinManager.GetSkinType(nil) = sknSkin) and not Options(skncOpenToolbarItem).IsEmpty;
 end;
 
 function TSpTBXSkinOptions.GetOfficeStatusBar: Boolean;
@@ -3116,13 +3126,13 @@ function TSpTBXSkinOptions.GetOfficeStatusBar: Boolean;
 var
   T: TSpTBXSkinType;
 begin
-  T := SkinManager.GetSkinType;
+  T := SkinManager.GetSkinType(nil);
   Result := (FOfficeStatusBar and (T = sknSkin)) or (T = sknNone);
 end;
 
 function TSpTBXSkinOptions.GetFloatingWindowBorderSize: Integer;
 begin
-  if SkinManager.GetSkinType = sknSkin then
+  if SkinManager.GetSkinType(nil) = sknSkin then
     Result := FFloatingWindowBorderSize
   else
     Result := 4;
@@ -3146,7 +3156,7 @@ begin
     ImgSize := SpPPIScale(16, DPI);
 
   FillChar(MarginsInfo, SizeOf(MarginsInfo), 0);
-  SkinType := SkinManager.GetSkinType;
+  SkinType := SkinManager.GetSkinType(nil);
 
   if ((SkinType = sknWindows) and not SpIsWinVistaOrUp) or (SkinType = sknNone) then begin
     MarginsInfo.Margins := Rect(0, SpPPIScale(2, DPI), 0, SpPPIScale(2, DPI)); // MID_MENUITEM
@@ -3194,14 +3204,14 @@ begin
   Checked := (State = sknsCheckedAndHotTrack) or (State = sknsChecked);
 end;
 
-function TSpTBXSkinOptions.GetTextColor(Component: TSpTBXSkinComponentsType;
-  State: TSpTBXSkinStatesType): TColor;
+function TSpTBXSkinOptions.GetTextColor(AControl: TControl;
+  Component: TSpTBXSkinComponentsType; State: TSpTBXSkinStatesType): TColor;
 var
   Details: TThemedElementDetails;
   SkinType: TSpTBXSkinType;
 begin
   Result := clNone;
-  SkinType := SkinManager.GetSkinType;
+  SkinType := SkinManager.GetSkinType(AControl);
 
   if SkinType = sknSkin then begin
     if State in CSpTBXSkinComponents[Component].States then begin
@@ -3216,14 +3226,14 @@ begin
  if State = sknsDisabled then Result := clGrayText
  else Result := clBtnText;
  if SkinType = sknDelphiStyle then
-   Result := StyleServices.GetSystemColor(Result);
+   Result := SpTBXStyleServices(AControl).GetSystemColor(Result);
 
   case Component of
     skncMenuItem:
       if ((SkinType = sknWindows) and SpIsWinVistaOrUp) or (SkinType = sknDelphiStyle) then begin
         // Use the new API on Windows Vista
-        if GetThemedElementDetails(Component, State, Details) then
-          StyleServices.GetElementColor(Details, ecTextColor, Result);
+        if GetThemedElementDetails(AControl, Component, State, Details) then
+          SpTBXStyleServices(AControl).GetElementColor(Details, ecTextColor, Result);
       end
       else
         if State <> sknsDisabled then begin
@@ -3235,8 +3245,8 @@ begin
     skncMenuBarItem:
       if ((SkinType = sknWindows) and SpIsWinVistaOrUp) or (SkinType = sknDelphiStyle) then begin
         // Use the new API on Windows Vista
-        if GetThemedElementDetails(Component, State, Details) then
-          StyleServices.GetElementColor(Details, ecTextColor, Result);
+        if GetThemedElementDetails(AControl, Component, State, Details) then
+          SpTBXStyleServices(AControl).GetElementColor(Details, ecTextColor, Result);
       end
       else
         if State <> sknsDisabled then begin
@@ -3247,47 +3257,47 @@ begin
         end;
     skncToolbarItem:
       if SkinType = sknDelphiStyle then begin
-        if GetThemedElementDetails(Component, State, Details) then
-          StyleServices.GetElementColor(Details, ecTextColor, Result);
+        if GetThemedElementDetails(AControl, Component, State, Details) then
+          SpTBXStyleServices(AControl).GetElementColor(Details, ecTextColor, Result);
       end
       else
         if State <> sknsDisabled then Result := clMenuText;
     skncButton, skncCheckBox, skncRadioButton, skncLabel, skncTab, skncEditButton:
       if (SkinType = sknWindows) or (SkinType = sknDelphiStyle) then
-        if GetThemedElementDetails(Component, State, Details) then
-          StyleServices.GetElementColor(Details, ecTextColor, Result);
+        if GetThemedElementDetails(AControl, Component, State, Details) then
+          SpTBXStyleServices(AControl).GetElementColor(Details, ecTextColor, Result);
     skncListItem:
       if SkinType <> sknSkin then
         if SkinType = sknDelphiStyle then begin
           if State in [sknsChecked, sknsCheckedAndHotTrack] then
-            Result := StyleServices.GetStyleFontColor(sfListItemTextSelected)
+            Result := SpTBXStyleServices(AControl).GetStyleFontColor(sfListItemTextSelected)
           else
-            Result := StyleServices.GetStyleFontColor(sfListItemTextNormal);
+            Result := SpTBXStyleServices(AControl).GetStyleFontColor(sfListItemTextNormal);
         end
         else
           if State in [sknsChecked, sknsCheckedAndHotTrack] then
             Result := clHighlightText;
     skncDockablePanelTitleBar:
       if SkinType = sknSkin then
-        Result := GetTextColor(skncToolbarItem, State) // Use skncToolbarItem to get the default text color
+        Result := GetTextColor(AControl, skncToolbarItem, State) // Use skncToolbarItem to get the default text color
       else
         if (SkinType = sknWindows) or (SkinType = sknDelphiStyle) then
-          if GetThemedElementDetails(Component, State, Details) then
-            StyleServices.GetElementColor(Details, ecTextColor, Result);
+          if GetThemedElementDetails(AControl, Component, State, Details) then
+            SpTBXStyleServices(AControl).GetElementColor(Details, ecTextColor, Result);
     skncStatusBar:
       if SkinType = sknSkin then
-        Result := GetTextColor(skncToolbarItem, State) // Use skncToolbarItem to get the default text color
+        Result := GetTextColor(AControl, skncToolbarItem, State) // Use skncToolbarItem to get the default text color
       else
         if (SkinType = sknWindows) or (SkinType = sknDelphiStyle) then begin
-          Details := StyleServices.GetElementDetails(tsPane);
-          StyleServices.GetElementColor(Details, ecTextColor, Result);
+          Details := SpTBXStyleServices(AControl).GetElementDetails(tsPane);
+          SpTBXStyleServices(AControl).GetElementColor(Details, ecTextColor, Result);
         end;
     skncTabToolbar:
       if SkinType = sknSkin then
-        Result := GetTextColor(skncToolbarItem, State) // Use skncToolbarItem to get the default text color
+        Result := GetTextColor(AControl, skncToolbarItem, State) // Use skncToolbarItem to get the default text color
       else
         if (SkinType = sknWindows) or (SkinType = sknDelphiStyle) then
-          Result := GetTextColor(skncTab, State);
+          Result := GetTextColor(AControl, skncTab, State);
     skncWindowTitleBar:
       case SkinType of
         sknNone:
@@ -3296,44 +3306,44 @@ begin
           else
             Result := clCaptionText;
         sknWindows, sknDelphiStyle:
-          if GetThemedElementDetails(Component, State, Details) then
-            StyleServices.GetElementColor(Details, ecTextColor, Result);
+          if GetThemedElementDetails(AControl, Component, State, Details) then
+            SpTBXStyleServices(AControl).GetElementColor(Details, ecTextColor, Result);
         sknSkin:
-          Result := GetTextColor(skncToolbarItem, State);  // Use skncToolbarItem to get the default text color
+          Result := GetTextColor(AControl, skncToolbarItem, State);  // Use skncToolbarItem to get the default text color
       end;
   end;
 end;
 
-function TSpTBXSkinOptions.GetThemedElementDetails(Component: TSpTBXSkinComponentsType;
+function TSpTBXSkinOptions.GetThemedElementDetails(AControl: TControl; Component: TSpTBXSkinComponentsType;
   Enabled, Pushed, HotTrack, Checked, Focused, Defaulted, Grayed: Boolean; out Details: TThemedElementDetails): Boolean;
 var
   SkinType: TSpTBXSkinType;
 begin
   Result := False;
-  SkinType := SkinManager.GetSkinType;
+  SkinType := SkinManager.GetSkinType(AControl);
 
   case Component of
     skncDock:
       begin
         if SkinType = sknDelphiStyle then
-          Details := StyleServices.GetElementDetails(ttbToolBarDontCare)
+          Details := SpTBXStyleServices(AControl).GetElementDetails(ttbToolBarDontCare)
         else
-          Details := StyleServices.GetElementDetails(trRebarDontCare);
+          Details := SpTBXStyleServices(AControl).GetElementDetails(trRebarDontCare);
         Result := True;
       end;
     skncDockablePanel:
       begin
-        Details := StyleServices.GetElementDetails(tcpBackground);
+        Details := SpTBXStyleServices(AControl).GetElementDetails(tcpBackground);
         Result := True;
       end;
     skncDockablePanelTitleBar:
       begin
-        Details := StyleServices.GetElementDetails(tcpThemedHeader);
+        Details := SpTBXStyleServices(AControl).GetElementDetails(tcpThemedHeader);
         Result := True;
       end;
     skncGutter:
       begin
-        Details := StyleServices.GetElementDetails(tmPopupGutter);
+        Details := SpTBXStyleServices(AControl).GetElementDetails(tmPopupGutter);
         Result := True;
       end;
     {
@@ -3343,22 +3353,22 @@ begin
     skncPanel:
       begin
         if Enabled then
-          Details := StyleServices.GetElementDetails(tbGroupBoxNormal)
+          Details := SpTBXStyleServices(AControl).GetElementDetails(tbGroupBoxNormal)
         else
-          Details := StyleServices.GetElementDetails(tbGroupBoxDisabled);
+          Details := SpTBXStyleServices(AControl).GetElementDetails(tbGroupBoxDisabled);
         Result := True;
       end;
     skncPopup:
       begin
-        Details := StyleServices.GetElementDetails(tmPopupBackground);
+        Details := SpTBXStyleServices(AControl).GetElementDetails(tmPopupBackground);
         Result := True;
       end;
     skncSeparator:
       begin
         if Enabled then  // Enabled = Vertical
-          Details := StyleServices.GetElementDetails(ttbSeparatorNormal)
+          Details := SpTBXStyleServices(AControl).GetElementDetails(ttbSeparatorNormal)
         else
-          Details := StyleServices.GetElementDetails(ttbSeparatorVertNormal);
+          Details := SpTBXStyleServices(AControl).GetElementDetails(ttbSeparatorVertNormal);
         Result := True;
       end;
     {
@@ -3366,12 +3376,12 @@ begin
     }
     skncStatusBar:
       begin
-        Details := StyleServices.GetElementDetails(tsStatusRoot);
+        Details := SpTBXStyleServices(AControl).GetElementDetails(tsStatusRoot);
         Result := True;
       end;
     skncStatusBarGrip:
       begin
-        Details := StyleServices.GetElementDetails(tsGripper);
+        Details := SpTBXStyleServices(AControl).GetElementDetails(tsGripper);
         Result := True;
       end;
     {
@@ -3380,15 +3390,15 @@ begin
     }
     skncToolbar:
       begin
-        Details := StyleServices.GetElementDetails(trBand);
+        Details := SpTBXStyleServices(AControl).GetElementDetails(trBand);
         Result := True;
       end;
     skncToolbarGrip:
       begin
         if Enabled then  // Enabled = Vertical
-          Details := StyleServices.GetElementDetails(trGripperVert)
+          Details := SpTBXStyleServices(AControl).GetElementDetails(trGripperVert)
         else
-          Details := StyleServices.GetElementDetails(trGripper);
+          Details := SpTBXStyleServices(AControl).GetElementDetails(trGripper);
         Result := True;
       end;
     skncWindow: ;
@@ -3396,109 +3406,109 @@ begin
       begin
         if SkinType = sknDelphiStyle then begin
           if Enabled then
-            Details := StyleServices.GetElementDetails(twCaptionActive)
+            Details := SpTBXStyleServices(AControl).GetElementDetails(twCaptionActive)
           else
-            Details := StyleServices.GetElementDetails(twCaptionInActive);
+            Details := SpTBXStyleServices(AControl).GetElementDetails(twCaptionInActive);
         end
         else
           // On WinXP when twCaptionActive is used instead of twSmallCaptionActive the top borders are rounded
           if Enabled then
-            Details := StyleServices.GetElementDetails(twSmallCaptionActive)
+            Details := SpTBXStyleServices(AControl).GetElementDetails(twSmallCaptionActive)
           else
-            Details := StyleServices.GetElementDetails(twSmallCaptionInActive);
+            Details := SpTBXStyleServices(AControl).GetElementDetails(twSmallCaptionInActive);
         Result := True;
       end;
     skncMenuBarItem:
       begin
         if SpIsWinVistaOrUp or (SkinType = sknDelphiStyle) then begin
-          if not Enabled then Details := StyleServices.GetElementDetails(tmMenuBarItemDisabled)
-          else if Pushed then Details := StyleServices.GetElementDetails(tmMenuBarItemPushed)
-          else if HotTrack then Details := StyleServices.GetElementDetails(tmMenuBarItemHot)
-          else Details := StyleServices.GetElementDetails(tmMenuBarItemNormal);
+          if not Enabled then Details := SpTBXStyleServices(AControl).GetElementDetails(tmMenuBarItemDisabled)
+          else if Pushed then Details := SpTBXStyleServices(AControl).GetElementDetails(tmMenuBarItemPushed)
+          else if HotTrack then Details := SpTBXStyleServices(AControl).GetElementDetails(tmMenuBarItemHot)
+          else Details := SpTBXStyleServices(AControl).GetElementDetails(tmMenuBarItemNormal);
         end
         else
-          Details := StyleServices.GetElementDetails(tmMenuBarItem);
+          Details := SpTBXStyleServices(AControl).GetElementDetails(tmMenuBarItem);
         Result := True;
       end;
     skncMenuItem:
       begin
         if SpIsWinVistaOrUp or (SkinType = sknDelphiStyle) then begin
-          if not Enabled and HotTrack then Details := StyleServices.GetElementDetails(tmPopupItemDisabledHot)
-          else if not Enabled then Details := StyleServices.GetElementDetails(tmPopupItemDisabled)
-          else if HotTrack then Details := StyleServices.GetElementDetails(tmPopupItemHot)
-          else Details := StyleServices.GetElementDetails(tmPopupItemNormal);
+          if not Enabled and HotTrack then Details := SpTBXStyleServices(AControl).GetElementDetails(tmPopupItemDisabledHot)
+          else if not Enabled then Details := SpTBXStyleServices(AControl).GetElementDetails(tmPopupItemDisabled)
+          else if HotTrack then Details := SpTBXStyleServices(AControl).GetElementDetails(tmPopupItemHot)
+          else Details := SpTBXStyleServices(AControl).GetElementDetails(tmPopupItemNormal);
         end
         else begin
           if HotTrack then
-            Details := StyleServices.GetElementDetails(tmMenuItemSelected)
+            Details := SpTBXStyleServices(AControl).GetElementDetails(tmMenuItemSelected)
           else
-            Details := StyleServices.GetElementDetails(tmMenuItemNormal);
+            Details := SpTBXStyleServices(AControl).GetElementDetails(tmMenuItemNormal);
         end;
         Result := True;
       end;
     skncToolbarItem:
       begin
-        if not Enabled then Details := StyleServices.GetElementDetails(ttbButtonDisabled)
-        else if Pushed then Details := StyleServices.GetElementDetails(ttbButtonPressed)
-        else if HotTrack and Checked then Details := StyleServices.GetElementDetails(ttbButtonCheckedHot)
-        else if HotTrack then Details := StyleServices.GetElementDetails(ttbButtonHot)
-        else if Checked then Details := StyleServices.GetElementDetails(ttbButtonChecked)
-        else Details := StyleServices.GetElementDetails(ttbButtonNormal);
+        if not Enabled then Details := SpTBXStyleServices(AControl).GetElementDetails(ttbButtonDisabled)
+        else if Pushed then Details := SpTBXStyleServices(AControl).GetElementDetails(ttbButtonPressed)
+        else if HotTrack and Checked then Details := SpTBXStyleServices(AControl).GetElementDetails(ttbButtonCheckedHot)
+        else if HotTrack then Details := SpTBXStyleServices(AControl).GetElementDetails(ttbButtonHot)
+        else if Checked then Details := SpTBXStyleServices(AControl).GetElementDetails(ttbButtonChecked)
+        else Details := SpTBXStyleServices(AControl).GetElementDetails(ttbButtonNormal);
         Result := True;
       end;
     skncButton, skncEditButton:
       begin
-        if not Enabled then Details := StyleServices.GetElementDetails(tbPushButtonDisabled)
-        else if Pushed or Checked then Details := StyleServices.GetElementDetails(tbPushButtonPressed)
-        else if HotTrack then Details := StyleServices.GetElementDetails(tbPushButtonHot)
-        else if Defaulted or Focused then Details := StyleServices.GetElementDetails(tbPushButtonDefaulted)
-        else Details := StyleServices.GetElementDetails(tbPushButtonNormal);
+        if not Enabled then Details := SpTBXStyleServices(AControl).GetElementDetails(tbPushButtonDisabled)
+        else if Pushed or Checked then Details := SpTBXStyleServices(AControl).GetElementDetails(tbPushButtonPressed)
+        else if HotTrack then Details := SpTBXStyleServices(AControl).GetElementDetails(tbPushButtonHot)
+        else if Defaulted or Focused then Details := SpTBXStyleServices(AControl).GetElementDetails(tbPushButtonDefaulted)
+        else Details := SpTBXStyleServices(AControl).GetElementDetails(tbPushButtonNormal);
         Result := True;
       end;
     skncCheckBox:
       begin
         if Grayed then begin
-          if not Enabled then Details := StyleServices.GetElementDetails(tbCheckBoxMixedDisabled)
-          else if Pushed then Details := StyleServices.GetElementDetails(tbCheckBoxMixedPressed)
-          else if HotTrack then Details := StyleServices.GetElementDetails(tbCheckBoxMixedHot)
-          else Details := StyleServices.GetElementDetails(tbCheckBoxMixedNormal);
+          if not Enabled then Details := SpTBXStyleServices(AControl).GetElementDetails(tbCheckBoxMixedDisabled)
+          else if Pushed then Details := SpTBXStyleServices(AControl).GetElementDetails(tbCheckBoxMixedPressed)
+          else if HotTrack then Details := SpTBXStyleServices(AControl).GetElementDetails(tbCheckBoxMixedHot)
+          else Details := SpTBXStyleServices(AControl).GetElementDetails(tbCheckBoxMixedNormal);
         end
         else
           if Checked then begin
-            if not Enabled then Details := StyleServices.GetElementDetails(tbCheckBoxCheckedDisabled)
-            else if Pushed then Details := StyleServices.GetElementDetails(tbCheckBoxCheckedPressed)
-            else if HotTrack then Details := StyleServices.GetElementDetails(tbCheckBoxCheckedHot)
-            else Details := StyleServices.GetElementDetails(tbCheckBoxCheckedNormal);
+            if not Enabled then Details := SpTBXStyleServices(AControl).GetElementDetails(tbCheckBoxCheckedDisabled)
+            else if Pushed then Details := SpTBXStyleServices(AControl).GetElementDetails(tbCheckBoxCheckedPressed)
+            else if HotTrack then Details := SpTBXStyleServices(AControl).GetElementDetails(tbCheckBoxCheckedHot)
+            else Details := SpTBXStyleServices(AControl).GetElementDetails(tbCheckBoxCheckedNormal);
           end
           else begin
-            if not Enabled then Details := StyleServices.GetElementDetails(tbCheckBoxUncheckedDisabled)
-            else if Pushed then Details := StyleServices.GetElementDetails(tbCheckBoxUncheckedPressed)
-            else if HotTrack then Details := StyleServices.GetElementDetails(tbCheckBoxUncheckedHot)
-            else Details := StyleServices.GetElementDetails(tbCheckBoxUncheckedNormal);
+            if not Enabled then Details := SpTBXStyleServices(AControl).GetElementDetails(tbCheckBoxUncheckedDisabled)
+            else if Pushed then Details := SpTBXStyleServices(AControl).GetElementDetails(tbCheckBoxUncheckedPressed)
+            else if HotTrack then Details := SpTBXStyleServices(AControl).GetElementDetails(tbCheckBoxUncheckedHot)
+            else Details := SpTBXStyleServices(AControl).GetElementDetails(tbCheckBoxUncheckedNormal);
           end;
         Result := True;
       end;
     skncEditFrame:
       begin
-        if not SpIsWinVistaOrUp then Details := StyleServices.GetElementDetails(tcComboBoxDontCare)
-        else if not Enabled then Details := StyleServices.GetElementDetails(tcBorderDisabled)
-        else if HotTrack then Details := StyleServices.GetElementDetails(tcBorderHot)
-        else Details := StyleServices.GetElementDetails(tcBorderNormal);
+        if not SpIsWinVistaOrUp then Details := SpTBXStyleServices(AControl).GetElementDetails(tcComboBoxDontCare)
+        else if not Enabled then Details := SpTBXStyleServices(AControl).GetElementDetails(tcBorderDisabled)
+        else if HotTrack then Details := SpTBXStyleServices(AControl).GetElementDetails(tcBorderHot)
+        else Details := SpTBXStyleServices(AControl).GetElementDetails(tcBorderNormal);
         Result := True;
       end;
     skncHeader:
       begin
-        if Pushed then Details := StyleServices.GetElementDetails(thHeaderItemPressed)
-        else if HotTrack then Details := StyleServices.GetElementDetails(thHeaderItemHot)
-        else Details := StyleServices.GetElementDetails(thHeaderItemNormal);
+        if Pushed then Details := SpTBXStyleServices(AControl).GetElementDetails(thHeaderItemPressed)
+        else if HotTrack then Details := SpTBXStyleServices(AControl).GetElementDetails(thHeaderItemHot)
+        else Details := SpTBXStyleServices(AControl).GetElementDetails(thHeaderItemNormal);
         Result := True;
       end;
     skncLabel:
       begin
         if Enabled then
-          Details := StyleServices.GetElementDetails(tbCheckBoxUncheckedNormal)
+          Details := SpTBXStyleServices(AControl).GetElementDetails(tbCheckBoxUncheckedNormal)
         else
-          Details := StyleServices.GetElementDetails(tbCheckBoxUncheckedDisabled);
+          Details := SpTBXStyleServices(AControl).GetElementDetails(tbCheckBoxUncheckedDisabled);
         Result := True;
       end;
     {
@@ -3507,25 +3517,25 @@ begin
     skncRadioButton:
       begin
         if Checked then begin
-          if not Enabled then Details := StyleServices.GetElementDetails(tbRadioButtonCheckedDisabled)
-          else if Pushed then Details := StyleServices.GetElementDetails(tbRadioButtonCheckedPressed)
-          else if HotTrack then Details := StyleServices.GetElementDetails(tbRadioButtonCheckedHot)
-          else Details := StyleServices.GetElementDetails(tbRadioButtonCheckedNormal);
+          if not Enabled then Details := SpTBXStyleServices(AControl).GetElementDetails(tbRadioButtonCheckedDisabled)
+          else if Pushed then Details := SpTBXStyleServices(AControl).GetElementDetails(tbRadioButtonCheckedPressed)
+          else if HotTrack then Details := SpTBXStyleServices(AControl).GetElementDetails(tbRadioButtonCheckedHot)
+          else Details := SpTBXStyleServices(AControl).GetElementDetails(tbRadioButtonCheckedNormal);
         end
         else begin
-          if not Enabled then Details := StyleServices.GetElementDetails(tbRadioButtonUncheckedDisabled)
-          else if Pushed then Details := StyleServices.GetElementDetails(tbRadioButtonUncheckedPressed)
-          else if HotTrack then Details := StyleServices.GetElementDetails(tbRadioButtonUncheckedHot)
-          else Details := StyleServices.GetElementDetails(tbRadioButtonUncheckedNormal);
+          if not Enabled then Details := SpTBXStyleServices(AControl).GetElementDetails(tbRadioButtonUncheckedDisabled)
+          else if Pushed then Details := SpTBXStyleServices(AControl).GetElementDetails(tbRadioButtonUncheckedPressed)
+          else if HotTrack then Details := SpTBXStyleServices(AControl).GetElementDetails(tbRadioButtonUncheckedHot)
+          else Details := SpTBXStyleServices(AControl).GetElementDetails(tbRadioButtonUncheckedNormal);
         end;
         Result := True;
       end;
     skncTab:
       begin
-        if not Enabled then Details := StyleServices.GetElementDetails(ttTabItemDisabled)
-        else if Pushed or (HotTrack and Checked) or Checked then Details := StyleServices.GetElementDetails(ttTabItemSelected)
-        else if HotTrack then Details := StyleServices.GetElementDetails(ttTabItemHot)
-        else Details := StyleServices.GetElementDetails(ttTabItemNormal);
+        if not Enabled then Details := SpTBXStyleServices(AControl).GetElementDetails(ttTabItemDisabled)
+        else if Pushed or (HotTrack and Checked) or Checked then Details := SpTBXStyleServices(AControl).GetElementDetails(ttTabItemSelected)
+        else if HotTrack then Details := SpTBXStyleServices(AControl).GetElementDetails(ttTabItemHot)
+        else Details := SpTBXStyleServices(AControl).GetElementDetails(ttTabItemNormal);
         Result := True;
       end;
     skncProgressBar:    ; // not used
@@ -3534,18 +3544,18 @@ begin
   end;
 end;
 
-function TSpTBXSkinOptions.GetThemedElementDetails(Component: TSpTBXSkinComponentsType;
+function TSpTBXSkinOptions.GetThemedElementDetails(AControl: TControl; Component: TSpTBXSkinComponentsType;
   State: TSpTBXSkinStatesType; out Details: TThemedElementDetails): Boolean;
 var
   Enabled, Pushed, HotTrack, Checked: Boolean;
 begin
   GetState(State, Enabled, Pushed, HotTrack, Checked);
-  Result := GetThemedElementDetails(Component, Enabled, Pushed, HotTrack, Checked, False, False, False, Details);
+  Result := GetThemedElementDetails(AControl, Component, Enabled, Pushed, HotTrack, Checked, False, False, False, Details);
 end;
 
-function TSpTBXSkinOptions.GetThemedElementSize(ACanvas: TCanvas; Details: TThemedElementDetails; DPI: Integer): TSize;
+function TSpTBXSkinOptions.GetThemedElementSize(AControl: TControl; ACanvas: TCanvas; Details: TThemedElementDetails; DPI: Integer): TSize;
 begin
-  StyleServices.GetElementSize(ACanvas.Handle, Details, esActual, Result{$IF CompilerVersion >= 33}, DPI{$IFEND}); // DPI param introduced on 10.3 Rio
+  SpTBXStyleServices(AControl).GetElementSize(ACanvas.Handle, Details, esActual, Result{$IF CompilerVersion >= 33}, DPI{$IFEND}); // DPI param introduced on 10.3 Rio
 end;
 
 procedure TSpTBXSkinOptions.PaintBackground(ACanvas: TCanvas; ARect: TRect;
@@ -3574,90 +3584,90 @@ begin
     SpPaintSkinBorders(ACanvas, ARect, Op, ForceRectBorders);
 end;
 
-procedure TSpTBXSkinOptions.PaintThemedElementBackground(ACanvas: TCanvas;
+procedure TSpTBXSkinOptions.PaintThemedElementBackground(AControl: TControl; ACanvas: TCanvas;
   ARect: TRect; Details: TThemedElementDetails; DPI: Integer);
 var
   SaveIndex: Integer;
 begin
   SaveIndex := SaveDC(ACanvas.Handle);  // XE2 Styles changes the font
   try
-    StyleServices.DrawElement(ACanvas.Handle, Details, ARect, nil{$IF CompilerVersion >= 33}, DPI{$IFEND}); // DPI param introduced on 10.3 Rio DPI);
+    SpTBXStyleServices(AControl).DrawElement(ACanvas.Handle, Details, ARect, nil{$IF CompilerVersion >= 33}, DPI{$IFEND}); // DPI param introduced on 10.3 Rio DPI);
   finally
     RestoreDC(ACanvas.Handle, SaveIndex);
   end;
 end;
 
-procedure TSpTBXSkinOptions.PaintThemedElementBackground(ACanvas: TCanvas;
+procedure TSpTBXSkinOptions.PaintThemedElementBackground(AControl: TControl; ACanvas: TCanvas;
   ARect: TRect; Component: TSpTBXSkinComponentsType; Enabled, Pushed, HotTrack,
   Checked, Focused, Defaulted, Grayed: Boolean; DPI: Integer);
 var
   Details: TThemedElementDetails;
 begin
-  if GetThemedElementDetails(Component, Enabled, Pushed, HotTrack, Checked, Focused, Defaulted, Grayed, Details) then
-    PaintThemedElementBackground(ACanvas, ARect, Details, DPI);
+  if GetThemedElementDetails(AControl, Component, Enabled, Pushed, HotTrack, Checked, Focused, Defaulted, Grayed, Details) then
+    PaintThemedElementBackground(AControl, ACanvas, ARect, Details, DPI);
 end;
 
-procedure TSpTBXSkinOptions.PaintThemedElementBackground(ACanvas: TCanvas;
+procedure TSpTBXSkinOptions.PaintThemedElementBackground(AControl: TControl; ACanvas: TCanvas;
   ARect: TRect; Component: TSpTBXSkinComponentsType;
   State: TSpTBXSkinStatesType; DPI: Integer);
 var
   Details: TThemedElementDetails;
 begin
-  if GetThemedElementDetails(Component, State, Details) then
-    PaintThemedElementBackground(ACanvas, ARect, Details, DPI);
+  if GetThemedElementDetails(AControl, Component, State, Details) then
+    PaintThemedElementBackground(AControl, ACanvas, ARect, Details, DPI);
 end;
 
-procedure TSpTBXSkinOptions.PaintMenuCheckMark(ACanvas: TCanvas; ARect: TRect;
-  Checked, Grayed: Boolean; State: TSpTBXSkinStatesType; DPI: Integer);
+procedure TSpTBXSkinOptions.PaintMenuCheckMark(AControl: TControl; ACanvas: TCanvas;
+  ARect: TRect; Checked, Grayed: Boolean; State: TSpTBXSkinStatesType; DPI: Integer);
 var
   CheckColor: TColor;
   VistaCheckSize: TSize;
   Details: TThemedElementDetails;
   SkinType: TSpTBXSkinType;
 begin
-  SkinType := SkinManager.GetSkinType;
+  SkinType := SkinManager.GetSkinType(AControl);
   // VCL Styles does not DPI scale menu checkmarks, Windows does
   if ((SkinType = sknWindows) and SpIsWinVistaOrUp) or (SkinType = sknDelphiStyle) then
   begin
-    if State = sknsDisabled then Details := StyleServices.GetElementDetails(tmPopupCheckDisabled)
-    else Details := StyleServices.GetElementDetails(tmPopupCheckNormal);
-    VistaCheckSize := GetThemedElementSize(ACanvas, Details, DPI); // Returns a scaled value
+    if State = sknsDisabled then Details := SpTBXStyleServices(AControl).GetElementDetails(tmPopupCheckDisabled)
+    else Details := SpTBXStyleServices(AControl).GetElementDetails(tmPopupCheckNormal);
+    VistaCheckSize := GetThemedElementSize(AControl, ACanvas, Details, DPI); // Returns a scaled value
     ARect := SpCenterRect(ARect, VistaCheckSize.cx, VistaCheckSize.cy);
-    PaintThemedElementBackground(ACanvas, ARect, Details, DPI);
+    PaintThemedElementBackground(AControl, ACanvas, ARect, Details, DPI);
   end
   else begin
     if SkinType = sknNone then
       CheckColor := clMenuText // On sknNone it's clMenuText even when disabled
     else
-      CheckColor := GetTextColor(skncMenuItem, State);
+      CheckColor := GetTextColor(AControl, skncMenuItem, State);
     SpDrawGlyphPattern(ACanvas, ARect, gptMenuCheckmark, CheckColor, DPI);
   end;
 end;
 
-procedure TSpTBXSkinOptions.PaintMenuRadioMark(ACanvas: TCanvas; ARect: TRect;
-  Checked: Boolean; State: TSpTBXSkinStatesType; DPI: Integer);
+procedure TSpTBXSkinOptions.PaintMenuRadioMark(AControl: TControl; ACanvas: TCanvas;
+  ARect: TRect; Checked: Boolean; State: TSpTBXSkinStatesType; DPI: Integer);
 var
   CheckColor: TColor;
   VistaCheckSize: TSize;
   Details: TThemedElementDetails;
   SkinType: TSpTBXSkinType;
 begin
-  SkinType := SkinManager.GetSkinType;
+  SkinType := SkinManager.GetSkinType(AControl);
   // Vcl Styles does not DPI scale menu radio buttons, Windows does
   if ((SkinType = sknWindows) and SpIsWinVistaOrUp) or
      ((SkinType = sknDelphiStyle) and (Screen.PixelsPerInch = 96)) then
   begin
-    if State = sknsDisabled then Details := StyleServices.GetElementDetails(tmPopupBulletDisabled)
-    else Details := StyleServices.GetElementDetails(tmPopupBulletNormal);
-    VistaCheckSize := GetThemedElementSize(ACanvas, Details, DPI); // Returns a scaled value
+    if State = sknsDisabled then Details := SpTBXStyleServices(AControl).GetElementDetails(tmPopupBulletDisabled)
+    else Details := SpTBXStyleServices(AControl).GetElementDetails(tmPopupBulletNormal);
+    VistaCheckSize := GetThemedElementSize(AControl, ACanvas, Details, DPI); // Returns a scaled value
     ARect := SpCenterRect(ARect, VistaCheckSize.cx, VistaCheckSize.cy);
-    PaintThemedElementBackground(ACanvas, ARect, Details, DPI);
+    PaintThemedElementBackground(AControl, ACanvas, ARect, Details, DPI);
   end
   else begin
     if SkinType = sknNone then
       CheckColor := clMenuText // On sknNone it's clMenuText even when disabled
     else
-      CheckColor := GetTextColor(skncMenuItem, State);
+      CheckColor := GetTextColor(AControl, skncMenuItem, State);
     SpDrawGlyphPattern(ACanvas, ARect, gptMenuRadiomark, CheckColor, DPI);
   end;
 end;
@@ -3834,17 +3844,29 @@ begin
   Result := FCurrentSkin.SkinName;
 end;
 
-function TSpTBXSkinManager.GetSkinType: TSpTBXSkinType;
+function TSpTBXSkinManager.GetSkinType(AControl: TControl): TSpTBXSkinType;
 begin
   Result := sknSkin;
 
+  // Alexandria introduced design time styles
+  // Sydney introduced per control styles
+  {$IF CompilerVersion >= 34} // for 10.4 Sydney and up
+  if Assigned(AControl) then begin
+    if AControl.IsCustomStyleActive then
+      Result := sknDelphiStyle;
+  end
+  else
+    if TStyleManager.IsCustomStyleActive then
+      Result := sknDelphiStyle;
+  {$ELSE}
   if TStyleManager.IsCustomStyleActive then
     Result := sknDelphiStyle;
+  {$IFEND}
 
   if (Result = sknSkin) and IsDefaultSkin then
     Result := sknWindows;
 
-  if (Result = sknWindows) and not SkinManager.IsXPThemesEnabled then
+  if (Result = sknWindows) and not TStyleManager.Enabled then
     Result := sknNone;
 end;
 
@@ -3884,16 +3906,11 @@ begin
   Result := CurrentSkinName = 'Default';
 end;
 
-function TSpTBXSkinManager.IsXPThemesEnabled: Boolean;
-begin
-  Result := StyleServices.Enabled;
-end;
-
 procedure TSpTBXSkinManager.SetSkin(SkinName: string);
 var
   K: TSpTBXSkinsListEntry;
 begin
-  if not SameText(SkinName, CurrentSkinName) or (GetSkinType = sknDelphiStyle) then
+  if not SameText(SkinName, CurrentSkinName) or (GetSkinType(nil) = sknDelphiStyle) then
     if (SkinName = '') or SameText(SkinName, 'Default') then
       SetToDefaultSkin
     else begin
@@ -3939,7 +3956,7 @@ end;
 
 procedure TSpTBXSkinManager.SetToDefaultSkin;
 begin
-  if GetSkinType <> sknWindows then begin
+  if GetSkinType(nil) <> sknWindows then begin
 //  if not IsDefaultSkin or IsDelphiStyleActive then begin
     FCurrentSkin.Free;
     FCurrentSkin := TSpTBXSkinOptions.Create;

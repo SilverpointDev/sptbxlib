@@ -260,10 +260,10 @@ end;
 procedure TSpTBXCustomizeForm.DoSkinChange;
 begin
   inherited;
-  if SkinManager.GetSkinType = sknSkin then
+  if SkinManager.GetSkinType(Self) = sknSkin then
     ClosePanel.Color := CurrentSkin.ColorBtnFace
   else
-    ClosePanel.Color := StyleServices.GetSystemColor(clBtnFace);
+    ClosePanel.Color := SpTBXStyleServices(Self).GetSystemColor(clBtnFace);
 end;
 
 //WMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWM

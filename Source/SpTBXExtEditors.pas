@@ -512,8 +512,14 @@ begin
 
   Visible := False;
   SetBounds(0, 0, 0, 0);
-  Color := StyleServices.GetSystemColor(clWindow);
-  Font.Color := StyleServices.GetSystemColor(clWindowText);
+  if Owner is TControl then begin
+    Color := SpTBXStyleServices(TControl(AOwner)).GetSystemColor(clWindow);
+    Font.Color := SpTBXStyleServices(TControl(AOwner)).GetSystemColor(clWindowText);
+  end
+  else begin
+    Color := SpTBXStyleServices(Self).GetSystemColor(clWindow);
+    Font.Color := SpTBXStyleServices(Self).GetSystemColor(clWindowText);
+  end;
 end;
 
 procedure TSpTBXFontComboBoxPreview.CreateParams(var Params: TCreateParams);

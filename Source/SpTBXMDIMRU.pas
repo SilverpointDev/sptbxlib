@@ -334,7 +334,9 @@ const
    XPPart: array [0..3] of Integer = (WP_MDICLOSEBUTTON, WP_MAXBUTTON, WP_MDIMINBUTTON, WP_MDIRESTOREBUTTON);
    XPFlags: array[TSpTBXSkinStatesType] of Integer = (CBS_NORMAL, CBS_DISABLED, CBS_HOT, CBS_PUSHED, CBS_PUSHED, CBS_PUSHED);
 var
-  PPI : Integer;
+  PPI: Integer;
+  ACompo: TComponent;
+  AControl: TControl;
 begin
   {$IF CompilerVersion <= 30}
   // Seattle and below, TMonitor.PixelsPerInch was introduced in Seattle
@@ -346,7 +348,13 @@ begin
   if (PaintStage = pstPrePaint) and (AImageList = MDIButtonsImgList) and
     (AImageIndex >= 0) and (AImageIndex <= 3) then
   begin
-    case SkinManager.GetSkinType of
+    ACompo := GetParentComponent;
+    if Assigned(ACompo) and (ACompo is TControl) then
+      AControl := TControl(ACompo)
+    else
+      AControl := nil;
+
+    case SkinManager.GetSkinType(AControl) of
       sknNone:
         begin
           PaintDefault := False;
@@ -357,7 +365,7 @@ begin
         begin
           PaintDefault := False;
           ARect := SpCenterRect(ARect, SpPPIScale(16, PPI), SpPPIScale(16, PPI));
-          DrawThemeBackground(StyleServices.Theme[teWindow], ACanvas.Handle, XPPart[AImageIndex], XPFlags[State], ARect, nil);
+          DrawThemeBackground(SpTBXStyleServices(AControl).Theme[teWindow], ACanvas.Handle, XPPart[AImageIndex], XPFlags[State], ARect, nil);
         end;
     end;
   end;

@@ -551,8 +551,8 @@ type
   end;
 
 function SpGetNextTabItemViewer(View: TTBView; IV: TTBItemViewer; GoForward: Boolean; SearchType: TSpTBXSearchItemViewerType): TTBItemViewer;
-procedure SpDrawXPTab(ACanvas: TCanvas; ARect: TRect; Enabled, Checked, HotTrack, Focused: Boolean; Position: TSpTBXTabPosition; DPI: Integer);
-procedure SpDrawXPTabControlBackground(ACanvas: TCanvas; ARect: TRect; AColor: TColor; BottomTabs: Boolean);
+procedure SpDrawXPTab(AControl: TControl; ACanvas: TCanvas; ARect: TRect; Enabled, Checked, HotTrack, Focused: Boolean; Position: TSpTBXTabPosition; DPI: Integer);
+procedure SpDrawXPTabControlBackground(AControl: TControl; ACanvas: TCanvas; ARect: TRect; AColor: TColor; BottomTabs: Boolean);
 
 implementation
 
@@ -601,7 +601,7 @@ begin
   end;
 end;
 
-procedure SpDrawXPTab(ACanvas: TCanvas; ARect: TRect;
+procedure SpDrawXPTab(AControl: TControl; ACanvas: TCanvas; ARect: TRect;
   Enabled, Checked, HotTrack, Focused: Boolean; Position: TSpTBXTabPosition;
   DPI: Integer);
 var
@@ -613,7 +613,7 @@ var
   SkinType: TSpTBXSkinType;
   NeedToFlip: Boolean;
 begin
-  SkinType := SkinManager.GetSkinType;
+  SkinType := SkinManager.GetSkinType(AControl);
   if (SkinType = sknNone) and not Checked then
     Exit;
 
@@ -622,7 +622,7 @@ begin
     B.SetSize(ARect.Right - ARect.Left, ARect.Bottom - ARect.Top);
     R := Rect(0, 0, B.Width, B.Height);
     if SkinType = sknDelphiStyle then
-      B.Canvas.Brush.Color := StyleServices.GetSystemColor(clBtnFace)
+      B.Canvas.Brush.Color := SpTBXStyleServices(AControl).GetSystemColor(clBtnFace)
     else begin
       B.Canvas.Brush.Color := clFuchsia;
       B.TransparentColor := clFuchsia;
@@ -655,8 +655,8 @@ begin
             else
               if HotTrack then DrawState := TThemedTab(Ord(DrawState) + 1);
 
-          Details := StyleServices.GetElementDetails(DrawState);
-          CurrentSkin.PaintThemedElementBackground(B.Canvas, R, Details, DPI);
+          Details := SpTBXStyleServices(AControl).GetElementDetails(DrawState);
+          CurrentSkin.PaintThemedElementBackground(AControl, B.Canvas, R, Details, DPI);
         end;
       sknSkin:
         begin
@@ -687,7 +687,7 @@ begin
   end;
 end;
 
-procedure SpDrawXPTabControlBackground(ACanvas: TCanvas; ARect: TRect; AColor: TColor;
+procedure SpDrawXPTabControlBackground(AControl: TControl; ACanvas: TCanvas; ARect: TRect; AColor: TColor;
   BottomTabs: Boolean);
 var
   B: TBitmap;
@@ -699,7 +699,7 @@ begin
     R := Rect(0, 0, B.Width, B.Height);
 
     // Draw the top/bottom border
-    case SkinManager.GetSkinType of
+    case SkinManager.GetSkinType(AControl) of
       sknNone:
         begin
           BottomTabs := False; // Don't flip
@@ -712,7 +712,7 @@ begin
           R := Rect(0, 0, B.Width, B.Height);  // Frame3D changed R
         end;
       sknWindows, sknDelphiStyle:
-        StyleServices.DrawElement(B.Canvas.Handle, StyleServices.GetElementDetails(ttPane), R);
+        SpTBXStyleServices(AControl).DrawElement(B.Canvas.Handle, SpTBXStyleServices(AControl).GetElementDetails(ttPane), R);
       sknSkin:
         begin
           B.Canvas.Brush.Color := clWhite;
@@ -977,9 +977,9 @@ begin
     end;
     R := ARect;
 
-    case SkinManager.GetSkinType of
+    case SkinManager.GetSkinType(View.Window) of
       sknNone, sknSkin:
-        if Item.Checked or (IsHoverItem and (SkinManager.GetSkinType <> sknNone)) or
+        if Item.Checked or (IsHoverItem and (SkinManager.GetSkinType(View.Window) <> sknNone)) or
           not CurrentSkin.Options(skncTab, sknsNormal).Body.IsEmpty or
           not CurrentSkin.Options(skncTab, sknsNormal).Borders.IsEmpty then
         begin
@@ -1097,7 +1097,7 @@ begin
       Dec(CR.Top, PPIScale(2));
   end;
 
-  if SkinManager.GetSkinType in [sknWindows, sknDelphiStyle] then begin
+  if SkinManager.GetSkinType(View.Window) in [sknWindows, sknDelphiStyle] then begin
     // Grow the left border if it's the first visible or there is a left tab
     if Item.IsFirstVisible or Assigned(SpGetNextTabItemViewer(View, Self, False, sivtInmediateSkipNonVisible)) then
       CR.Left := CR.Left - DockedBorderSize;
@@ -1154,7 +1154,7 @@ begin
     DoDrawTabCloseButton(ACanvas, ItemInfo.State, pstPrePaint, ImgList, ImgIndex, ARect, PaintDefault);
     if PaintDefault and Assigned(ImgList) and (FTabCloseButtonState = sknsHotTrack) then
       if (ImgList = MDIButtonsImgList) or ((ImgIndex >= 0) and (ImgIndex < ImgList.Count)) then
-        SpDrawXPMenuItem(ACanvas, ARect, ItemInfo);
+        SpDrawXPMenuItem(View.Window, ACanvas, ARect, ItemInfo);
 
     PaintDefault := True;
     if ImgList = MDIButtonsImgList then begin
@@ -1174,11 +1174,11 @@ procedure TSpTBXTabItemViewer.DrawTab(ACanvas: TCanvas; ARect: TRect; AEnabled,
 begin
   if ASeparator then begin
     ARect.Left := ARect.Right - PPIScale(2);
-    SpDrawXPMenuSeparator(ACanvas, ARect, False, True, View.Window.CurrentPPI);
+    SpDrawXPMenuSeparator(View.Window, ACanvas, ARect, False, True, View.Window.CurrentPPI);
   end
   else begin
     ACanvas.Brush.Color := Item.TabColor;
-    SpDrawXPTab(ACanvas, ARect, AEnabled, AChecked, AHoverItem, False, Position, View.Window.CurrentPPI);
+    SpDrawXPTab(View.Window, ACanvas, ARect, AEnabled, AChecked, AHoverItem, False, Position, View.Window.CurrentPPI);
   end;
 end;
 
@@ -1257,7 +1257,7 @@ begin
     if View.Window is TSpTBXTabToolbar then
       Result := TSpTBXToolbarAccess(View.Window).GetItemsTextColor(State);
     if Result = clNone then
-      Result := CurrentSkin.GetTextColor(skncTab, State)
+      Result := CurrentSkin.GetTextColor(View.Window, skncTab, State)
   end;
 end;
 
@@ -1447,7 +1447,7 @@ begin
     try
       B.SetSize(ARect.Right - ARect.Left, ARect.Bottom - ARect.Top);
       R := Rect(0, 0, B.Width, B.Height);
-      SpDrawXPToolbar(Self, B.Canvas, R, PaintOnNCArea, FTabBackgroundBorders and (SkinManager.GetSkinType <> sknNone), skncTabToolbar);
+      SpDrawXPToolbar(Self, B.Canvas, R, PaintOnNCArea, FTabBackgroundBorders and (SkinManager.GetSkinType(Self) <> sknNone), skncTabToolbar);
 
       // Draw the bottom border of the active tab
       Tab := ActiveTab;
@@ -1465,7 +1465,7 @@ begin
         // Exclude clip rect of the bottom borders
         PrevDelta := 1;
         NextDelta := 1;
-        if SkinManager.GetSkinType in [sknWindows, sknDelphiStyle] then begin
+        if SkinManager.GetSkinType(Self) in [sknWindows, sknDelphiStyle] then begin
           // Grow the size of the clip rect when using Windows theme
           PrevDelta := -PPIScale(PrevDelta); // -PrevDelta;
           NextDelta := -PPIScale(NextDelta); // -NextDelta;
@@ -1486,7 +1486,7 @@ begin
         DestR := Bounds(R.Left, R.Bottom - DockedBorderSize, R.Right - R.Left, 10)
       else
         DestR := Bounds(R.Left, R.Top - (10 - DockedBorderSize), R.Right - R.Left, 10);
-      SpDrawXPTabControlBackground(B.Canvas, DestR, Color, FTabPosition = ttpBottom);
+      SpDrawXPTabControlBackground(Self, B.Canvas, DestR, Color, FTabPosition = ttpBottom);
 
       ACanvas.Draw(ARect.Left, ARect.Top, B);
     finally
@@ -1494,7 +1494,7 @@ begin
     end;
   end
   else
-    SpDrawXPToolbar(Self, ACanvas, ARect, PaintOnNCArea, FTabBackgroundBorders and (SkinManager.GetSkinType <> sknNone), skncTabToolbar);
+    SpDrawXPToolbar(Self, ACanvas, ARect, PaintOnNCArea, FTabBackgroundBorders and (SkinManager.GetSkinType(Self) <> sknNone), skncTabToolbar);
 end;
 
 procedure TSpTBXTabToolbar.InvalidateActiveTab;
@@ -1532,7 +1532,7 @@ end;
 
 function TSpTBXTabToolbar.GetItemsTextColor(State: TSpTBXSkinStatesType): TColor;
 begin
-  Result := CurrentSkin.GetTextColor(skncTabToolbar, State);
+  Result := CurrentSkin.GetTextColor(Self, skncTabToolbar, State);
   // Don't call inherited GetItemsTextColor, let the TabItem decide the color.
 end;
 
@@ -2045,7 +2045,7 @@ procedure TSpTBXTabToolbar.SetTabColor(const Value: TColor);
 begin
   if (FTabColor <> Value) then begin
     FTabColor := Value;
-    if SkinManager.GetSkinType <> sknSkin then begin
+    if SkinManager.GetSkinType(Self) <> sknSkin then begin
       Invalidate;
       InvalidateNC;
     end;
@@ -2209,7 +2209,7 @@ begin
     XPMargin := 2;
     // [Theme-Change]
     // WinXP theme needs to have 4 pixel margin
-    if SkinManager.GetSkinType in [sknWindows, sknDelphiStyle] then
+    if SkinManager.GetSkinType(Self) in [sknWindows, sknDelphiStyle] then
       XPMargin := Margin + 2;
 
     Inc(Rect.Left, Margin);
@@ -2752,7 +2752,7 @@ end;
 
 procedure TSpTBXCustomTabSet.DrawBackground(ACanvas: TCanvas; ARect: TRect);
 begin
-  SpDrawXPTabControlBackground(ACanvas, ARect, Color, TabPosition = ttpBottom);
+  SpDrawXPTabControlBackground(Self, ACanvas, ARect, Color, TabPosition = ttpBottom);
 end;
 
 procedure TSpTBXCustomTabSet.ItemNotification(Ancestor: TTBCustomItem;

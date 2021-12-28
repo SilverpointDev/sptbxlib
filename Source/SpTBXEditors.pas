@@ -589,10 +589,10 @@ procedure SpCalcMaxDropDownWidth(Combo: TSpTBXComboBox; RightMargin: Integer = 8
 function SpFocusEditItem(Item: TTBCustomItem; View: TTBView): Boolean;
 
 { Painting helpers }
-function SpCanEditFrameBeHotTracked(BorderStyle: TBorderStyle): Boolean;
+function SpCanEditFrameBeHotTracked(AControl: TControl; BorderStyle: TBorderStyle): Boolean;
 procedure SpDrawXPEditButton(ACanvas: TCanvas; ARect: TRect; Enabled, FrameHotTrack, HotTrack, Pushed, RightAligned: Boolean);
-procedure SpDrawXPComboButton(ACanvas: TCanvas; ARect: TRect; Enabled, FrameHotTrack, HotTrack, DroppedDown, RightAligned: Boolean;  DPI: Integer);
-procedure SpDrawXPSpinButton(ACanvas: TCanvas; ARect: TRect; Enabled, FrameHotTrack, UpHotTrack, DownHotTrack, UpPushed, DownPushed, RightAligned: Boolean; DPI: Integer);
+procedure SpDrawXPComboButton(AControl: TControl; ACanvas: TCanvas; ARect: TRect; Enabled, FrameHotTrack, HotTrack, DroppedDown, RightAligned: Boolean;  DPI: Integer);
+procedure SpDrawXPSpinButton(AControl: TControl; ACanvas: TCanvas; ARect: TRect; Enabled, FrameHotTrack, UpHotTrack, DownHotTrack, UpPushed, DownPushed, RightAligned: Boolean; DPI: Integer);
 
 implementation
 
@@ -660,12 +660,12 @@ end;
 //WMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWM
 { Painting helpers }
 
-function SpCanEditFrameBeHotTracked(BorderStyle: TBorderStyle): Boolean;
+function SpCanEditFrameBeHotTracked(AControl: TControl; BorderStyle: TBorderStyle): Boolean;
 var
   NormalB, HotTrackB: TSpTBXSkinOptionEntry;
 begin
   Result := False;
-  if (BorderStyle <> bsNone) and (SkinManager.GetSkinType <> sknNone) then begin
+  if (BorderStyle <> bsNone) and (SkinManager.GetSkinType(AControl) <> sknNone) then begin
     // If the HotTrack borders are different than the Normal borders then
     // return true.
     NormalB := CurrentSkin.Options(skncEditFrame, sknsNormal).Borders;
@@ -691,7 +691,7 @@ begin
   CurrentSkin.PaintBackground(ACanvas, ARect, skncEditButton, State, True, True);
 end;
 
-procedure SpDrawXPComboButton(ACanvas: TCanvas; ARect: TRect; Enabled, FrameHotTrack,
+procedure SpDrawXPComboButton(AControl: TControl; ACanvas: TCanvas; ARect: TRect; Enabled, FrameHotTrack,
   HotTrack, DroppedDown, RightAligned: Boolean;  DPI: Integer);
 var
   State: TSpTBXSkinStatesType;
@@ -699,7 +699,7 @@ var
   X, Y: Integer;
   Details: TThemedElementDetails;
 begin
-  case SkinManager.GetSkinType of
+  case SkinManager.GetSkinType(AControl) of
     sknNone:
       begin
         Inc(ARect.Left, 4);
@@ -709,7 +709,7 @@ begin
         else if FrameHotTrack or HotTrack then
           Windows.DrawEdge(ACanvas.Handle, ARect, BDR_RAISEDINNER, BF_RECT);
         State := CurrentSkin.GetState(Enabled, DroppedDown, HotTrack, False);
-        C := CurrentSkin.GetTextColor(skncEditButton, State);
+        C := CurrentSkin.GetTextColor(AControl, skncEditButton, State);
         X := (ARect.Left + ARect.Right) div 2;
         Y := (ARect.Top + ARect.Bottom) div 2 - 1;
         SpDrawArrow(ACanvas, X, Y, C, True, False, SpPPIScale(3, DPI));
@@ -719,26 +719,26 @@ begin
         // We need to call GetElementDetails because the Style hook uses VCL.Styles.TCustomStyle.GetElementDetails
         // which returns a Details.Part that is different than tcDropDownButtonRightNormal when using Delphi styles
         if SpIsWinVistaOrUp then begin
-          if not Enabled then Details := StyleServices.GetElementDetails(tcDropDownButtonRightDisabled)
-          else if DroppedDown then Details := StyleServices.GetElementDetails(tcDropDownButtonRightPressed)
-          else if HotTrack then Details := StyleServices.GetElementDetails(tcDropDownButtonRightHot)
-          else Details := StyleServices.GetElementDetails(tcDropDownButtonRightNormal);
+          if not Enabled then Details := SpTBXStyleServices(AControl).GetElementDetails(tcDropDownButtonRightDisabled)
+          else if DroppedDown then Details := SpTBXStyleServices(AControl).GetElementDetails(tcDropDownButtonRightPressed)
+          else if HotTrack then Details := SpTBXStyleServices(AControl).GetElementDetails(tcDropDownButtonRightHot)
+          else Details := SpTBXStyleServices(AControl).GetElementDetails(tcDropDownButtonRightNormal);
         end
         else begin
-          if not Enabled then Details := StyleServices.GetElementDetails(tcDropDownButtonDisabled)
-          else if DroppedDown then Details := StyleServices.GetElementDetails(tcDropDownButtonPressed)
-          else if HotTrack then Details := StyleServices.GetElementDetails(tcDropDownButtonHot)
-          else Details := StyleServices.GetElementDetails(tcDropDownButtonNormal);
+          if not Enabled then Details := SpTBXStyleServices(AControl).GetElementDetails(tcDropDownButtonDisabled)
+          else if DroppedDown then Details := SpTBXStyleServices(AControl).GetElementDetails(tcDropDownButtonPressed)
+          else if HotTrack then Details := SpTBXStyleServices(AControl).GetElementDetails(tcDropDownButtonHot)
+          else Details := SpTBXStyleServices(AControl).GetElementDetails(tcDropDownButtonNormal);
         end;
 
-        CurrentSkin.PaintThemedElementBackground(ACanvas, ARect, Details, DPI);
+        CurrentSkin.PaintThemedElementBackground(AControl, ACanvas, ARect, Details, DPI);
       end;
     sknSkin:
       begin
         State := CurrentSkin.GetState(Enabled, DroppedDown, FrameHotTrack, False);
         ACanvas.FillRect(ARect);
         SpDrawXPEditButton(ACanvas, ARect, Enabled, FrameHotTrack, HotTrack, DroppedDown, RightAligned);
-        C := CurrentSkin.GetTextColor(skncEditButton, State);
+        C := CurrentSkin.GetTextColor(AControl, skncEditButton, State);
         X := (ARect.Left + ARect.Right) div 2;
         Y := (ARect.Top + ARect.Bottom) div 2 - 1;
         SpDrawArrow(ACanvas, X, Y, C, True, False, SpPPIScale(3, DPI));
@@ -746,7 +746,7 @@ begin
   end;
 end;
 
-procedure SpDrawXPSpinButton(ACanvas: TCanvas; ARect: TRect; Enabled, FrameHotTrack,
+procedure SpDrawXPSpinButton(AControl: TControl; ACanvas: TCanvas; ARect: TRect; Enabled, FrameHotTrack,
   UpHotTrack, DownHotTrack, UpPushed, DownPushed, RightAligned: Boolean; DPI: Integer);
 var
   ButtonR, BR: TRect;
@@ -758,7 +758,7 @@ var
 begin
   ButtonR := ARect;
 
-  case SkinManager.GetSkinType of
+  case SkinManager.GetSkinType(AControl) of
     sknNone:
       begin
         // Up button
@@ -780,19 +780,19 @@ begin
         // Up button
         BR := ButtonR;
         BR.Bottom := (ButtonR.Top + ButtonR.Bottom) div 2;
-        if not Enabled then Details := StyleServices.GetElementDetails(tsUpDisabled)
-        else if UpPushed then Details := StyleServices.GetElementDetails(tsUpPressed)
-        else if UpHotTrack then Details := StyleServices.GetElementDetails(tsUpHot)
-        else Details := StyleServices.GetElementDetails(tsUpNormal);
-        CurrentSkin.PaintThemedElementBackground(ACanvas, BR, Details, DPI);
+        if not Enabled then Details := SpTBXStyleServices(AControl).GetElementDetails(tsUpDisabled)
+        else if UpPushed then Details := SpTBXStyleServices(AControl).GetElementDetails(tsUpPressed)
+        else if UpHotTrack then Details := SpTBXStyleServices(AControl).GetElementDetails(tsUpHot)
+        else Details := SpTBXStyleServices(AControl).GetElementDetails(tsUpNormal);
+        CurrentSkin.PaintThemedElementBackground(AControl, ACanvas, BR, Details, DPI);
         // Down button
         BR := ButtonR;
         BR.Top := (ButtonR.Top + ButtonR.Bottom) div 2;
-        if not Enabled then Details := StyleServices.GetElementDetails(tsDownDisabled)
-        else if DownPushed then Details := StyleServices.GetElementDetails(tsDownPressed)
-        else if DownHotTrack then Details := StyleServices.GetElementDetails(tsDownHot)
-        else Details := StyleServices.GetElementDetails(tsDownNormal);
-        CurrentSkin.PaintThemedElementBackground(ACanvas, BR, Details, DPI);
+        if not Enabled then Details := SpTBXStyleServices(AControl).GetElementDetails(tsDownDisabled)
+        else if DownPushed then Details := SpTBXStyleServices(AControl).GetElementDetails(tsDownPressed)
+        else if DownHotTrack then Details := SpTBXStyleServices(AControl).GetElementDetails(tsDownHot)
+        else Details := SpTBXStyleServices(AControl).GetElementDetails(tsDownNormal);
+        CurrentSkin.PaintThemedElementBackground(AControl, ACanvas, BR, Details, DPI);
       end;
     sknDelphiStyle:
       begin
@@ -802,19 +802,19 @@ begin
         // Up button
         BR := ButtonR;
         BR.Bottom := (ButtonR.Top + ButtonR.Bottom) div 2;
-        if not Enabled then Details := StyleServices.GetElementDetails(tsArrowBtnUpDisabled)
-        else if UpPushed then Details := StyleServices.GetElementDetails(tsArrowBtnUpPressed)
-        else if UpHotTrack then Details := StyleServices.GetElementDetails(tsArrowBtnUpHot)
-        else Details := StyleServices.GetElementDetails(tsArrowBtnUpNormal);
-        CurrentSkin.PaintThemedElementBackground(ACanvas, BR, Details, DPI);
+        if not Enabled then Details := SpTBXStyleServices(AControl).GetElementDetails(tsArrowBtnUpDisabled)
+        else if UpPushed then Details := SpTBXStyleServices(AControl).GetElementDetails(tsArrowBtnUpPressed)
+        else if UpHotTrack then Details := SpTBXStyleServices(AControl).GetElementDetails(tsArrowBtnUpHot)
+        else Details := SpTBXStyleServices(AControl).GetElementDetails(tsArrowBtnUpNormal);
+        CurrentSkin.PaintThemedElementBackground(AControl, ACanvas, BR, Details, DPI);
         // Down button
         BR := ButtonR;
         BR.Top := (ButtonR.Top + ButtonR.Bottom) div 2;
-        if not Enabled then Details := StyleServices.GetElementDetails(tsArrowBtnDownDisabled)
-        else if DownPushed then Details := StyleServices.GetElementDetails(tsArrowBtnDownPressed)
-        else if DownHotTrack then Details := StyleServices.GetElementDetails(tsArrowBtnDownHot)
-        else Details := StyleServices.GetElementDetails(tsArrowBtnDownNormal);
-        CurrentSkin.PaintThemedElementBackground(ACanvas, BR, Details, DPI);
+        if not Enabled then Details := SpTBXStyleServices(AControl).GetElementDetails(tsArrowBtnDownDisabled)
+        else if DownPushed then Details := SpTBXStyleServices(AControl).GetElementDetails(tsArrowBtnDownPressed)
+        else if DownHotTrack then Details := SpTBXStyleServices(AControl).GetElementDetails(tsArrowBtnDownHot)
+        else Details := SpTBXStyleServices(AControl).GetElementDetails(tsArrowBtnDownNormal);
+        CurrentSkin.PaintThemedElementBackground(AControl, ACanvas, BR, Details, DPI);
       end;
     sknSkin:
       begin
@@ -826,7 +826,7 @@ begin
         if FrameHotTrack then
           BR.Bottom := BR.Bottom - 1;
         SpDrawXPEditButton(ACanvas, BR, Enabled, FrameHotTrack, UpHotTrack, UpPushed, RightAligned);
-        C := CurrentSkin.GetTextColor(skncEditButton, State);
+        C := CurrentSkin.GetTextColor(AControl, skncEditButton, State);
         SpDrawArrow(ACanvas, X, Y, C, True, True, SpPPIScale(2, DPI));
         if FrameHotTrack then
           BR.Bottom := BR.Bottom + 1;
@@ -838,7 +838,7 @@ begin
         if FrameHotTrack then
           BR.Top := BR.Top + 1;
         SpDrawXPEditButton(ACanvas, BR, Enabled, FrameHotTrack, DownHotTrack, DownPushed, RightAligned);
-        C := CurrentSkin.GetTextColor(skncEditButton, State);
+        C := CurrentSkin.GetTextColor(AControl, skncEditButton, State);
         SpDrawArrow(ACanvas, X, Y, C, True, False, SpPPIScale(2, DPI));
       end;
   end;
@@ -880,7 +880,7 @@ begin
     inherited
   else begin
     State := CurrentSkin.GetState(Enabled, Pushed, MouseInControl or GetFrameHotTrack, Checked);
-    AFont.Color := CurrentSkin.GetTextColor(skncEditButton, State);
+    AFont.Color := CurrentSkin.GetTextColor(Self, skncEditButton, State);
   end;
 end;
 
@@ -914,15 +914,15 @@ begin
 
       // Draw the ComboButton if the caption is not set
       if (Length(Caption) = 0) and not IsImageIndexValid then
-        SpDrawXPComboButton(ACanvas, ARect, Enabled, FrameHotTrack, MouseInControl, Pushed, RightAligned, CurrentPPI)
+        SpDrawXPComboButton(Self, ACanvas, ARect, Enabled, FrameHotTrack, MouseInControl, Pushed, RightAligned, CurrentPPI)
       else begin
-        case SkinManager.GetSkinType of
+        case SkinManager.GetSkinType(Self) of
           sknNone:
-            SpDrawXPButton(ACanvas, ARect, Enabled, Pushed, MouseInControl, Checked, Focused, Default, CurrentPPI);
+            SpDrawXPButton(Self, ACanvas, ARect, Enabled, Pushed, MouseInControl, Checked, Focused, Default, CurrentPPI);
           sknWindows, sknDelphiStyle:
             begin
               InflateRect(ARect, 1, 1);
-              SpDrawXPButton(ACanvas, ARect, Enabled, Pushed, MouseInControl, Checked, Focused, Default, CurrentPPI);
+              SpDrawXPButton(Self, ACanvas, ARect, Enabled, Pushed, MouseInControl, Checked, Focused, Default, CurrentPPI);
             end;
           sknSkin:
             SpDrawXPEditButton(ACanvas, ARect, Enabled, FrameHotTrack, FrameHotTrack or MouseInControl, Pushed, RightAligned);
@@ -936,8 +936,12 @@ end;
 
 function TSpTBXEditButton.GetFrameHotTrack: Boolean;
 begin
-  if Parent is TSpTBXEdit then
-    Result := TSpTBXEdit(Parent).MouseInControl or Parent.Focused
+  if Parent is TSpTBXEdit then begin
+    if SkinManager.GetSkinType(Self) = sknDelphiStyle then
+      Result := False  // Do not set hottrack when mouse is over the edit control
+    else
+      Result := TSpTBXEdit(Parent).MouseInControl or Parent.Focused;
+  end
   else
     Result := False;
 end;
@@ -985,7 +989,7 @@ begin
     if Result then begin
       IsHotTracking(UpHotTrack, DownHotTrack, EditFrameHotTrack);
       RightAligned := Align <> alLeft;
-      SpDrawXPSpinButton(ACanvas, ARect, Enabled, EditFrameHotTrack, UpHotTrack, DownHotTrack, FUpPushed, FDownPushed, RightAligned, CurrentPPI);
+      SpDrawXPSpinButton(Self, ACanvas, ARect, Enabled, EditFrameHotTrack, UpHotTrack, DownHotTrack, FUpPushed, FDownPushed, RightAligned, CurrentPPI);
     end;
   end
   else
@@ -1187,7 +1191,7 @@ begin
   inherited;
   if not FMouseInControl then begin
     FMouseInControl := True;
-    if FHotTrack and not Focused and (HasEditButton or SpCanEditFrameBeHotTracked(BorderStyle)) then
+    if FHotTrack and not Focused and (HasEditButton or SpCanEditFrameBeHotTracked(Self, BorderStyle)) then
       InvalidateFrame;
   end;
 end;
@@ -1197,7 +1201,7 @@ begin
   inherited;
   if FMouseInControl then begin
     FMouseInControl := False;
-    if FHotTrack and not Focused and (HasEditButton or SpCanEditFrameBeHotTracked(BorderStyle)) then
+    if FHotTrack and not Focused and (HasEditButton or SpCanEditFrameBeHotTracked(Self, BorderStyle)) then
       InvalidateFrame;
   end;
 end;
@@ -1225,7 +1229,7 @@ begin
   else
     HotTrackFrame := False;
 
-  if (SkinManager.GetSkinType = sknNone) and (FBorderStyle <> bsNone) then
+  if (SkinManager.GetSkinType(Self) = sknNone) and (FBorderStyle <> bsNone) then
     inherited
   else
     if Ctl3D then
@@ -1692,7 +1696,7 @@ begin
         DrawItem(itemID, rcItem, State);
       end
       else
-        SpDrawXPListItemBackground(Canvas, rcItem, False, False, odFocused in State)
+        SpDrawXPListItemBackground(Self, Canvas, rcItem, False, False, odFocused in State)
     finally
       Canvas.Unlock;
       Canvas.Handle := 0;
@@ -1778,7 +1782,7 @@ begin
   PaintDefault := True;
   DoDrawItemBackground(Canvas, Rect, Index, State, pstPrePaint, PaintDefault);
   if PaintDefault then
-    SpDrawXPListItemBackground(Canvas, Rect, odSelected in State, False, odFocused in State);
+    SpDrawXPListItemBackground(Self, Canvas, Rect, odSelected in State, False, odFocused in State);
 
   PaintDefault := True;
   DoDrawItemBackground(Canvas, Rect, Index, State, pstPostPaint, PaintDefault);
@@ -1821,7 +1825,7 @@ begin
   Result.Right := Result.Left + ButtonWidth;
   Result.Bottom := Height;
 
-  case SkinManager.GetSkinType of
+  case SkinManager.GetSkinType(Self) of
     sknNone:
       begin
         InflateRect(Result, 0, -1);
@@ -1947,9 +1951,9 @@ begin
 
       // Don't custom paint if we are on Vista with ComCtrls 6, let the
       // OS draw the frame
-      VistaNewComCtrls := not (csDesigning in ComponentState) and SpIsWinVistaOrUp and (SkinManager.GetSkinType = sknWindows);
+      VistaNewComCtrls := not (csDesigning in ComponentState) and SpIsWinVistaOrUp and (SkinManager.GetSkinType(Self) = sknWindows);
 
-      if PaintDefault and (SkinManager.GetSkinType <> sknNone) and not VistaNewComCtrls then begin
+      if PaintDefault and (SkinManager.GetSkinType(Self) <> sknNone) and not VistaNewComCtrls then begin
         if csDesigning in ComponentState then
           HotTrackFrame := False
         else
@@ -1959,11 +1963,11 @@ begin
             HotTrackFrame := DroppedDown;
 
         ButtonR := GetDropDownButtonRect;
-        if SkinManager.GetSkinType = sknSkin then
+        if SkinManager.GetSkinType(Self) = sknSkin then
           SpDrawParentBackground(Self, ACanvas.Handle, R);
-        SpDrawXPEditFrame(ACanvas, R, Enabled, HotTrackFrame, False, False, CurrentPPI);
+        SpDrawXPEditFrame(Self, ACanvas, R, Enabled, HotTrackFrame, False, False, CurrentPPI);
         if Style <> csSimple then
-          SpDrawXPComboButton(ACanvas, ButtonR, Enabled, HotTrackFrame, GetMouseInDropDownButton, DroppedDown, True, CurrentPPI);
+          SpDrawXPComboButton(Self, ACanvas, ButtonR, Enabled, HotTrackFrame, GetMouseInDropDownButton, DroppedDown, True, CurrentPPI);
       end;
 
       PaintDefault := True;
@@ -2083,7 +2087,7 @@ begin
   inherited;
   if FHotTrack and not FHotTracking then begin
     FHotTracking := True;
-    if SpCanEditFrameBeHotTracked(BorderStyle) then
+    if SpCanEditFrameBeHotTracked(Self, BorderStyle) then
       InvalidateBorders;
   end;
 end;
@@ -2093,7 +2097,7 @@ begin
   inherited;
   if FHotTrack and FHotTracking and not FChildFocused then begin
     FHotTracking := False;
-    if SpCanEditFrameBeHotTracked(BorderStyle) then
+    if SpCanEditFrameBeHotTracked(Self, BorderStyle) then
       InvalidateBorders;
   end;
 end;
@@ -2162,7 +2166,7 @@ begin
   PaintDefault := True;
   DoDrawItemBackground(Canvas, Rect, Index, State, pstPrePaint, PaintDefault);
   if PaintDefault then
-    SpDrawXPListItemBackground(Canvas, Rect, odSelected in State, False, odFocused in State);
+    SpDrawXPListItemBackground(Self, Canvas, Rect, odSelected in State, False, odFocused in State);
 
   PaintDefault := True;
   DoDrawItemBackground(Canvas, Rect, Index, State, pstPostPaint, PaintDefault);
@@ -2197,7 +2201,7 @@ end;
 procedure TSpTBXListBox.WMNCPaint(var Message: TWMNCPaint);
 begin
   inherited;
-  if (BorderStyle <> bsNone) and (SkinManager.GetSkinType <> sknNone) then
+  if (BorderStyle <> bsNone) and (SkinManager.GetSkinType(Self) <> sknNone) then
     if Ctl3D then
       SpDrawXPEditFrame(Self, FHotTracking, True, False, CurrentPPI);
 end;
@@ -2250,7 +2254,7 @@ begin
   inherited;
   if FHotTrack and not FHotTracking then begin
     FHotTracking := True;
-    if SpCanEditFrameBeHotTracked(BorderStyle) then
+    if SpCanEditFrameBeHotTracked(Self, BorderStyle) then
       InvalidateBorders;
   end;
 end;
@@ -2260,7 +2264,7 @@ begin
   inherited;
   if FHotTrack and FHotTracking and not FChildFocused then begin
     FHotTracking := False;
-    if SpCanEditFrameBeHotTracked(BorderStyle) then
+    if SpCanEditFrameBeHotTracked(Self, BorderStyle) then
       InvalidateBorders;
   end;
 end;
@@ -2336,12 +2340,12 @@ begin
       R.Top := ARect.Top + (ARect.Bottom - ARect.Top - ACheckWidth) div 2;
       R.Bottom := R.Top + ACheckWidth;
 
-      if SkinManager.GetSkinType = sknSkin then
+      if SkinManager.GetSkinType(Self) = sknSkin then
         Canvas.FillRect(R);
-      SpDrawXPCheckBoxGlyph(Canvas, R, ItemEnabled[Index], Self.State[Index], False, False, CurrentPPI);
+      SpDrawXPCheckBoxGlyph(Self, Canvas, R, ItemEnabled[Index], Self.State[Index], False, False, CurrentPPI);
 
       // Draw the background and focus
-      SpDrawXPListItemBackground(Canvas, ARect, odSelected in State, False, odFocused in State);
+      SpDrawXPListItemBackground(Self, Canvas, ARect, odSelected in State, False, odFocused in State);
     end
     else begin
       Canvas.Font.Color := HeaderColor;
@@ -2394,7 +2398,7 @@ end;
 procedure TSpTBXCheckListBox.WMNCPaint(var Message: TWMNCPaint);
 begin
   inherited;
-  if (BorderStyle <> bsNone) and (SkinManager.GetSkinType <> sknNone) then
+  if (BorderStyle <> bsNone) and (SkinManager.GetSkinType(Self) <> sknNone) then
     if Ctl3D then
       SpDrawXPEditFrame(Self, FHotTracking, True, False, CurrentPPI);
 end;
@@ -2731,9 +2735,9 @@ begin
   if not (ItemInfo.HotTrack or ItemInfo.Pushed) and (SkinManager.CurrentSkinName = 'Default') and not SpIsWinVistaOrUp then
     SpFillRect(ACanvas, ARect, clWindow, clBtnFace)
   else begin
-    SpDrawXPEditFrame(ACanvas, ARect, ItemInfo.Enabled, ItemInfo.HotTrack, False, False, View.Window.CurrentPPI);
+    SpDrawXPEditFrame(View.Window, ACanvas, ARect, ItemInfo.Enabled, ItemInfo.HotTrack, False, False, View.Window.CurrentPPI);
     InflateRect(ARect, -2, -2);  // Do not DPI scale, border size is always 2
-    SpFillRect(ACanvas, ARect, StyleServices.GetSystemColor(clWindow));
+    SpFillRect(ACanvas, ARect, SpTBXStyleServices(View.Window).GetSystemColor(clWindow));
   end;
 end;
 
@@ -2779,14 +2783,14 @@ begin
       R.Right := MarginsInfo.GutterSize + MarginsInfo.ImageTextSpace + TextSize.cx + MarginsInfo.LeftCaptionMargin + MarginsInfo.RightCaptionMargin
     else
       R.Right := MarginsInfo.GutterSize + MarginsInfo.ImageTextSpace - PPIScale(1);
-    SpDrawXPMenuItem(Canvas, R, ItemInfo);
+    SpDrawXPMenuItem(View.Window, Canvas, R, ItemInfo);
 
     R.Right := ClientAreaRect.Right;
     Inc(R.Left, MarginsInfo.GutterSize + MarginsInfo.ImageTextSpace);
 
     if Length(S) > 0 then begin
       if Canvas.Font.Color = clNone then
-        Canvas.Font.Color := CurrentSkin.GetTextColor(skncMenuItem, ItemInfo.State);
+        Canvas.Font.Color := CurrentSkin.GetTextColor(View.Window, skncMenuItem, ItemInfo.State);
       Inc(R.Left, MarginsInfo.LeftCaptionMargin);
       SpDrawXPText(Canvas, S, R, DT_SINGLELINE or DT_LEFT or DT_VCENTER);
       Inc(R.Left, TextSize.cx + MarginsInfo.RightCaptionMargin + 1);
@@ -2832,9 +2836,9 @@ begin
     Item.EditorFontSettings.Apply(Canvas.Font);
     if Canvas.Font.Color = clNone then
       if Item.Enabled then
-        Canvas.Font.Color := StyleServices.GetSystemColor(clWindowText)
+        Canvas.Font.Color := SpTBXStyleServices(View.Window).GetSystemColor(clWindowText)
       else
-        Canvas.Font.Color := StyleServices.GetSystemColor(clGrayText);
+        Canvas.Font.Color := SpTBXStyleServices(View.Window).GetSystemColor(clGrayText);
     InflateRect(R, -PPIScale(2), -PPIScale(1));
     if not IsToolbarStyle then
       Inc(R.Left, GetIndentBefore + PPIScale(1))
@@ -3296,7 +3300,7 @@ begin
   R.Left := ARect.Right - GetIndentAfter;
 
   IsHotTrack := ItemInfo.HotTrack;
-  SpDrawXPSpinButton(ACanvas, R, ItemInfo.Enabled, IsHotTrack, IsHotTrack, IsHotTrack, FUpPushed, FDownPushed, True, View.Window.CurrentPPI);
+  SpDrawXPSpinButton(View.Window, ACanvas, R, ItemInfo.Enabled, IsHotTrack, IsHotTrack, IsHotTrack, FUpPushed, FDownPushed, True, View.Window.CurrentPPI);
 end;
 
 procedure TSpTBXSpinEditViewer.InternalEditControlChange(Sender: TObject);
