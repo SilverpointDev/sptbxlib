@@ -151,24 +151,24 @@ type
     procedure Load(IniFile: TCustomIniFile; LoadLastLayout: Boolean = True); overload;
     procedure Load(OptionsList: TStrings; LoadLastLayout: Boolean = True); overload;
     procedure Load(const Filename: string; LoadLastLayout: Boolean = True); overload;
-    procedure Load(const RootKey: DWORD; BaseRegistryKey: string; LoadLastLayout: Boolean = True); overload;
+    procedure Load(const RootKey: HKEY; BaseRegistryKey: string; LoadLastLayout: Boolean = True); overload;
     procedure Save(IniFile: TCustomIniFile; SaveLastLayout: Boolean = True); overload;
     procedure Save(OptionsList: TStrings; SaveLastLayout: Boolean = True); overload;
     procedure Save(const Filename: string; SaveLastLayout: Boolean = True); overload;
-    procedure Save(const RootKey: DWORD; BaseRegistryKey: string; SaveLastLayout: Boolean = True); overload;
+    procedure Save(const RootKey: HKEY; BaseRegistryKey: string; SaveLastLayout: Boolean = True); overload;
     procedure Reset;
     procedure LoadLayout(IniFile: TCustomIniFile; LayoutName: string); overload;
     procedure LoadLayout(OptionsList: TStrings; LayoutName: string); overload;
     procedure LoadLayout(const Filename, LayoutName: string); overload;
-    procedure LoadLayout(const RootKey: DWORD; BaseRegistryKey, LayoutName: string); overload;
+    procedure LoadLayout(const RootKey: HKEY; BaseRegistryKey, LayoutName: string); overload;
     procedure SaveLayout(IniFile: TCustomIniFile; LayoutName: string); overload;
     procedure SaveLayout(OptionsList: TStrings; LayoutName: string); overload;
     procedure SaveLayout(const Filename, LayoutName: string); overload;
-    procedure SaveLayout(const RootKey: DWORD; BaseRegistryKey, LayoutName: string); overload;
+    procedure SaveLayout(const RootKey: HKEY; BaseRegistryKey, LayoutName: string); overload;
     function DeleteLayout(IniFile: TCustomIniFile; LayoutName: string): Boolean; overload;
     function DeleteLayout(OptionsList: TStrings; LayoutName: string): Boolean; overload;
     function DeleteLayout(const Filename, LayoutName: string): Boolean; overload;
-    function DeleteLayout(const RootKey: DWORD; BaseRegistryKey, LayoutName: string): Boolean; overload;
+    function DeleteLayout(const RootKey: HKEY; BaseRegistryKey, LayoutName: string): Boolean; overload;
     property CustomizeForm: TSpTBXCustomCustomizeForm read FCustomizeForm;
     property Layouts: TStringList read FLayouts;
     property Showing: Boolean read FShowing;
@@ -195,8 +195,8 @@ type
 procedure SpIniEraseSection(IniFile: TCustomIniFile; Section: string; EraseKeysOnly: Boolean);
 procedure SpIniSaveStringList(IniFile: TCustomIniFile; Section: string; L: TStringList);
 procedure SpIniLoadStringList(IniFile: TCustomIniFile; Section: string; L: TStringList);
-procedure SpRegSaveStringList(L: TStringList; const RootKey: DWORD; const BaseRegistryKey: string);
-procedure SpRegLoadStringList(L: TStringList; const RootKey: DWORD; const BaseRegistryKey: string);
+procedure SpRegSaveStringList(L: TStringList; const RootKey: HKEY; const BaseRegistryKey: string);
+procedure SpRegLoadStringList(L: TStringList; const RootKey: HKEY; const BaseRegistryKey: string);
 
 { Layouts }
 procedure SpLoadFormState(Form: TCustomForm; OptionsList: TStrings);
@@ -503,7 +503,7 @@ begin
     L.Add(IniFile.ReadString(Section, IntToStr(I), ''));
 end;
 
-procedure SpRegSaveStringList(L: TStringList; const RootKey: DWORD; const BaseRegistryKey: string);
+procedure SpRegSaveStringList(L: TStringList; const RootKey: HKEY; const BaseRegistryKey: string);
 var
   Reg: TRegistry;
   I: integer;
@@ -524,7 +524,7 @@ begin
   end;
 end;
 
-procedure SpRegLoadStringList(L: TStringList; const RootKey: DWORD; const BaseRegistryKey: string);
+procedure SpRegLoadStringList(L: TStringList; const RootKey: HKEY; const BaseRegistryKey: string);
 var
   Reg: TRegistry;
   I, C: integer;
@@ -1010,7 +1010,7 @@ begin
   end;
 end;
 
-procedure TSpTBXCustomizer.Load(const RootKey: DWORD; BaseRegistryKey: string; LoadLastLayout: Boolean = True);
+procedure TSpTBXCustomizer.Load(const RootKey: HKEY; BaseRegistryKey: string; LoadLastLayout: Boolean = True);
 var
   Reg: TRegistryIniFile;
 begin
@@ -1086,7 +1086,7 @@ begin
   end;
 end;
 
-procedure TSpTBXCustomizer.Save(const RootKey: DWORD; BaseRegistryKey: string; SaveLastLayout: Boolean = True);
+procedure TSpTBXCustomizer.Save(const RootKey: HKEY; BaseRegistryKey: string; SaveLastLayout: Boolean = True);
 var
   Reg: TRegistryIniFile;
 begin
@@ -1165,7 +1165,7 @@ begin
   end;
 end;
 
-procedure TSpTBXCustomizer.LoadLayout(const RootKey: DWORD;
+procedure TSpTBXCustomizer.LoadLayout(const RootKey: HKEY;
   BaseRegistryKey, LayoutName: string);
 var
   Reg: TRegistryIniFile;
@@ -1228,7 +1228,7 @@ begin
   end;
 end;
 
-procedure TSpTBXCustomizer.SaveLayout(const RootKey: DWORD;
+procedure TSpTBXCustomizer.SaveLayout(const RootKey: HKEY;
   BaseRegistryKey, LayoutName: string);
 var
   Reg: TRegistryIniFile;
@@ -1338,7 +1338,7 @@ begin
   end;
 end;
 
-function TSpTBXCustomizer.DeleteLayout(const RootKey: DWORD; BaseRegistryKey,
+function TSpTBXCustomizer.DeleteLayout(const RootKey: HKEY; BaseRegistryKey,
   LayoutName: string): Boolean;
 var
   Reg: TRegistryIniFile;
