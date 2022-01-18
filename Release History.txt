@@ -1,3 +1,26 @@
+18 January 2022 - version 2.5.9
+  - Added Rad Studio 11 Alexandria support.
+  - Added 24x24 images to SpTBXReg.DCR to fix a Rad Studio 11 bug: the IDE doesn't 
+    recognize 24x24 glyphs if the resource name doesn't include "24", breaking 
+    compatibility with older DCR files.
+  - Added PNG images to SpTBXReg.DCR to fix a Rad Studio 11 bug: the IDE doesn't 
+    recognize color-keyed glyphs, breaking compatibility with older DCR files.
+  - Added design time styling introduced on Alexandria.
+  - Added StyleName property allowing per control Delphi Styles introduced on Sydney.
+    Few notes regarding per control styling:
+    1) The StyleName must be one of the names of the styles in the project options.
+    2) If StyleName is empty the control tries to use the Parent's StyleName.
+    3) If StyleName is set to 'Windows' it disables custom styling for the control.
+    4) If TStyleManager.UseSystemStyleAsDefault is set to True, it disables custom 
+       styling on all the controls that have an empty StyleName.
+    5) Per control styling works when using custom Styles: TStyleManager.IsCustomStyleActive. 
+    6) Delphi Styles and SpTBXLib Skins can't be mixed.
+    7) Using SpTBXLib Skins activates the default System Style.
+  - Removed support for Delphi XE1.
+  - Removed SpTBXThemeServices, call StyleServices or SpTBXStyleServices instead.
+  - Removed CurrentSkin.GetThemedSystemColor, call StyleServices.GetSystemColor or
+    SpTBXStyleServices(AControl).GetSystemColor instead.
+  
 27 February 2021 - version 2.5.8
   - Updated TB2K patch with Kiriakos Vlahos latest changes.
   - TB2Common.pas changes: added various global function helpers to support 
