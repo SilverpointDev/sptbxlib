@@ -127,6 +127,8 @@ type
 
   TSpTBXSkinPartsType = (sknpBody, sknpBorders, sknpText);
 
+  TSpTBXSkinPartsSet = set of TSpTBXSkinPartsType;
+
   TSpTBXSkinComponentsIdentEntry = record
     Name: string;
     States: TSpTBXSkinStatesSet;
@@ -406,9 +408,10 @@ type
     constructor Create; virtual;
     destructor Destroy; override;
 
-    function GetSkinType(AControl: TControl): TSpTBXSkinType;
+    function GetSkinType(AControl: TControl = nil): TSpTBXSkinType;
     procedure GetSkinsAndDelphiStyles(SkinsAndStyles: TStrings);
     function IsDefaultSkin: Boolean;
+    function GetSkinPartsSet(AControl: TControl = nil): TSpTBXSkinPartsSet;
 
     procedure AddSkinNotification(AObject: TObject);
     procedure RemoveSkinNotification(AObject: TObject);
@@ -2505,11 +2508,11 @@ begin
     end;
   end
   else begin
-    if SkinManager.GetSkinType(AControl) = sknDelphiStyle then begin
-      if Selected then
-        ACanvas.Brush.Color := SpTBXStyleServices(AControl).GetSystemColor(clHighlight)
-      else
-        ACanvas.Brush.Color := SpTBXStyleServices(AControl).GetStyleColor(scListBox);
+      if (SkinManager.GetSkinType(AControl) = sknDelphiStyle) and (sknpBody in SkinManager.GetSkinPartsSet(AControl)) then begin
+        if Selected then
+          ACanvas.Brush.Color := SpTBXStyleServices(AControl).GetSystemColor(clHighlight)
+        else
+          ACanvas.Brush.Color := SpTBXStyleServices(AControl).GetStyleColor(scListBox);
     end
     else
       if Selected then
@@ -3904,6 +3907,23 @@ function TSpTBXSkinManager.IsDefaultSkin: Boolean;
 begin
   // Returns True if CurrentSkin is the default Windows theme
   Result := CurrentSkinName = 'Default';
+end;
+
+
+function TSpTBXSkinManager.GetSkinPartsSet(AControl: TControl): TSpTBXSkinPartsSet;
+begin
+  Result := [];
+  if Assigned(AControl) then
+  begin
+    {$IF CompilerVersion >= 34} // for 10.4 Sydney and up
+    if seFont in AControl.StyleElements then
+      Result := Result + [sknpText];
+    if seClient in AControl.StyleElements then
+      Result := Result + [sknpBody];
+    if seBorder in AControl.StyleElements then
+      Result := Result + [sknpBorders];
+    {$IFEND}
+  end;
 end;
 
 procedure TSpTBXSkinManager.SetSkin(SkinName: string);
