@@ -7642,7 +7642,8 @@ begin
         TSpTBXPopupWindowView(View).SetIsToolbar(True);
       // Set the StyleName to match the Toolbar or Toolbar.Parent
       {$IF CompilerVersion >= 34} // for Delphi Sydney and up
-      StyleName := View.ParentView.Window.GetStyleName;
+      if Assigned(View.ParentView) then
+        StyleName := View.ParentView.Window.GetStyleName;
       {$IFEND}
     end;
 

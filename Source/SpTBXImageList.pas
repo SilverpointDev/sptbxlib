@@ -100,8 +100,9 @@ begin
   TArray.Sort<string>(Files, TStringComparer.Ordinal);
 
   for S in Files do begin
-    {$IF CompilerVersion >= 33} // for Delphi Rio and up
-    // TImageCollection and TVirtualImagelist introduced on Rio
+    {$IF CompilerVersion >= 34} // for Delphi Sydney and up
+    // TImageCollection and TVirtualImagelist introduced on Rio,
+    // but TImageCollection.Add was introduced on Sydney
     if IL is TVirtualImageList then begin
       if Assigned(TVirtualImageList(IL).ImageCollection) and (TVirtualImageList(IL).ImageCollection is TImageCollection) then begin
         FilenameS := TPath.GetFileName(S);
@@ -140,7 +141,7 @@ begin
     end;
   end;
 
-  {$IF CompilerVersion >= 33} // for Delphi Rio and up
+  {$IF CompilerVersion >= 34} // for Delphi Sydney and up
   if IL is TVirtualImageList then
     TVirtualImageList(IL).AutoFill := True;
   {$IFEND}

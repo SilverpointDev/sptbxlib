@@ -11,7 +11,7 @@
  type
    { Our declaration for IAccessible }
 --- TB2Common.pas	Wed Sep 17 14:46:30 2008
-+++ TB2Common.pas	Fri Jul 30 13:49:06 2021
++++ TB2Common.pas	Tue May  2 09:33:22 2023
 @@ -31,11 +31,13 @@
  {$I TB2Ver.inc}
  
@@ -149,7 +149,7 @@
      Pen := CreatePen(PS_SOLID, 1, GetTextColor(DC));
      SavePen := SelectObject(DC, Pen);
      MoveToEx(DC, X, Y + SU, nil);
-@@ -1561,11 +1605,259 @@
+@@ -1561,11 +1605,265 @@
  end;
  {$ENDIF}
  
@@ -330,12 +330,17 @@
 +end;
 +
 +function SpGetScaledVirtualImageListSize(C: TControl; IL: TCustomImageList): TSize;
-+var
-+  ILPPI: Integer;
++//var
++//  ILPPI: Integer;
 +begin
 +  if Assigned(IL) then begin
 +    Result.cx := IL.Width;
 +    Result.cy := IL.Height;
++    {
++    Not needed anymore, it doubles the size,
++    seems to be fixed on Delphi 11 Alexandria.
++    Test needed on previous versions.
++
 +    // Scale if IL is a VirtualImageList and the PPIs are different
 +    if SpIsVirtualImageList(IL) and (IL.Owner is TControl) then begin
 +      ILPPI := TControl(IL.Owner).CurrentPPI;
@@ -345,6 +350,7 @@
 +        Result.cy := MulDiv(Result.cy, C.CurrentPPI, ILPPI);
 +      end;
 +    end;
++    }
 +  end
 +  else begin
 +    Result.cx := 0;

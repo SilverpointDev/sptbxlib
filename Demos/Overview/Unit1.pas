@@ -146,7 +146,6 @@ type
     procedure FormDestroy(Sender: TObject);
   private
     { Private declarations }
-    FLastSkin: string;
     procedure LangClick(Sender: TObject);
     procedure WMSpSkinChange(var Message: TMessage); message WM_SPSKINCHANGE;
   protected
@@ -174,7 +173,7 @@ var
   S: string;
 begin
   Result := '';
-  // C:\Users\Public\Documents\Embarcadero\Studio\21.0
+  // C:\Users\Public\Documents\Embarcadero\Studio\22.0
   S := IncludeTrailingPathDelimiter(TPath.GetSharedDocumentsPath) +
     'Embarcadero\Studio\' + IntToStr(RADStudioIDENumber) + '.0';
   if DirectoryExists(S) then
@@ -188,8 +187,10 @@ var
 begin
   Result := '';
   // XE2 = 9
-  for I := 30 downto 9 do begin
-    S := SpIDEBDSCommonDir(I) + '\Styles'; // C:\Users\Public\Documents\Embarcadero\Studio\21.0\Styles
+  // Alexandria = 22
+  // Start at 40, to get the latest installed version of Delphi
+  for I := 40 downto 9 do begin
+    S := SpIDEBDSCommonDir(I) + '\Styles'; // C:\Users\Public\Documents\Embarcadero\Studio\22.0\Styles
     if DirectoryExists(S) then begin
       Result := S;
       Exit;
@@ -202,7 +203,6 @@ end;
 
 procedure TForm1.FormCreate(Sender: TObject);
 begin
-  FLastSkin := 'Aluminum';
   SkinManager.AddSkinNotification(Self);
 end;
 
@@ -267,9 +267,6 @@ begin
     SpTBXLabel5.LinkText := 'explorer.exe';
     SpTBXLabel5.LinkTextParams := '/e, ' + S;
   end;
-
-  // Init Skin Type
-  radiobuttonSkin2.Enabled := CompilerVersion >= 23;  // Delphi XE2 or up
 end;
 
 procedure TForm1.LangClick(Sender: TObject);
@@ -308,10 +305,11 @@ end;
 
 procedure TForm1.WMSpSkinChange(var Message: TMessage);
 begin
-  if SkinManager.GetSkinType = sknSkin then
-    radiobuttonSkin3.Checked := True
-  else
-    radiobuttonSkin1.Checked := True;
+  case SkinManager.GetSkinType(Self) of
+    sknWindows: radiobuttonSkin1.SetFocus;
+    sknDelphiStyle: radiobuttonSkin2.SetFocus;
+    sknSkin: radiobuttonSkin3.SetFocus;
+  end;
 end;
 
 //WMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWM
@@ -326,29 +324,21 @@ begin
   else if Sender = radiobuttonSkin2 then SkinType := sknDelphiStyle
   else if Sender = radiobuttonSkin3 then SkinType := sknSkin;
 
-  if SkinType <> SkinManager.GetSkinType then
+  if SkinType <> SkinManager.GetSkinType(Self) then
     case SkinType of
       sknWindows:
-        begin
-          if not SkinManager.IsDefaultSkin then begin
-            FLastSkin := SkinManager.CurrentSkinName;
-            SkinManager.SetSkin('Default');
-          end;
-        end;
+        SkinManager.SetToDefaultSkin;
       sknSkin:
-        SkinManager.SetSkin(FLastSkin);
+        SkinManager.SetSkin('Aluminum');
       sknDelphiStyle:
         begin
           OpenDialog1.InitialDir := SpGetDelphiStylesFolder;
           OpenDialog1.Filter := 'VCL Styles|*.vsf';
           if OpenDialog1.Execute then
             if FileExists(OpenDialog1.FileName) then begin
-              SkinManager.SetToDefaultSkin;
-              {$IF CompilerVersion >= 23} //for Delphi XE2 and up
-              TStyleManager.SetStyle(TStyleManager.LoadFromFile(OpenDialog1.FileName));
+              SkinManager.SetDelphiStyleFromFile(OpenDialog1.FileName);
               // Recreate the SkinGroupItem and add the selected style
               SpTBXSkinGroupItem1.Recreate;
-              {$IFEND}
             end;
         end;
     end;
@@ -369,8 +359,7 @@ begin
       S := SkinManager.AddSkinFromFile(OpenDialog1.FileName);
       if S <> '' then begin
         // Set the new skin
-        FLastSkin := S;
-        SkinManager.SetSkin(FLastSkin);
+        SkinManager.SetSkin(S);
         // Recreate the SkinGroupItem and add the selected skin
         SpTBXSkinGroupItem1.Recreate;
         radiobuttonSkin3.Checked := True;
@@ -393,7 +382,7 @@ begin
   if PaintStage = pstPrePaint then begin
     PaintDefault := False;
     SB := TSpTBXSpeedButton(Sender);
-    SpDrawXPHeader(ACanvas, ARect, SB.MouseInControl, SB.Pushed, CurrentPPI);
+    SpDrawXPHeader(Self, ACanvas, ARect, SB.MouseInControl, SB.Pushed, CurrentPPI);
   end;
 end;
 

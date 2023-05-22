@@ -206,6 +206,7 @@ type
   TSpTBXTabToolbar = class(TSpTBXToolbar)
   private
     FActiveTabRect: TRect;
+    FActiveTabVisibleOnResize: Boolean;
     FTabAutofit: Boolean;
     FTabAutofitMaxSize: Integer;
     FTabCloseButtonImageIndex: Integer;
@@ -237,12 +238,15 @@ type
     function GetViewClass: TTBToolbarViewClass; override;
     procedure InternalDrawBackground(ACanvas: TCanvas; ARect: TRect; PaintOnNCArea: Boolean; PaintBorders: Boolean = True); override;
     procedure DoItemNotification(Ancestor: TTBCustomItem; Relayed: Boolean; Action: TTBItemChangedAction; Index: Integer; Item: TTBCustomItem); override;
+    procedure Resize; override;
     procedure RightAlignItems; override;
 
     function CanDragCustomize(Button: TMouseButton; Shift: TShiftState; X, Y: Integer): Boolean; override;
     procedure DoStartDrag(var DragObject: TDragObject); override;
     procedure DragOver(Source: TObject; X: Integer; Y: Integer; State: TDragState; var Accept: Boolean); override;
     procedure MouseUp(Button: TMouseButton; Shift: TShiftState; X: Integer; Y: Integer); override;
+    function DoMouseWheelDown(Shift: TShiftState; MousePos: TPoint): Boolean; override;
+    function DoMouseWheelUp(Shift: TShiftState; MousePos: TPoint): Boolean; override;
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
@@ -257,6 +261,7 @@ type
   published
     property ActiveTab: TSpTBXTabItem read GetActiveTab;
     property ActiveTabIndex: Integer read FActiveTabIndex write SetActiveTabIndex;
+    property ActiveTabVisibleOnResize: Boolean read FActiveTabVisibleOnResize write FActiveTabVisibleOnResize default True;
     property TabCloseButton: TSpTBXTabCloseButton read FTabCloseButton write SetTabCloseButton default tcbNone;
     property TabCloseButtonImageIndex: Integer read FTabCloseButtonImageIndex write SetTabCloseButtonImageIndex default -1;
     property TabCloseMiddleClick: Boolean read FTabCloseMiddleClick write FTabCloseMiddleClick default False;
@@ -352,6 +357,8 @@ type
     function GetTabToolbar: TSpTBXTabToolbar;
     procedure CMColorchanged(var Message: TMessage); message CM_COLORCHANGED;
     procedure WMInvalidateTabBackground(var Message: TMessage); message WM_INVALIDATETABBACKGROUND;
+    function GetActiveTabVisibleOnResize: Boolean;
+    procedure SetActiveTabVisibleOnResize(const Value: Boolean);
   protected
     // Painting
     procedure DrawBackground(ACanvas: TCanvas; ARect: TRect); override;
@@ -374,6 +381,7 @@ type
     property Color default clBtnFace;
     property ParentColor default False;
     property ActiveTabIndex: Integer read GetActiveTabIndex write SetActiveTabIndex;
+    property ActiveTabVisibleOnResize: Boolean read GetActiveTabVisibleOnResize write SetActiveTabVisibleOnResize default True;
     property TabAutofit: Boolean read GetTabAutofit write SetTabAutofit default False;
     property TabAutofitMaxSize: Integer read GetTabAutofitMaxSize write SetTabAutofitMaxSize default 200;
     property TabBackgroundColor: TColor read GetTabBackgroundColor write SetTabBackgroundColor default clNone;
@@ -1392,6 +1400,7 @@ begin
   else
     FOwnerTabControl := nil;
   FActiveTabIndex := -1;
+  FActiveTabVisibleOnResize := True;
   FTabBackgroundBorders := False;
   FTabAutofitMaxSize := 200;
   FTabCloseButtonImageIndex := -1;
@@ -1428,6 +1437,22 @@ begin
       end;
     end;
   end;
+end;
+
+function TSpTBXTabToolbar.DoMouseWheelDown(Shift: TShiftState;
+  MousePos: TPoint): Boolean;
+begin
+  Result := inherited DoMouseWheelDown(Shift, MousePos);
+  if not Result then
+    ScrollLeft;
+end;
+
+function TSpTBXTabToolbar.DoMouseWheelUp(Shift: TShiftState;
+  MousePos: TPoint): Boolean;
+begin
+  Result := inherited DoMouseWheelUp(Shift, MousePos);
+  if not Result then
+    ScrollRight;
 end;
 
 procedure TSpTBXTabToolbar.InternalDrawBackground(ACanvas: TCanvas; ARect: TRect;
@@ -1620,6 +1645,14 @@ begin
   finally
     View.EndUpdate;
   end;
+end;
+
+procedure TSpTBXTabToolbar.Resize;
+begin
+  inherited;
+  // Make the selected tab always visible
+  if FActiveTabVisibleOnResize and not TabAutofit then
+    MakeVisible(ActiveTab);
 end;
 
 procedure TSpTBXTabToolbar.RightAlignItems;
@@ -2564,6 +2597,14 @@ begin
     Result := -1;
 end;
 
+function TSpTBXCustomTabSet.GetActiveTabVisibleOnResize: Boolean;
+begin
+  if Assigned(FToolbar) then
+    Result := Toolbar.ActiveTabVisibleOnResize
+  else
+    Result := True;
+end;
+
 procedure TSpTBXCustomTabSet.SetActiveTabIndex(Value: Integer);
 begin
   // When the component is reading from the DFM the Items are not created.
@@ -2574,6 +2615,12 @@ begin
   else
     if Assigned(FToolbar) then
       Toolbar.ActiveTabIndex := Value;
+end;
+
+procedure TSpTBXCustomTabSet.SetActiveTabVisibleOnResize(const Value: Boolean);
+begin
+  if Assigned(FToolbar) then
+    Toolbar.ActiveTabVisibleOnResize := Value;
 end;
 
 function TSpTBXCustomTabSet.GetTabCloseButton: TSpTBXTabCloseButton;

@@ -10,11 +10,9 @@ object Form1: TForm1
   Font.Height = -11
   Font.Name = 'MS Shell Dlg 2'
   Font.Style = []
-  OldCreateOrder = False
   OnCreate = FormCreate
   OnDestroy = FormDestroy
   OnShow = FormShow
-  PixelsPerInch = 96
   TextHeight = 13
   object Image1: TImage
     Left = 250
@@ -711,6 +709,8 @@ object Form1: TForm1
     Align = alClient
     BevelOuter = bvNone
     TabOrder = 2
+    ExplicitWidth = 313
+    ExplicitHeight = 458
     object SpTBXTabControl1: TSpTBXTabControl
       Left = 0
       Top = 0
@@ -718,6 +718,8 @@ object Form1: TForm1
       Height = 459
       Align = alClient
       ActiveTabIndex = -1
+      ExplicitWidth = 313
+      ExplicitHeight = 458
       HiddenItems = <>
       object SpTBXRightAlignSpacerItem1: TSpTBXRightAlignSpacerItem
         CustomWidth = 281
@@ -746,6 +748,7 @@ object Form1: TForm1
     Height = 459
     Cursor = crSizeWE
     ParentColor = False
+    ExplicitHeight = 458
   end
   object SpTBXSplitter2: TSpTBXSplitter
     Left = 595
@@ -754,12 +757,15 @@ object Form1: TForm1
     Cursor = crSizeWE
     Align = alRight
     ParentColor = False
+    ExplicitLeft = 591
+    ExplicitHeight = 458
   end
   object SpTBXMultiDock1: TSpTBXMultiDock
     Left = 0
     Top = 75
     Width = 273
     Height = 459
+    ExplicitHeight = 458
     object SpTBXDockablePanel1: TSpTBXDockablePanel
       Left = 0
       Top = 0
@@ -780,14 +786,14 @@ object Form1: TForm1
         Height = 275
         Align = alClient
         OnResize = SpTBXTabControl2Resize
-        ActiveTabIndex = 0
+        ActiveTabIndex = 1
         HiddenItems = <>
         object SpTBXTabItem1: TSpTBXTabItem
           Caption = 'Controls'
-          Checked = True
         end
         object SpTBXTabItem6: TSpTBXTabItem
           Caption = 'Editors'
+          Checked = True
         end
         object SpTBXTabItem3: TSpTBXTabItem
           Caption = 'Misc'
@@ -841,141 +847,6 @@ object Form1: TForm1
               Height = 19
               Caption = 'Open Documents folder with the tree'
             end
-          end
-        end
-        object SpTBXTabSheet6: TSpTBXTabSheet
-          Left = 0
-          Top = 25
-          Width = 269
-          Height = 250
-          Caption = 'Editors'
-          ImageIndex = -1
-          DesignSize = (
-            269
-            250)
-          TabItem = 'SpTBXTabItem6'
-          object SpTBXPanel2: TSpTBXPanel
-            Left = 8
-            Top = 112
-            Width = 252
-            Height = 75
-            Anchors = [akLeft, akTop, akRight, akBottom]
-            TabOrder = 4
-            HotTrack = True
-            object Memo2: TMemo
-              Left = 2
-              Top = 22
-              Width = 248
-              Height = 51
-              Align = alClient
-              BorderStyle = bsNone
-              Lines.Strings = (
-                'To add hottrack borders to your controls:'
-                '1) Drop a TSpTBXPanel and set HotTrack to true'
-                '2) Drop a control inside'
-                '3) Set the control Align to alClient'
-                '4) Set the control BorderStyle to bsNone'
-                '4) Change the skin to other than Default')
-              TabOrder = 0
-            end
-            object Panel2: TPanel
-              Left = 2
-              Top = 2
-              Width = 248
-              Height = 20
-              Align = alTop
-              BevelOuter = bvNone
-              TabOrder = 1
-              object SpTBXSpeedButton1: TSpTBXSpeedButton
-                Left = 0
-                Top = 0
-                Width = 81
-                Height = 20
-                Caption = 'Column 1'
-                Align = alLeft
-                OnDraw = SpTBXSpeedButton1Draw
-              end
-              object SpTBXSpeedButton2: TSpTBXSpeedButton
-                Left = 81
-                Top = 0
-                Width = 96
-                Height = 20
-                Caption = 'Column 2'
-                Align = alLeft
-                OnDraw = SpTBXSpeedButton1Draw
-              end
-              object SpTBXSpeedButton3: TSpTBXSpeedButton
-                Left = 177
-                Top = 0
-                Width = 71
-                Height = 20
-                Caption = 'Column 3'
-                Align = alClient
-                OnDraw = SpTBXSpeedButton1Draw
-              end
-            end
-          end
-          object SpTBXButtonEdit1: TSpTBXButtonEdit
-            Left = 8
-            Top = 48
-            Width = 121
-            Height = 21
-            TabOrder = 2
-            Text = 'SpTBXButtonEdit'
-            EditButton.Left = 97
-            EditButton.Top = 0
-            EditButton.Width = 20
-            EditButton.Height = 17
-            EditButton.Caption = '...'
-            EditButton.Align = alRight
-          end
-          object SpTBXComboBox2: TSpTBXComboBox
-            Left = 136
-            Top = 16
-            Width = 121
-            Height = 21
-            ItemHeight = 13
-            TabOrder = 1
-            Text = 'SpTBXComboBox'
-          end
-          object SpTBXEdit1: TSpTBXEdit
-            Left = 8
-            Top = 16
-            Width = 121
-            Height = 21
-            TabOrder = 0
-            Text = 'SpTBXEdit'
-          end
-          object SpTBXSpinEdit1: TSpTBXSpinEdit
-            Left = 136
-            Top = 48
-            Width = 121
-            Height = 21
-            TabOrder = 3
-            SpinButton.Left = 100
-            SpinButton.Top = 0
-            SpinButton.Width = 17
-            SpinButton.Height = 17
-            SpinButton.Align = alRight
-          end
-          object SpTBXColorEdit1: TSpTBXColorEdit
-            Left = 8
-            Top = 80
-            Width = 121
-            Height = 21
-            TabOrder = 5
-            SelectedColor = clBlack
-          end
-          object SpTBXFontComboBox1: TSpTBXFontComboBox
-            Left = 136
-            Top = 80
-            Width = 121
-            Height = 21
-            ItemHeight = 23
-            ItemIndex = 3
-            TabOrder = 6
-            Text = 'Arial'
-            SelectedFont = 'Arial'
           end
         end
         object SpTBXTabSheet1: TSpTBXTabSheet
@@ -1106,6 +977,139 @@ object Form1: TForm1
               'Center')
           end
         end
+        object SpTBXTabSheet6: TSpTBXTabSheet
+          Left = 0
+          Top = 25
+          Width = 269
+          Height = 250
+          Caption = 'Editors'
+          ImageIndex = -1
+          DesignSize = (
+            269
+            250)
+          TabItem = 'SpTBXTabItem6'
+          object SpTBXPanel2: TSpTBXPanel
+            Left = 8
+            Top = 112
+            Width = 252
+            Height = 97
+            Anchors = [akLeft, akTop, akRight, akBottom]
+            TabOrder = 4
+            HotTrack = True
+            object Memo2: TMemo
+              Left = 2
+              Top = 22
+              Width = 248
+              Height = 73
+              Align = alClient
+              BorderStyle = bsNone
+              Lines.Strings = (
+                'To add hottrack borders to your controls:'
+                '1) Drop a TSpTBXPanel and set HotTrack to true'
+                '2) Drop a control inside'
+                '3) Set the control Align to alClient'
+                '4) Set the control BorderStyle to bsNone')
+              TabOrder = 0
+              ExplicitHeight = 51
+            end
+            object Panel2: TPanel
+              Left = 2
+              Top = 2
+              Width = 248
+              Height = 20
+              Align = alTop
+              BevelOuter = bvNone
+              TabOrder = 1
+              object SpTBXSpeedButton1: TSpTBXSpeedButton
+                Left = 0
+                Top = 0
+                Width = 81
+                Height = 20
+                Caption = 'Column 1'
+                Align = alLeft
+                OnDraw = SpTBXSpeedButton1Draw
+              end
+              object SpTBXSpeedButton2: TSpTBXSpeedButton
+                Left = 81
+                Top = 0
+                Width = 96
+                Height = 20
+                Caption = 'Column 2'
+                Align = alLeft
+                OnDraw = SpTBXSpeedButton1Draw
+              end
+              object SpTBXSpeedButton3: TSpTBXSpeedButton
+                Left = 177
+                Top = 0
+                Width = 71
+                Height = 20
+                Caption = 'Column 3'
+                Align = alClient
+                OnDraw = SpTBXSpeedButton1Draw
+              end
+            end
+          end
+          object SpTBXButtonEdit1: TSpTBXButtonEdit
+            Left = 8
+            Top = 48
+            Width = 121
+            Height = 21
+            TabOrder = 2
+            Text = 'SpTBXButtonEdit'
+            EditButton.Left = 97
+            EditButton.Top = 0
+            EditButton.Width = 20
+            EditButton.Height = 17
+            EditButton.Caption = '...'
+            EditButton.Align = alRight
+          end
+          object SpTBXComboBox2: TSpTBXComboBox
+            Left = 136
+            Top = 16
+            Width = 121
+            Height = 21
+            ItemHeight = 13
+            TabOrder = 1
+            Text = 'SpTBXComboBox'
+          end
+          object SpTBXEdit1: TSpTBXEdit
+            Left = 8
+            Top = 16
+            Width = 121
+            Height = 21
+            TabOrder = 0
+            Text = 'SpTBXEdit'
+          end
+          object SpTBXSpinEdit1: TSpTBXSpinEdit
+            Left = 136
+            Top = 48
+            Width = 121
+            Height = 21
+            TabOrder = 3
+            SpinButton.Left = 100
+            SpinButton.Top = 0
+            SpinButton.Width = 17
+            SpinButton.Height = 17
+            SpinButton.Align = alRight
+          end
+          object SpTBXColorEdit1: TSpTBXColorEdit
+            Left = 8
+            Top = 80
+            Width = 121
+            Height = 21
+            TabOrder = 5
+            SelectedColor = clBlack
+          end
+          object SpTBXFontComboBox1: TSpTBXFontComboBox
+            Left = 136
+            Top = 80
+            Width = 121
+            Height = 21
+            ItemHeight = 23
+            TabOrder = 6
+            Text = 'Arial'
+          end
+        end
       end
     end
     object SpTBXDockablePanel2: TSpTBXDockablePanel
@@ -1127,6 +1131,7 @@ object Form1: TForm1
         Caption = 'Skin Type'
         Anchors = [akLeft, akTop, akRight, akBottom]
         TabOrder = 2
+        ExplicitHeight = 119
         object radiobuttonSkin1: TSpTBXRadioButton
           Left = 16
           Top = 24
@@ -1175,6 +1180,7 @@ object Form1: TForm1
     Top = 0
     Width = 736
     Height = 75
+    ExplicitWidth = 732
     object SpTBXToolbar1: TSpTBXToolbar
       Left = 0
       Top = 0
@@ -1247,10 +1253,10 @@ object Form1: TForm1
         ImageIndex = 5
       end
       object SpTBXComboBox1: TSpTBXComboBox
-        Tag = 613
+        Tag = 605
         Left = 55
         Top = 0
-        Width = 613
+        Width = 605
         Height = 21
         Anchors = [akLeft, akTop, akRight]
         ItemHeight = 13
@@ -1278,7 +1284,7 @@ object Form1: TForm1
       object SpTBXItem4: TSpTBXItem
         Caption = 'Anchored Item'
         Anchored = True
-        CustomWidth = 513
+        CustomWidth = 505
       end
     end
   end
@@ -1288,6 +1294,8 @@ object Form1: TForm1
     Width = 136
     Height = 459
     Position = dpxRight
+    ExplicitLeft = 596
+    ExplicitHeight = 458
     object DP1: TSpTBXDockablePanel
       Left = 0
       Top = 286
@@ -1416,7 +1424,8 @@ object Form1: TForm1
     Height = 27
     ParentShowHint = False
     ShowHint = True
-    ExplicitTop = 536
+    ExplicitTop = 533
+    ExplicitWidth = 732
     object TBControlItem2: TTBControlItem
       Control = SpTBXProgressBar2
     end

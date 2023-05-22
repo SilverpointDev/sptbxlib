@@ -37,20 +37,6 @@ Development notes:
   - All the theme changes and adjustments are marked with '[Theme-Change]'.
   - DT_END_ELLIPSIS and DT_PATH_ELLIPSIS doesn't work with rotated text
     http://support.microsoft.com/kb/249678
-  - Vista theme elements are defined on the Themes unit on Delphi XE2 and up.
-    VCL Styles are supported on Delphi XE2 and up.
-    For older versions of Delphi we should fill the element details manually.
-    When XE2 Styles are used menus and toolbar elements (teMenu and teToolbar)
-    are painted by TCustomStyleMenuElements.DrawElement.
-    State is passed by TCustomStyle.GetElementDetails(Detail: TThemedMenu) as:
-    State = Integer(Detail), Part is not used:
-    function TCustomStyle.GetElementDetails(Detail: TThemedMenu): TThemedElementDetails;
-    begin
-      Result.Element := teMenu;
-      Result.Part := 0;
-      Result.State := Integer(Detail);
-    end;
-    All this adjustments are marked with '[Old-Themes]'
 
 ==============================================================================}
 
@@ -423,8 +409,8 @@ type
     procedure SetToDefaultSkin;
     procedure SetSkin(SkinName: string);
 
-    // [Old-Themes]
     procedure SetDelphiStyle(StyleName: string);
+    procedure SetDelphiStyleFromFile(StyleFile: string);
     function IsValidDelphiStyle(StyleName: string): Boolean;
 
     property CurrentSkin: TSpTBXSkinOptions read FCurrentSkin;
@@ -3925,9 +3911,8 @@ begin
           if Assigned(K.SkinStrings) then begin
             FCurrentSkin.Free;
             FCurrentSkin := TSpTBXSkinOptions.Create;
+            // LoadFromStrings calls to ResetToSystemStyle and BroadcastSkinNotification
             FCurrentSkin.LoadFromStrings(K.SkinStrings);
-            ResetToSystemStyle;
-            BroadcastSkinNotification;
           end;
     end;
 end;
@@ -3935,11 +3920,23 @@ end;
 procedure TSpTBXSkinManager.SetDelphiStyle(StyleName: string);
 begin
   if not SameText(StyleName, TStyleManager.ActiveStyle.Name) then begin
-    if not IsDefaultSkin then
-      SetToDefaultSkin;
+    if not IsDefaultSkin then begin
+      FCurrentSkin.Free;
+      FCurrentSkin := TSpTBXSkinOptions.Create;
+      ResetToSystemStyle;
+    end;
     TStyleManager.SetStyle(StyleName);
-    Broadcast;
+    BroadcastSkinNotification;
   end;
+end;
+
+procedure TSpTBXSkinManager.SetDelphiStyleFromFile(StyleFile: string);
+begin
+  FCurrentSkin.Free;
+  FCurrentSkin := TSpTBXSkinOptions.Create;
+  ResetToSystemStyle;
+  TStyleManager.SetStyle(TStyleManager.LoadFromFile(StyleFile));
+  BroadcastSkinNotification;
 end;
 
 function TSpTBXSkinManager.IsValidDelphiStyle(StyleName: string): Boolean;
@@ -3957,7 +3954,6 @@ end;
 procedure TSpTBXSkinManager.SetToDefaultSkin;
 begin
   if GetSkinType(nil) <> sknWindows then begin
-//  if not IsDefaultSkin or IsDelphiStyleActive then begin
     FCurrentSkin.Free;
     FCurrentSkin := TSpTBXSkinOptions.Create;
     ResetToSystemStyle;
