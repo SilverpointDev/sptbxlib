@@ -6828,8 +6828,14 @@ begin
   for I := 0 to Items.Count - 1 do
     if Items[I] is TSpTBXCustomItem then begin
       T := TSpTBXCustomItem(Items[I]);
-      W := MulDiv(T.CustomWidth, M, D);
-      H := MulDiv(T.CustomHeight, M, D);
+      if T.CustomWidth > -1 then
+        W := MulDiv(T.CustomWidth, M, D)
+      else
+        W := -1;
+      if T.CustomHeight > -1 then
+        H := MulDiv(T.CustomHeight, M, D)
+      else
+        H := -1;
       if IsVertical then begin
         if (T is TSpTBXRightAlignSpacerItem) and (H < 0) then
           H := 0;

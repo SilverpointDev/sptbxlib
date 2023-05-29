@@ -238,7 +238,6 @@ type
     function GetViewClass: TTBToolbarViewClass; override;
     procedure InternalDrawBackground(ACanvas: TCanvas; ARect: TRect; PaintOnNCArea: Boolean; PaintBorders: Boolean = True); override;
     procedure DoItemNotification(Ancestor: TTBCustomItem; Relayed: Boolean; Action: TTBItemChangedAction; Index: Integer; Item: TTBCustomItem); override;
-    procedure Resize; override;
     procedure RightAlignItems; override;
 
     function CanDragCustomize(Button: TMouseButton; Shift: TShiftState; X, Y: Integer): Boolean; override;
@@ -377,6 +376,7 @@ type
     procedure DefineProperties(Filer: TFiler); override;
     function GetToolbarClass: TSpTBXToolbarClass; override;
     procedure Loaded; override;
+    procedure Resize; override;
 
     property Color default clBtnFace;
     property ParentColor default False;
@@ -1647,14 +1647,6 @@ begin
   end;
 end;
 
-procedure TSpTBXTabToolbar.Resize;
-begin
-  inherited;
-  // Make the selected tab always visible
-  if FActiveTabVisibleOnResize and not TabAutofit then
-    MakeVisible(ActiveTab);
-end;
-
 procedure TSpTBXTabToolbar.RightAlignItems;
 // Hide the Tab Items on resizing (only tab items!!!)
 var
@@ -2449,6 +2441,16 @@ procedure TSpTBXCustomTabSet.ReadHiddenItems(Reader: TReader);
 begin
   if Reader.ReadValue = vaCollection then
     Reader.ReadCollection(Toolbar.FHiddenTabs);
+end;
+
+procedure TSpTBXCustomTabSet.Resize;
+begin
+  inherited;
+  // Make the selected tab always visible
+  if ActiveTabVisibleOnResize and not TabAutofit then begin
+    Toolbar.RightAlignItems;
+    MakeVisible(ActiveTab);
+  end;
 end;
 
 procedure TSpTBXCustomTabSet.WriteHiddenItems(Writer: TWriter);
