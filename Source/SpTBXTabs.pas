@@ -195,6 +195,12 @@ type
     property TabPosition: TSpTBXTabPosition read GetTabPosition;
   end;
 
+  { TSpTBXTabToolbarDock }
+  TSpTBXTabToolbarDock = class(TSpTBXDock)
+  protected
+    procedure DoDrawBackground(ACanvas: TCanvas; ARect: TRect; const PaintStage: TSpTBXPaintStage; var PaintDefault: Boolean); override;
+  end;
+
   { TSpTBXTabToolbar }
 
   TSpTBXTabToolbarView = class(TSpTBXToolbarView)
@@ -374,6 +380,7 @@ type
 
     // Component
     procedure DefineProperties(Filer: TFiler); override;
+    function GetDockClass: TSpTBXDockClass; override;
     function GetToolbarClass: TSpTBXToolbarClass; override;
     procedure Loaded; override;
     procedure Resize; override;
@@ -970,6 +977,7 @@ var
   IsHoverItem: Boolean;
   R: TRect;
   Position: TSpTBXTabPosition;
+  DockedBorderSize: Integer;
 begin
   inherited;
 
@@ -977,6 +985,7 @@ begin
     PaintDefault := False;
     IsHoverItem := (ItemInfo.State = sknsHotTrack) or (ItemInfo.State = sknsCheckedAndHotTrack);
     Position := TabPosition;
+    DockedBorderSize := TSpTBXToolbar(View.Window).DockedBorderSize;
 
     // Match the bottom of the Tab with the bottom of the TabSet
     case Position of
@@ -1019,16 +1028,16 @@ begin
             // The left border of the Tab will be painted by the Left tab if
             // its the first tab
             if Assigned(LeftT) or (Item.IsFirstVisible) then
-              R.Left := R.Left - PPIScale(2);
+              R.Left := R.Left - DockedBorderSize; // Do not scale borders
             // The right border of the Tab will be painted by the Right tab
             if Assigned(RightT) then
-              R.Right := R.Right + PPIScale(2);
+              R.Right := R.Right + DockedBorderSize; // Do not scale borders
           end
           else begin
             // Non checked tabs should be smaller
             case Position of
-              ttpTop:    Inc(R.Top, PPIScale(2));
-              ttpBottom: Dec(R.Bottom, PPIScale(2));
+              ttpTop:    Inc(R.Top, DockedBorderSize); // Do not scale borders
+              ttpBottom: Dec(R.Bottom, DockedBorderSize); // Do not scale borders
             end;
           end;
 
@@ -1040,14 +1049,14 @@ begin
             R := ARect;
             // Draw the left border
             if Assigned(LeftT) and LeftT.Item.Checked then begin
-              R.Right := R.Left + PPIScale(2);
+              R.Right := R.Left + DockedBorderSize;  // Do not scale borders
               R.Left := R.Right - PPIScale(10);
               DrawTab(ACanvas, R, LeftT.Item.Enabled, True, IsHoverItem, Position);
             end
             else
               // Draw the right border
               if Assigned(RightT) and RightT.Item.Checked then begin
-                R.Left := R.Right - PPIScale(2);
+                R.Left := R.Right - DockedBorderSize; // Do not scale borders
                 R.Right := R.Left + PPIScale(10);
                 DrawTab(ACanvas, R, RightT.Item.Enabled, True, IsHoverItem, Position);
               end;
@@ -1100,9 +1109,9 @@ begin
 
   case Position of
     ttpTop:
-      Inc(CR.Bottom, PPIScale(2));
+      Inc(CR.Bottom, DockedBorderSize);
     ttpBottom:
-      Dec(CR.Top, PPIScale(2));
+      Dec(CR.Top, DockedBorderSize);
   end;
 
   if SkinManager.GetSkinType(View.Window) in [sknWindows, sknDelphiStyle] then begin
@@ -1116,7 +1125,7 @@ begin
 
   B := TBitmap.Create;
   try
-    B.SetSize(CR.Right - CR.Left, CR.Bottom - CR.Top + PPIScale(4)); // Larger than CR
+    B.SetSize(CR.Right - CR.Left, CR.Bottom - CR.Top + DockedBorderSize * 2); // Larger than CR
     R := Rect(0, 0, B.Width, B.Height);
     DrawTab(B.Canvas, R, True, True, False, Position, False);
 
@@ -1124,7 +1133,7 @@ begin
       ttpTop:
         R  := Bounds(0, 0, CR.Right - CR.Left, CR.Bottom - CR.Top); // Copy from Y = 0
       ttpBottom:
-        R  := Bounds(0, PPIScale(2), CR.Right - CR.Left, CR.Bottom - CR.Top + PPIScale(2)); // Copy from Y = 2
+        R  := Bounds(0, DockedBorderSize, CR.Right - CR.Left, CR.Bottom - CR.Top + DockedBorderSize); // Copy from Y = 2
     end;
 
     ACanvas.CopyRect(CR, B.Canvas, R);
@@ -1360,6 +1369,24 @@ begin
 end;
 
 //WMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWM
+{ TSpTBXTabToolbarDock }
+
+procedure TSpTBXTabToolbarDock.DoDrawBackground(ACanvas: TCanvas; ARect: TRect;
+  const PaintStage: TSpTBXPaintStage; var PaintDefault: Boolean);
+begin
+  inherited DoDrawBackground(ACanvas, ARect, PaintStage, PaintDefault);
+  // Override Windows theme painting
+  // There's no tab toolbar background when using Windows default theme.
+  // Simply paint the background with clBtnFace
+  if (PaintStage = pstPrePaint) and PaintDefault then
+    if SkinManager.GetSkinType(Self) = sknWindows then begin
+      PaintDefault := False;
+      ACanvas.Brush.Color := SpTBXStyleServices(Self).GetSystemColor(clBtnFace);
+      ACanvas.FillRect(ARect);
+    end;
+end;
+
+//WMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWM
 { TSpTBXTabToolbarView }
 
 procedure TSpTBXTabToolbarView.BeginUpdate;
@@ -1488,20 +1515,21 @@ begin
         end;
 
         // Exclude clip rect of the bottom borders
+        // Do not scale borders!
         PrevDelta := 1;
         NextDelta := 1;
         if SkinManager.GetSkinType(Self) in [sknWindows, sknDelphiStyle] then begin
           // Grow the size of the clip rect when using Windows theme
-          PrevDelta := -PPIScale(PrevDelta); // -PrevDelta;
-          NextDelta := -PPIScale(NextDelta); // -NextDelta;
+          PrevDelta := -PrevDelta;
+          NextDelta := -NextDelta;
           // Special case: the right side of the last tab is not bigger
           if not Assigned(Tab.GetNextTab(True, sivtInmediateSkipNonVisible)) then
             NextDelta := 1;
         end;
         if FTabPosition = ttpTop then
-          ExcludeClipRect(B.Canvas.Handle, DestR.Left + PrevDelta, R.Bottom - PPIScale(2), DestR.Right - NextDelta, R.Bottom + PPIScale(4))
+          ExcludeClipRect(B.Canvas.Handle, DestR.Left + PrevDelta, R.Bottom - DockedBorderSize, DestR.Right - NextDelta, R.Bottom + DockedBorderSize * 2)
         else
-          ExcludeClipRect(B.Canvas.Handle, DestR.Left + PrevDelta, R.Top + PPIScale(2), DestR.Right - NextDelta, R.Top - PPIScale(4));
+          ExcludeClipRect(B.Canvas.Handle, DestR.Left + PrevDelta, R.Top + DockedBorderSize, DestR.Right - NextDelta, R.Top - DockedBorderSize * 2);
       end;
 
       // Draw the bottom border of the tabs pane
@@ -2491,6 +2519,11 @@ begin
 
   if TabAutofit then
     Toolbar.Autofit;
+end;
+
+function TSpTBXCustomTabSet.GetDockClass: TSpTBXDockClass;
+begin
+  Result := TSpTBXTabToolbarDock;
 end;
 
 function TSpTBXCustomTabSet.GetToolbarClass: TSpTBXToolbarClass;

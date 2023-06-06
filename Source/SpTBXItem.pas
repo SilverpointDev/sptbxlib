@@ -2932,12 +2932,12 @@ var
   Toolbar: TTBCustomDockableWindowAccess;
   IsVertical: Boolean;
 begin
-  if CurrentSkin.Options(SkinComponent, sknsNormal).Body.IsEmpty then
-    SkinComponent := skncToolbar;
-
   Toolbar := TTBCustomDockableWindowAccess(W);
   IsVertical := SpIsVerticalToolbar(Toolbar);
   DrawSkinBody := True;
+
+  if (SkinManager.GetSkinType(Toolbar) = sknSkin) and (CurrentSkin.Options(SkinComponent, sknsNormal).Body.IsEmpty) then
+    SkinComponent := skncToolbar;
 
   if Toolbar.Docked then begin
     // Draw the Dock background
@@ -2948,6 +2948,7 @@ begin
       // We need to offset the border size
       OffsetRect(R, -Toolbar.CurrentDock.DockedBorderSize, -Toolbar.CurrentDock.DockedBorderSize)
     end;
+
     if Toolbar.CurrentDock is TSpTBXDock then
       TSpTBXDock(Toolbar.CurrentDock).DrawBackground(ACanvas.Handle, R);
     DrawSkinBody := not (Toolbar.CurrentDock.BackgroundOnToolbars and SpIsDockUsingBitmap(Toolbar.CurrentDock));
@@ -9003,14 +9004,10 @@ begin
     G := Toolbar.GetGripRect;
     if not IsRectEmpty(G) then begin
       // When it's called by the Toolbar the Gripper position should be corrected
-      if (ARect.Left = PPIScale(-2)) and (ARect.Top = PPIScale(-2)) then
-        OffsetRect(G, PPIScale(-2), PPIScale(-2));
+      // Do not scale borders!
+      if (ARect.Left = -Toolbar.DockedBorderSize) and (ARect.Top = (-Toolbar.DockedBorderSize)) then
+        OffsetRect(G, -Toolbar.DockedBorderSize, -Toolbar.DockedBorderSize);
     end;
-    
-    // newpy Hack!! not sure why is needed
-    //if SkinManager.GetSkinType = sknDelphiStyle then
-    //    OffsetRect(G, PPIScale(4), PPIScale(2));
-
     SpDrawXPStatusBar(Self, ACanvas, ARect, G, CurrentPPI);
     if Toolbar.NeedsSeparatorRepaint then
       DrawSeparators(ACanvas, ARect);
