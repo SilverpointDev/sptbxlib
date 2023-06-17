@@ -1,5 +1,5 @@
 --- TB2Acc.pas	Sat Apr 19 00:31:00 2008
-+++ TB2Acc.pas	Wed Sep 23 15:24:05 2020
++++ TB2Acc.pas	Sat Jun 17 12:23:12 2023
 @@ -36,7 +36,8 @@
  uses
    Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
@@ -10,6 +10,38 @@
  
  type
    { Our declaration for IAccessible }
+@@ -123,6 +124,7 @@
+   private
+     {$IFNDEF CLR}
+     FPrevious, FNext: TTBCustomAccObject;
++    class var AccessibilityFinalized: Boolean;
+     {$ENDIF}
+   public
+     {$IFNDEF CLR}
+@@ -466,6 +468,10 @@
+   finally
+     LeaveCriticalSection(LastAccObjectCritSect);
+   end;
++  // Fix #107: TTBCustomAccObject.Destroy is called after the critical section
++  // is deleted. MSAA client still holds acc. object references
++  if AccessibilityFinalized and (LastAccObject = nil) then
++    DeleteCriticalSection(LastAccObjectCritSect);
+   inherited;
+ end;
+ {$ENDIF}
+@@ -1388,6 +1394,11 @@
+   DisconnectAccObjects;
+   if NeedToUninitialize then
+     CoUninitialize;
+-  DeleteCriticalSection(LastAccObjectCritSect);
++  // Fix #107: TTBCustomAccObject.Destroy is called after the critical section
++  // is deleted. MSAA client still holds acc. object references
++  if LastAccObject = nil then
++    DeleteCriticalSection(LastAccObjectCritSect)
++  else
++    TTBCustomAccObject.AccessibilityFinalized := True;
+ {$ENDIF}
+ end.
 --- TB2Common.pas	Wed Sep 17 14:46:30 2008
 +++ TB2Common.pas	Tue May  2 09:33:22 2023
 @@ -31,11 +31,13 @@

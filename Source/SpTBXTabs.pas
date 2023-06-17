@@ -68,7 +68,8 @@ type
   TSpTBXTabCloseButton = (
     tcbNone,         // No close button on tabs
     tcbActive,       // Close button only on active tab
-    tcbAll           // Close button on all the tabs
+    tcbAll,          // Close button on all the tabs
+    tcbOnHotTrack    // Close button on active and hottracked tab
   );
 
   TSpTBXTabChangeEvent = procedure(Sender: TObject; TabIndex: Integer) of object;
@@ -1297,12 +1298,15 @@ begin
   if IsOnTabToolbar then begin
     T := TSpTBXTabToolbar(View.Window);
     case T.TabCloseButton of
-      tcbNone:
-        Exit;
+      tcbAll:
+        Result := True;
       tcbActive:
-        if not Item.Checked then Exit;
+        if Item.Checked then
+          Result := True;
+      tcbOnHotTrack:
+        if Item.Checked or (View.Selected = Self) then
+          Result := True;
     end;
-    Result := True;
   end;
 end;
 

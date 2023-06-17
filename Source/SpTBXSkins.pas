@@ -519,13 +519,10 @@ procedure SpPaintSkinBorders(ACanvas: TCanvas; ARect: TRect; SkinOption: TSpTBXS
 { Misc }
 function SpIsWinVistaOrUp: Boolean;
 function SpIsWin10OrUp: Boolean;
-function SpGetDirectories(Path: string; L: TStringList): Boolean;
 
 { DPI }
 function SpPPIScale(Value, DPI: Integer): Integer;
-function SpPPIScaleToDPI(PPIScale: TPPIScale): Integer;
 procedure SpDPIResizeBitmap(Bitmap: TBitmap; const NewWidth, NewHeight, DPI: Integer);
-procedure SpDPIScaleImageList(const ImageList: TCustomImageList; M, D: Integer);
 
 { Stock Objects }
 var
@@ -2599,27 +2596,6 @@ begin
   Result := (Win32Platform = VER_PLATFORM_WIN32_NT) and (Win32MajorVersion >= 10);
 end;
 
-function SpGetDirectories(Path: string; L: TStringList): Boolean;
-var
-  SearchRec: TSearchRec;
-begin
-  Result := False;
-  if DirectoryExists(Path) then begin
-    Path := IncludeTrailingPathDelimiter(Path) + '*.*';
-    if FindFirst(Path, faDirectory, SearchRec) = 0 then begin
-      try
-        repeat
-          if (SearchRec.Name <> '.') and (SearchRec.Name <> '..') then
-            L.Add(SearchRec.Name);
-        until FindNext(SearchRec) <> 0;
-        Result := True;
-      finally
-        FindClose(SearchRec);
-      end;
-    end;
-  end;
-end;
-
 //WMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWM
 { DPI }
 
@@ -2627,11 +2603,6 @@ function SpPPIScale(Value, DPI: Integer): Integer;
 begin
   if DPI <= 0 then DPI := 96;
   Result := MulDiv(Value, DPI, 96);
-end;
-
-function SpPPIScaleToDPI(PPIScale: TPPIScale): Integer;
-begin
-  Result := PPIScale(96);
 end;
 
 procedure SpDPIResizeBitmap(Bitmap: TBitmap; const NewWidth, NewHeight, DPI: Integer);
@@ -2652,92 +2623,6 @@ begin
     Bitmap.Canvas.Draw(0, 0, B);
   finally
     B.Free;
-  end;
-end;
-
-// newpy check with newer version of SpDPIScaleImageList
-{
-procedure SpDPIScaleImageList(const ImageList: TCustomImageList; M, D: Integer);
-const
-  ANDbits: array[0..2*16-1] of  Byte = ($FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,
-                                        $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,
-                                        $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,
-                                        $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF);
-  XORbits: array[0..2*16-1] of  Byte = ($00,$00,$00,$00,$00,$00,$00,$00,
-                                        $00,$00,$00,$00,$00,$00,$00,$00,
-                                        $00,$00,$00,$00,$00,$00,$00,$00,
-                                        $00,$00,$00,$00,$00,$00,$00,$00);
-var
-  I: integer;
-  Icon: HIcon;
-  TempIL : TCustomImageList;
-begin
-  if M = D then
-    Exit;
-  TempIL := TCustomImageList.CreateSize(MulDiv(ImageList.Width, M, D), MulDiv(ImageList.Height, M, D));
-  try
-    TempIL.ColorDepth := cd32Bit;
-    TempIL.DrawingStyle := ImageList.DrawingStyle;
-    TempIL.BkColor := ImageList.BkColor;
-    TempIL.BlendColor := ImageList.BlendColor;
-    for I := 0 to ImageList.Count-1 do
-    begin
-      Icon := ImageList_GetIcon(ImageList.Handle, I, LR_DEFAULTCOLOR);
-      if Icon = 0 then
-      begin
-        Icon := CreateIcon(hInstance,16,16,1,1,@ANDbits,@XORbits);
-      end;
-      ImageList_AddIcon(TempIL.Handle, Icon);
-      DestroyIcon(Icon);
-    end;
-    ImageList.Assign(TempIL);
-  finally
-    TempIL.Free;
-  end;
-end;
-
-}
-procedure SpDPIScaleImageList(const ImageList: TCustomImageList; M, D: Integer);
-var
-  I: integer;
-  Bimage, Bmask: TBitmap;
-  TempIL : TImageList;
-begin
-   if M = D then Exit;
-
-  TempIL := TImageList.Create(nil);
-  try
-    // Set size to match DPI (like 250% of 16px = 40px)
-    TempIL.Assign(ImageList);
-    ImageList.Clear;
-    ImageList.SetSize(MulDiv(ImageList.Width, M, D), MulDiv(ImageList.Height, M, D));
-
-    // Add images back to original ImageList
-    for I := 0 to -1 + TempIL.Count do begin
-      Bimage := TBitmap.Create;
-      Bmask := TBitmap.Create;
-      try
-        // Get the image bitmap
-        Bimage.SetSize(TempIL.Width, TempIL.Height);
-        Bimage.Canvas.FillRect(Bimage.Canvas.ClipRect);
-        ImageList_DrawEx(TempIL.Handle, I, Bimage.Canvas.Handle, 0, 0, Bimage.Width, Bimage.Height, CLR_NONE, CLR_NONE, ILD_NORMAL);
-        SpDPIResizeBitmap(Bimage, ImageList.Width, ImageList.Height, M); // Resize
-
-        // Get the mask bitmap
-        Bmask.SetSize(TempIL.Width, TempIL.Height);
-        Bmask.Canvas.FillRect(Bmask.Canvas.ClipRect);
-        ImageList_DrawEx(TempIL.Handle, I, Bmask.Canvas.Handle, 0, 0, Bmask.Width, Bmask.Height, CLR_NONE, CLR_NONE, ILD_MASK);
-        SpDPIResizeBitmap(Bmask, ImageList.Width, ImageList.Height, M); // Resize
-
-        // Add the bitmaps
-        ImageList.Add(Bimage, Bmask);
-      finally
-        Bimage.Free;
-        Bmask.Free;
-      end;
-    end;
-  finally
-    TempIL.Free;
   end;
 end;
 
