@@ -45,6 +45,10 @@ interface
 uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
   Dialogs, StdCtrls, ExtCtrls, ComCtrls, ImgList, CheckLst,
+  {$IF CompilerVersion >= 33} // for Delphi Rio and up
+  System.ImageList, Vcl.BaseImageCollection, Vcl.ImageCollection,
+  Vcl.VirtualImageList,
+  {$IFEND}
   TB2Toolbar, TB2Item,
   SpTBXSkins, SpTBXItem, SpTBXControls, SpTBXEditors, SpTBXTabs, SpTBXCustomizer;
 
@@ -109,7 +113,12 @@ type
       var ARect: TRect; Index: Integer; const State: TOwnerDrawState;
       const PaintStage: TSpTBXPaintStage; var PaintDefault: Boolean);
     procedure FormResize(Sender: TObject);
+    procedure FormDestroy(Sender: TObject);
   protected
+    {$IF CompilerVersion >= 33} // for Delphi Rio and up
+    FInternalVirtualImage: TVirtualImageList;
+    {$IFEND}
+    FCustomizerImages: TCustomImageList;
     procedure DoFillCommands(ToolbarList, ItemList, ShortcutsList: TStringList); override;
     procedure DoSkinChange; override;
   end;
@@ -180,13 +189,13 @@ end;
 
 procedure TSpTBXCustomizeForm.FormCreate(Sender: TObject);
 begin
+  {$IF CompilerVersion >= 33} // for Delphi Rio and up
+  FInternalVirtualImage := TVirtualImageList.Create(Self);
+  {$IFEND}
+  FCustomizerImages := Customizer.Images;
+
   ClosePanel.Visible := not Embedded;
 
-  // Setup the listboxes
-  if Assigned(Customizer.Images) then begin
-    lbCommands.ItemHeight := Customizer.Images.Height + PPIScale(4);
-    lbShortcuts.ItemHeight := lbCommands.ItemHeight;
-  end;
   // Hide the Icon Options combobox if necessary
   if not Assigned(Customizer.OnIconOptionsChange) then begin
     cbIconLabel.Visible := False;
@@ -197,9 +206,35 @@ begin
   cbSkins.ItemIndex := cbSkins.Items.IndexOf(SkinManager.CurrentSkinName);
 end;
 
+procedure TSpTBXCustomizeForm.FormDestroy(Sender: TObject);
+begin
+  {$IF CompilerVersion >= 33} // for Delphi Rio and up
+  FInternalVirtualImage.Free;
+  {$IFEND}
+end;
+
 procedure TSpTBXCustomizeForm.FormShow(Sender: TObject);
 begin
   SpTBXTabControl1.ActiveTabIndex := 0;
+
+  // Setup the listboxes
+  if Assigned(FCustomizerImages) then begin
+    lbCommands.ItemHeight := FCustomizerImages.Height + PPIScale(4);
+    lbShortcuts.ItemHeight := lbCommands.ItemHeight;
+    {$IF CompilerVersion >= 33} // for Delphi Rio and up
+    // The DPI might be different from the main Form, try to use an internal
+    // TVirtualImageList so it is DPI scaled to the child Form.
+    if FCustomizerImages is TVirtualImageList then
+      if Assigned(TVirtualImageList(FCustomizerImages).ImageCollection) then begin
+        // Copy the original IL and scale it to this Form
+        FInternalVirtualImage.Assign(TVirtualImageList(FCustomizerImages));
+        lbCommands.ItemHeight := FInternalVirtualImage.Height + PPIScale(4);
+        lbShortcuts.ItemHeight := lbCommands.ItemHeight;
+        // Point the original IL to the internal VirtualIL
+        FCustomizerImages := FInternalVirtualImage;
+      end;
+    {$IFEND}
+  end;
 end;
 
 procedure TSpTBXCustomizeForm.FormKeyDown(Sender: TObject;
@@ -453,7 +488,7 @@ begin
         SpDrawXPText(ACanvas, SSpTBXCustomizerFormBlankSeparator, ARect, DT_SINGLELINE or DT_CENTER or DT_VCENTER);
       end
       else
-        SpDrawListboxItem(Sender as TSpTBXListBox, Index, ARect, State, False, Customizer.Images);
+        SpDrawListboxItem(Sender as TSpTBXListBox, Index, ARect, State, False, FCustomizerImages);
   end;
 end;
 
@@ -477,7 +512,7 @@ procedure TSpTBXCustomizeForm.lbShortcutsDrawItem(Sender: TObject;
 begin
   if PaintStage = pstPrePaint then begin
     PaintDefault := False;
-    SpDrawListboxItem(Sender as TSpTBXListBox, Index, ARect, State, True, Customizer.Images);
+    SpDrawListboxItem(Sender as TSpTBXListBox, Index, ARect, State, True, FCustomizerImages);
   end;
 end;
 

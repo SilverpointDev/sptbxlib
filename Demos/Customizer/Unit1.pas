@@ -17,7 +17,6 @@ uses
 
 type
   TForm1 = class(TForm)
-    ImageList1: TImageList;
     SpTBXDock1: TSpTBXDock;
     SpTBXMultiDock1: TSpTBXMultiDock;
     SpTBXMultiDock2: TSpTBXMultiDock;
@@ -27,7 +26,7 @@ type
     tbStandard: TSpTBXToolbar;
     tbFormat: TSpTBXToolbar;
     tbMenuBar: TSpTBXToolbar;
-    tbNavigation: TSpTBXToolbar;
+    tbImage: TSpTBXToolbar;
     mFile: TSpTBXSubmenuItem;
     mEdit: TSpTBXSubmenuItem;
     mView: TSpTBXSubmenuItem;
@@ -132,6 +131,7 @@ type
     SpTBXStatusBar1: TSpTBXStatusBar;
     SpTBXColorEdit1: TSpTBXColorEdit;
     TBControlItem5: TTBControlItem;
+    ImageList1: TImageList;
     procedure ActionsExecute(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure tLayoutSaveClick(Sender: TObject);
