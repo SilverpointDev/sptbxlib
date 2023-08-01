@@ -5,9 +5,6 @@ interface
 uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
   Dialogs, StdCtrls, Menus, ImgList, ActnList, ComCtrls,
-  {$IFNDEF UNICODE}
-  TntActnList, TntDialogs, TntStdCtrls, TntSystem, TntForms,
-  {$ENDIF}
   { TB2K }
   TB2Dock, TB2Toolbar, TB2Item, TB2ExtItems,
   SpTBXSkins, SpTBXItem, SpTBXControls, SpTBXDkPanels, SpTBXTabs, SpTBXEditors,
@@ -195,11 +192,7 @@ procedure TForm1.tLayoutSaveClick(Sender: TObject);
 var
   S: string;
 begin
-  {$IFNDEF UNICODE}
-  S := TntDialogs.WideInputBox(_('Save Layout'), _('Save current layout as:'), '');
-  {$ELSE}
   S := InputBox(_('Save Layout'), _('Save current layout as:'), '');
-  {$ENDIF}
   if S <> '' then begin
     SpTBXCustomizer1.SaveLayout(FIniPath, S);
     FillLayoutList(S);
@@ -232,13 +225,7 @@ end;
 //WMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWMWM
 { Languages }
 
-function MyWideCustomLoadResString(ResStringRec: PResStringRec; var Value: WideString): Boolean;
-begin
-  Result := True;
-  Value := GnuGetText.LoadResStringW(ResStringRec);
-end;
-
-procedure SpDxGetTextInitialize(LanguageCode: string; AComponents: array of TComponent; ShellFont, UnicodeResourceStrings: Boolean);
+procedure SpDxGetTextInitialize(LanguageCode: string; AComponents: array of TComponent; ShellFont: Boolean);
 // LanguageCode can be an ISO language code: 'en', 'es', 'ko'
 // And also can be the ISO code plus a description: '[en] English', '[es] Spanish', '[ko] Korean'
 var
@@ -251,17 +238,6 @@ begin
     if (I > 0) then
       LanguageCode := Copy(LanguageCode, 2, I - 2);
   end;
-
-  {$IFNDEF UNICODE}
-  // Override Delphi's automatic ResourceString conversion to Ansi
-  if UnicodeResourceStrings then begin
-    TntSystem.InstallTntSystemUpdates;
-    // Override TNT's LoadResString function
-    // This is necessary because dxGetText uses a different
-    // way to access the translated ResourceStrings.
-    TntSystem.WideCustomLoadResString := MyWideCustomLoadResString;
-  end;
-  {$ENDIF}  
 
   if ShellFont then begin
     if  (Win32Platform = VER_PLATFORM_WIN32_NT) and (Win32MajorVersion >= 5) then
@@ -335,7 +311,7 @@ end;
 
 procedure TForm1.FormCreate(Sender: TObject);
 begin
-  SpDxGetTextInitialize('en', [Self], True, True);
+  SpDxGetTextInitialize('en', [Self], True);
   tLanguages.Items.LoadFromFile('langcodes.txt');
   tLanguages.ItemIndex := 2;
 

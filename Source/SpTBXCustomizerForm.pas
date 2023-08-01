@@ -190,6 +190,8 @@ end;
 procedure TSpTBXCustomizeForm.FormCreate(Sender: TObject);
 begin
   {$IF CompilerVersion >= 33} // for Delphi Rio and up
+  // Use a TVirtualImageList to make the customizer form
+  // multi-monitor and High DPI enabled.
   FInternalVirtualImage := TVirtualImageList.Create(Self);
   {$IFEND}
   FCustomizerImages := Customizer.Images;
@@ -217,10 +219,7 @@ procedure TSpTBXCustomizeForm.FormShow(Sender: TObject);
 begin
   SpTBXTabControl1.ActiveTabIndex := 0;
 
-  // Setup the listboxes
   if Assigned(FCustomizerImages) then begin
-    lbCommands.ItemHeight := FCustomizerImages.Height + PPIScale(4);
-    lbShortcuts.ItemHeight := lbCommands.ItemHeight;
     {$IF CompilerVersion >= 33} // for Delphi Rio and up
     // The DPI might be different from the main Form, try to use an internal
     // TVirtualImageList so it is DPI scaled to the child Form.
@@ -228,12 +227,17 @@ begin
       if Assigned(TVirtualImageList(FCustomizerImages).ImageCollection) then begin
         // Copy the original IL and scale it to this Form
         FInternalVirtualImage.Assign(TVirtualImageList(FCustomizerImages));
-        lbCommands.ItemHeight := FInternalVirtualImage.Height + PPIScale(4);
-        lbShortcuts.ItemHeight := lbCommands.ItemHeight;
+        // Assign doesn't update Width and Height, assume the customizer is
+        // first shown on the main form screen.
+        FInternalVirtualImage.SetSize(FCustomizerImages.Width, FCustomizerImages.Height);
         // Point the original IL to the internal VirtualIL
         FCustomizerImages := FInternalVirtualImage;
       end;
     {$IFEND}
+
+    // Setup the listboxes
+    lbCommands.ItemHeight := FCustomizerImages.Height + PPIScale(4);
+    lbShortcuts.ItemHeight := lbCommands.ItemHeight;
   end;
 end;
 

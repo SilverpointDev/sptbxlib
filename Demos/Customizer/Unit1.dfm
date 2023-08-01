@@ -146,21 +146,18 @@ object Form1: TForm1
       object tNew: TSpTBXItem
         Caption = 'New'
         ImageIndex = 13
-        ImageName = 'newdoc'
         ShortCut = 16462
         OnClick = ActionsExecute
       end
       object tOpen: TSpTBXItem
         Caption = 'Open'
         ImageIndex = 14
-        ImageName = 'open'
         ShortCut = 16463
         OnClick = ActionsExecute
       end
       object tSave: TSpTBXItem
         Caption = 'Save'
         ImageIndex = 15
-        ImageName = 'save'
         ShortCut = 16467
         OnClick = ActionsExecute
       end
@@ -169,14 +166,12 @@ object Form1: TForm1
       object tCut: TSpTBXItem
         Caption = 'Cut'
         ImageIndex = 10
-        ImageName = 'cut'
         ShortCut = 16472
         OnClick = ActionsExecute
       end
       object tCopy: TSpTBXItem
         Caption = 'Copy'
         ImageIndex = 9
-        ImageName = 'copy'
         ShortCut = 16451
         OnClick = ActionsExecute
       end
@@ -184,7 +179,6 @@ object Form1: TForm1
         Caption = 'Paste'
         DisplayMode = nbdmImageAndText
         ImageIndex = 11
-        ImageName = 'paste'
         ShortCut = 16470
         OnClick = ActionsExecute
       end
@@ -194,7 +188,6 @@ object Form1: TForm1
         Caption = 'Find'
         DisplayMode = nbdmImageAndText
         ImageIndex = 12
-        ImageName = 'search'
         ShortCut = 16454
         OnClick = ActionsExecute
       end
@@ -247,21 +240,18 @@ object Form1: TForm1
         Caption = 'Bold'
         DisplayMode = nbdmImageAndText
         ImageIndex = 4
-        ImageName = 'bold'
         ShortCut = 16450
         OnClick = ActionsExecute
       end
       object tItalic: TSpTBXItem
         Caption = 'Italic'
         ImageIndex = 5
-        ImageName = 'italic'
         ShortCut = 16457
         OnClick = ActionsExecute
       end
       object tUnderline: TSpTBXItem
         Caption = 'Underline'
         ImageIndex = 6
-        ImageName = 'underline'
         ShortCut = 16469
         OnClick = ActionsExecute
       end
@@ -599,31 +589,26 @@ object Form1: TForm1
       object tBack: TSpTBXItem
         Caption = 'Zoom -'
         ImageIndex = 17
-        ImageName = 'zoomout'
         OnClick = ActionsExecute
       end
       object tForward: TSpTBXItem
         Caption = 'Zoom +'
         ImageIndex = 18
-        ImageName = 'zoomin'
         OnClick = ActionsExecute
       end
       object tRefresh: TSpTBXItem
         Caption = 'Full Screen'
         ImageIndex = 19
-        ImageName = 'fullscreen'
         OnClick = ActionsExecute
       end
       object tStop: TSpTBXItem
         Caption = 'Rotate Left'
         ImageIndex = 20
-        ImageName = 'rotateleft'
         OnClick = ActionsExecute
       end
       object tSearch: TSpTBXItem
         Caption = 'Rotate Right'
         ImageIndex = 21
-        ImageName = 'rotateright'
         OnClick = ActionsExecute
       end
     end
@@ -662,37 +647,31 @@ object Form1: TForm1
     object cPrint: TSpTBXItem
       Caption = 'Print'
       ImageIndex = 16
-      ImageName = 'print'
       OnClick = ActionsExecute
     end
     object cLeftJustify: TSpTBXItem
       Caption = 'Left Justify'
       ImageIndex = 0
-      ImageName = 'alignleft'
       OnClick = ActionsExecute
     end
     object cCentered: TSpTBXItem
       Caption = 'Centered'
       ImageIndex = 1
-      ImageName = 'alignhorizontalcenter'
       OnClick = ActionsExecute
     end
     object cRightJustify: TSpTBXItem
       Caption = 'Right Justify'
       ImageIndex = 2
-      ImageName = 'alignright'
       OnClick = ActionsExecute
     end
     object cBullets: TSpTBXItem
       Caption = 'Bullets'
       ImageIndex = 7
-      ImageName = 'defaultbullet'
       OnClick = ActionsExecute
     end
     object cNumBullets: TSpTBXItem
       Caption = 'Numbered Bullets'
       ImageIndex = 8
-      ImageName = 'defaultnumbering'
       OnClick = ActionsExecute
     end
     object cSelectAll: TSpTBXItem
