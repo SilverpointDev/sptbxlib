@@ -1,3 +1,21 @@
+18 September 2023 - version 2.5.10
+  - Updated TB2K patch, removed VirtualImageList scaling on 
+    TB2Common.SpGetScaledVirtualImageListSize.
+  - Added ActiveTabVisibleOnResize property to SpTBXTabSet and TSpTBXTabControl, 
+    when set to true the active tab will always be visible when resizing.
+  - Added mouse wheel scrolling to SpTBXTabSet and TSpTBXTabControl.
+  - Fixed #106, scaling back from a very high DPI causes the toolbar items to be 
+    shrinked to 0
+  - Fixed #105, ActiveTab goes out of view when restoring from a minimized state
+  - Fixed Tabs painting on High DPIs, corrected border scaling.
+  - Fixed TabSet and TabControl background painting on the default Windows theme.
+  - Updated TB2K patch, fixed #107: TTBCustomAccObject.Destroy is called after the 
+    critical section is deleted. MSAA client still holds acc. object references.
+  - Added tcbOnHotTrack to TabCloseButton property, the close button will be visible 
+    when the tab is hottracked or if it's the active tab.
+  - Fixed #108: incorrect TSpTBXCustomizer DPI scaling
+  - Fixed #108: TVirtualImageList.Assign doesn't set Width and Height
+
 18 January 2022 - version 2.5.9
   - Added Rad Studio 11 Alexandria support.
   - Added 24x24 images to SpTBXReg.DCR to fix a Rad Studio 11 bug: the IDE doesn't 

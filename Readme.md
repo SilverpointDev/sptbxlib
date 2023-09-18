@@ -22,39 +22,39 @@ SpTBXLib is an add on package for TB2K components, it adds the following feature
 - Form Popup components
 - Skin Editor
 
-For more info go to:
-http://www.silverpointdevelopment.com
+For more info go to:  
+www.silverpointdevelopment.com
 
-# License
+## License
 
-Use and/or distribution of the files requires compliance with the
-SpTBXLib License, found in SpTBXLib-LICENSE.txt or at:
+Use and/or distribution of the files requires compliance with the SpTBXLib License, found in SpTBXLib-LICENSE.txt or at:
 
-  http://www.silverpointdevelopment.com/sptbxlib/SpTBXLib-LICENSE.htm
+www.silverpointdevelopment.com/sptbxlib/SpTBXLib-LICENSE.htm
 
-Alternatively, at your option, the files may be used and/or distributed under
-the terms of the Mozilla Public License Version 1.1, found in MPL-LICENSE.txt or at:
+Alternatively, at your option, the files may be used and/or distributed under the terms of the Mozilla Public License Version 1.1, found in MPL-LICENSE.txt or at:
 
-  http://www.mozilla.org/MPL
+www.mozilla.org/MPL
 
-# Installation
+## Installation
 
 ### Requirements:
 - RAD Studio XE2 or newer:
-- Jordan Russell's Toolbar 2000
-  http://www.jrsoftware.org
+- Jordan Russell's Toolbar 2000 (www.jrsoftware.org)
 
-### Installing with Silverpoint MultiInstaller (http://www.silverpointdevelopment.com/multiinstaller/index.htm):
+### Installing with Silverpoint MultiInstaller (www.silverpointdevelopment.com/multiinstaller/index.htm):
 - Create a new folder for the installation.
 - Download all the component zips to a folder: SpTBXLib + TB2K
 - Download Silverpoint MultiInstaller and the Setup.Ini, extract them to the folder:
 
-The installation folder will end up with this files: 
+The installation folder will end up with this files:
+
+```
 C:\MyInstall
        |-  SpTBXLib.zip
        |-  tb2k-2.2.2.zip
        |-  MultiInstaller.exe
-       |-  Setup.ini 
+       |-  Setup.ini
+```
 
 You are ready to install the component packages, just run MultiInstaller, select the destination folder, and all the components will be unziped, patched, compiled and installed on the Delphi IDE.
 
@@ -76,5 +76,5 @@ Compile and install the components
 - Open the TB2K design package corresponding to the IDE version (tb2kdsgn_d12), press Compile and then press Install, close the package window (don't save the changes).
 - Open the SpTBXLib design package corresponding to the IDE version (SpTBXLibDsgn_*.dpk), press Compile and then press Install, close the package window (don't save the changes).
 
-For more info go to:
-http://www.silverpointdevelopment.com/sptbxlib/support/index.htm
+For more info go to:  
+www.silverpointdevelopment.com/sptbxlib/support/index.htm

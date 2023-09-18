@@ -1,7 +1,7 @@
 unit SpTBXSkins;
 
 {==============================================================================
-Version 2.5.9
+Version 2.5.10
 
 The contents of this file are subject to the SpTBXLib License; you may
 not use or distribute this file except in compliance with the
@@ -44,7 +44,7 @@ interface
 
 {$BOOLEVAL OFF}   // Unit depends on short-circuit boolean evaluation
 {$IF CompilerVersion >= 25} // for Delphi XE4 and up
-  {$LEGACYIFEND ON} // requires $IF to be terminated with $ENDIF instead of $IFEND
+  {$LEGACYIFEND ON} // requires $IF to be terminated by $IFEND (XE4+ allows both $ENDIF and $IFEND)
 {$IFEND}
 
 uses
@@ -393,7 +393,7 @@ type
     destructor Destroy; override;
 
     function GetSkinType(AControl: TControl): TSpTBXSkinType;
-    procedure GetSkinsAndDelphiStyles(SkinsAndStyles: TStrings);
+    procedure GetSkinsAndDelphiStyles(SkinsAndStyles: TStrings; OnlySkins: Boolean = False);
     function IsDefaultSkin: Boolean;
 
     procedure AddSkinNotification(AObject: TObject);
@@ -3741,7 +3741,7 @@ begin
     Result := sknNone;
 end;
 
-procedure TSpTBXSkinManager.GetSkinsAndDelphiStyles(SkinsAndStyles: TStrings);
+procedure TSpTBXSkinManager.GetSkinsAndDelphiStyles(SkinsAndStyles: TStrings; OnlySkins: Boolean = False);
 var
   I: Integer;
   S: string;
@@ -3757,9 +3757,10 @@ begin
       L.Add(S);
 
     // Fill Styles
-    for S in TStyleManager.StyleNames do
-      if S <> TStyleManager.SystemStyle.Name then
-        L.Add(S);
+    if not OnlySkins then
+      for S in TStyleManager.StyleNames do
+        if S <> TStyleManager.SystemStyle.Name then
+          L.Add(S);
 
     // Sort the list and move the Default skin to the top
     L.Sort;

@@ -1,7 +1,7 @@
 unit SpTBXControls;
 
 {==============================================================================
-Version 2.5.9
+Version 2.5.10
 
 The contents of this file are subject to the SpTBXLib License; you may
 not use or distribute this file except in compliance with the
@@ -41,7 +41,7 @@ interface
 
 {$BOOLEVAL OFF}   // Unit depends on short-circuit boolean evaluation
 {$IF CompilerVersion >= 25} // for Delphi XE4 and up
-  {$LEGACYIFEND ON} // requires $IF to be terminated with $ENDIF instead of $IFEND
+  {$LEGACYIFEND ON} // requires $IF to be terminated by $IFEND (XE4+ allows both $ENDIF and $IFEND)
 {$IFEND}
 
 uses

@@ -1,8 +1,8 @@
 object SpTBXColorPickerForm: TSpTBXColorPickerForm
   Left = 156
   Top = 89
-  ClientHeight = 193
-  ClientWidth = 213
+  ClientHeight = 192
+  ClientWidth = 209
   Color = clBtnFace
   Constraints.MinHeight = 211
   Constraints.MinWidth = 217
@@ -16,17 +16,18 @@ object SpTBXColorPickerForm: TSpTBXColorPickerForm
   OnDestroy = FormDestroy
   OnResize = FormResize
   OnShow = FormShow
-  PixelsPerInch = 96
   TextHeight = 13
   object SpTBXTabControl1: TSpTBXTabControl
     Left = 0
     Top = 26
-    Width = 213
-    Height = 167
+    Width = 209
+    Height = 166
     Align = alClient
     ActiveTabIndex = 0
     Images = ImageList1
     OnActiveTabChange = SpTBXTabControl1ActiveTabChange
+    ExplicitWidth = 213
+    ExplicitHeight = 167
     HiddenItems = <>
     object SpTBXTabItem1: TSpTBXTabItem
       Checked = True
@@ -46,14 +47,14 @@ object SpTBXColorPickerForm: TSpTBXColorPickerForm
       Caption = ''
       ImageIndex = 3
       DesignSize = (
-        213
-        141)
+        209
+        140)
       TabItem = 'SpTBXTabItem2'
       object SpTBXColorListBox1: TSpTBXColorListBox
         Left = 5
         Top = 5
-        Width = 200
-        Height = 127
+        Width = 192
+        Height = 126
         Style = [clbsSystemColors, clbsIncludeNone, clbsIncludeDefault, clbsPrettyNames, clbsNoneAsTransparent]
         Anchors = [akLeft, akTop, akRight, akBottom]
         TabOrder = 0
@@ -64,24 +65,28 @@ object SpTBXColorPickerForm: TSpTBXColorPickerForm
     object SpTBXTabSheet3: TSpTBXTabSheet
       Left = 0
       Top = 26
-      Width = 213
-      Height = 141
+      Width = 209
+      Height = 140
       Caption = ''
       ImageIndex = 4
+      ExplicitWidth = 213
+      ExplicitHeight = 141
       DesignSize = (
-        213
-        141)
+        209
+        140)
       TabItem = 'SpTBXTabItem3'
       object imgColorPicker: TImage
         Left = 2
         Top = 0
-        Width = 207
-        Height = 137
+        Width = 203
+        Height = 136
         Align = alClient
         Visible = False
+        ExplicitWidth = 207
+        ExplicitHeight = 137
       end
       object btnColorPicker: TSpTBXSpeedButton
-        Left = 48
+        Left = 44
         Top = 58
         Width = 113
         Height = 22
@@ -90,15 +95,18 @@ object SpTBXColorPickerForm: TSpTBXColorPickerForm
         DragMode = dmAutomatic
         OnEndDrag = btnColorPickerEndDrag
         OnStartDrag = btnColorPickerStartDrag
+        ExplicitLeft = 48
       end
     end
     object SpTBXTabSheet1: TSpTBXTabSheet
       Left = 0
       Top = 26
-      Width = 213
-      Height = 141
+      Width = 209
+      Height = 140
       Caption = ''
       ImageIndex = 2
+      ExplicitWidth = 213
+      ExplicitHeight = 141
       TabItem = 'SpTBXTabItem1'
       object imgPalette: TImage
         Left = 5
@@ -2687,17 +2695,18 @@ object SpTBXColorPickerForm: TSpTBXColorPickerForm
   object SpTBXPanel1: TSpTBXPanel
     Left = 0
     Top = 0
-    Width = 213
+    Width = 209
     Height = 26
     Caption = 'SpTBXPanel1'
     Align = alTop
     TabOrder = 1
     OnDrawBackground = SpTBXPanel1DrawBackground
+    ExplicitWidth = 213
     DesignSize = (
-      213
+      209
       26)
     object btnColorNone: TSpTBXSpeedButton
-      Left = 170
+      Left = 162
       Top = 3
       Width = 20
       Height = 20
@@ -2708,9 +2717,10 @@ object SpTBXColorPickerForm: TSpTBXColorPickerForm
       Images = ImageList1
       ImageIndex = 1
       OnDraw = btnColorDialogDraw
+      ExplicitLeft = 170
     end
     object btnColorDialog: TSpTBXSpeedButton
-      Left = 190
+      Left = 182
       Top = 3
       Width = 20
       Height = 20
@@ -2721,6 +2731,7 @@ object SpTBXColorPickerForm: TSpTBXColorPickerForm
       Images = ImageList1
       ImageIndex = 0
       OnDraw = btnColorDialogDraw
+      ExplicitLeft = 190
     end
     object btnColor: TSpTBXSpeedButton
       Left = 2
