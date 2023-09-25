@@ -37,14 +37,14 @@ www.mozilla.org/MPL
 
 ## Installation
 
-### Requirements:
+### Requirements
 - RAD Studio XE2 or newer:
 - Jordan Russell's Toolbar 2000 (www.jrsoftware.org)
 
-### Installing with Silverpoint MultiInstaller (www.silverpointdevelopment.com/multiinstaller/index.htm):
+### Installing with Silverpoint MultiInstaller
 - Create a new folder for the installation.
 - Download all the component zips to a folder: SpTBXLib + TB2K
-- Download Silverpoint MultiInstaller and the Setup.Ini, extract them to the folder:
+- Download [Silverpoint MultiInstaller](www.silverpointdevelopment.com/multiinstaller/index.htm) and the Setup.Ini
 
 The installation folder will end up with this files:
 
