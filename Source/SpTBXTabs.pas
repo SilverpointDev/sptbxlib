@@ -1805,10 +1805,10 @@ begin
     end;
 
     // Resize the spacer
-    if Assigned(Spacer) then
+    if Assigned(Spacer) then begin
       TSpTBXCustomItemAccess(Spacer.Item).CustomWidth := SpacerW;
-
-    View.UpdatePositions;
+      View.UpdatePositions;
+    end;
   finally
     RightAlignedList.Free;
     View.EndUpdate;
