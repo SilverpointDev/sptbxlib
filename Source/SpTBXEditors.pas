@@ -3025,6 +3025,11 @@ begin
     DoBeginEdit;
     FEditControl.Visible := True;
     FEditControl.SetFocus;
+
+    // Invalidate the popup window
+    if View.IsPopup then
+      View.Window.Invalidate;
+
     if GetActiveWindow <> ActiveWnd then
       SendMessage(ActiveWnd, WM_NCACTIVATE, 1, 0) // Don't gray out title bar of old active window
     else

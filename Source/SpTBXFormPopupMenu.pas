@@ -969,9 +969,6 @@ function TSpTBXFormPopupMenu.InternalPopup(X, Y: Integer; ForceFocus: Boolean;
 var
   ClientR: TRect;
   FC: TCustomFormClass;
-  {$IF CompilerVersion >= 33} // 10.3 Rio and up
-  PPI: Integer;
-  {$IFEND}
 begin
   Result := False;
   SetPopupPoint(Point(X, Y));
@@ -989,13 +986,22 @@ begin
     {$IF CompilerVersion >= 33} // 10.3 Rio and up
     // Normally, setting the Parent scales the Form but here it doesn't because
     // FPopupForm has a FreeNotification (see TControl.SetParent)
+    // Behavior changed on 11 Alexandria (see TControl.SetParent)
+    var PPI: Integer;
     if Assigned(PopupControl) then
       PPI := PopupControl.CurrentPPI
     else
       PPI := Screen.MonitorFromPoint(Point(X, Y)).PixelsPerInch;
-    TCustomFormAccess(FPopupForm).ScaleForPPI(PPI);
-    FWrapperForm.ScaleForPPI(PPI);
+    if PPI <> TCustomFormAccess(FPopupForm).CurrentPPI then begin
+      // ScaleForPPI doesn't scale the client area when Parent = nil
+      var W := FPopupForm.Width;
+      var H := FPopupForm.Height;
+      TCustomFormAccess(FPopupForm).ScaleForPPI(PPI);
+      FPopupForm.Width := MulDiv(W, PPI, 96);
+      FPopupForm.Height := MulDiv(H, PPI, 96);
+    end;
     {$IFEND}
+
     FPopupFormState.PopupForm := FPopupForm;
     FPopupFormState.BorderStyle := FPopupForm.BorderStyle;
     FPopupFormState.BoundsRect := FPopupForm.BoundsRect;
