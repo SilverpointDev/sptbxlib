@@ -2476,7 +2476,8 @@ var
   State: TSpTBXSkinStatesType;
 begin
   State := CurrentSkin.GetState(True, False, HotTrack, Selected);
-  ACanvas.Font.Color := CurrentSkin.GetTextColor(AControl, skncListItem, State);
+  if (TControlAccess(AControl).Font.Color = clWindowText) or (TControlAccess(AControl).Font.Color = clNone) then
+    ACanvas.Font.Color := CurrentSkin.GetTextColor(AControl, skncListItem, State);
 
   if SkinManager.GetSkinType(AControl) = sknSkin then begin
     ACanvas.FillRect(ARect);
