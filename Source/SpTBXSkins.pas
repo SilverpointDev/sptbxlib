@@ -3463,7 +3463,7 @@ var
 begin
   SaveIndex := SaveDC(ACanvas.Handle);  // XE2 Styles changes the font
   try
-    SpTBXStyleServices(AControl).DrawElement(ACanvas.Handle, Details, ARect, nil{$IF CompilerVersion >= 33}, DPI{$IFEND}); // DPI param introduced on 10.3 Rio DPI);
+    SpTBXStyleServices(AControl).DrawElement(ACanvas.Handle, Details, ARect, nil{$IF CompilerVersion >= 33}, DPI{$IFEND}); // DPI param introduced on 10.3 Rio DPI
   finally
     RestoreDC(ACanvas.Handle, SaveIndex);
   end;

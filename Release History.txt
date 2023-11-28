@@ -1,3 +1,9 @@
+28 November 2023 - version 2.5.11
+  - Added Rad Studio 12 Athens support.
+  - Added package files for Delphi Rio and up, vclwinx added to runtime package 
+    to add support for TVirtualImageList.
+    Delphi Tokyo and older should use the packages located at \RAD Studio Tokyo And Older
+
 18 September 2023 - version 2.5.10
   - Updated TB2K patch, removed VirtualImageList scaling on 
     TB2Common.SpGetScaledVirtualImageListSize.

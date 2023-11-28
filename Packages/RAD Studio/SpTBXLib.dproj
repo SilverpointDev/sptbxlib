@@ -86,6 +86,7 @@
         <DCCReference Include="tb2k_d12.dcp"/>
         <DCCReference Include="rtl.dcp"/>
         <DCCReference Include="vclx.dcp"/>
+        <DCCReference Include="vclwinx.dcp"/>
         <DCCReference Include="..\..\Source\SpTBXItem.pas"/>
         <DCCReference Include="..\..\Source\SpTBXControls.pas"/>
         <DCCReference Include="..\..\Source\SpTBXTabs.pas"/>
