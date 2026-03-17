@@ -351,6 +351,19 @@
 +        end;
 +      end;
 +    end
++    // special case for TSVGIconImageList (also uses RTTI)
++    else
++      if (ImageList.ClassName = 'TSVGIconImageList') then begin
++        if enabled then
++          ImageList.Draw(ACanvas, ARect.Left, ARect.Top, ImageIndex)
++        else
++          begin
++            RttiC := TRttiContext.Create;
++            // Paint disabled
++            RTTIC.GetType(ImageList.ClassType).GetMethod('PaintTo').Invoke(
++              ImageList,[ACanvas,ImageIndex,ARect.Left,ARect.Top,ARect.Width,aRect.Height,False]);
++          end;
++      end
 +    else
 +    {$IFEND}
 +      // For older versions of Delphi
